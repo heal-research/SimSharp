@@ -20,15 +20,26 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  class SteelFactorySimulation {
-    class MySlab {
+  class SteelFactory {
+    /*
+Steel Factory
+
+Covers:
+  - Passing and manually releasing a resource request
+
+Scenario:
+  A steel factory has two continuous casters that produce slabs.
+  They require a crante that transports the cast slabs, before
+  they can start to produce again.
+*/
+    class Slab {
       public TimeSpan CastTime { get; private set; }
-      public MySlab(double castTimeInMinutes) {
+      public Slab(double castTimeInMinutes) {
         CastTime = TimeSpan.FromMinutes(castTimeInMinutes);
       }
     }
 
-    private static IEnumerable<Event> Cast(Environment environment, Resource crane, string name, IEnumerable<MySlab> castQueue) {
+    private static IEnumerable<Event> Cast(Environment environment, Resource crane, string name, IEnumerable<Slab> castQueue) {
       foreach (var slab in castQueue) {
         yield return environment.Timeout(slab.CastTime);
         Console.Out.WriteLine("Caster {0} finished at {1}", name, environment.Now);
@@ -44,11 +55,11 @@ namespace SimSharp.Samples {
       crane.Release(token);
     }
 
-    static void Main(string[] args) {
+    public static void Main(string[] args) {
       var env = new Environment();
       var crane = new Resource(env, 1);
-      env.Process(Cast(env, crane, "CC1", new[] { new MySlab(4), new MySlab(4), new MySlab(8), new MySlab(3), new MySlab(2) }));
-      env.Process(Cast(env, crane, "CC2", new[] { new MySlab(2), new MySlab(3), new MySlab(3), new MySlab(4), new MySlab(3) }));
+      env.Process(Cast(env, crane, "CC1", new[] { new Slab(4), new Slab(4), new Slab(8), new Slab(3), new Slab(2) }));
+      env.Process(Cast(env, crane, "CC2", new[] { new Slab(2), new Slab(3), new Slab(3), new Slab(4), new Slab(3) }));
       env.Run(TimeSpan.FromMinutes(100));
       Console.ReadLine();
     }

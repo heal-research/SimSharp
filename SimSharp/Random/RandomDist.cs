@@ -26,14 +26,15 @@ namespace SimSharp {
       return a + (b - a) * urand.NextDouble();
     }
 
-    public static double Triangular(Random random, double low, double high) {
-      var u = random.NextDouble();
+    public static double Triangular(Random urand, double low, double high) {
+      var u = urand.NextDouble();
       if (u > 0.5)
         return high + (low - high) * Math.Sqrt(((1.0 - u) / 2));
       return low + (high - low) * Math.Sqrt(u / 2);
     }
-    public static double Triangular(Random random, double low, double high, double mode) {
-      var u = random.NextDouble();
+
+    public static double Triangular(Random urand, double low, double high, double mode) {
+      var u = urand.NextDouble();
       var c = (mode - low) / (high - low);
       if (u > c)
         return high + (low - high) * Math.Sqrt(((1.0 - u) * (1.0 - c)));

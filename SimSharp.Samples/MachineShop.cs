@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp.Samples {
-  public class MachineShopSimulation {
+  public class MachineShop {
     /*
 Machine shop example
 

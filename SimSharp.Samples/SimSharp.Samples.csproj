@@ -46,11 +46,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GasStationRefuelingSimulation.cs" />
+    <Compile Include="GasStationRefueling.cs" />
     <Compile Include="BankRenege.cs" />
-    <Compile Include="MachineShopSimulation.cs" />
+    <Compile Include="MachineShop.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SteelFactorySimulation.cs" />
+    <Compile Include="SteelFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

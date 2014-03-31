@@ -21,7 +21,6 @@ using System.Collections.Generic;
 
 namespace SimSharp {
   public class Container {
-
     public double Capacity { get; protected set; }
     protected Environment Environment { get; private set; }
     public double Level { get; protected set; }

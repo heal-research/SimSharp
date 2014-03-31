@@ -57,6 +57,7 @@
     <Compile Include="Core\Environment.cs" />
     <Compile Include="Core\Events\ContainerGet.cs" />
     <Compile Include="Core\Events\ContainerPut.cs" />
+    <Compile Include="Core\Events\Condition.cs" />
     <Compile Include="Core\Events\Event.cs" />
     <Compile Include="Core\Events\PreemptivePriorityRequest.cs" />
     <Compile Include="Core\Events\Process.cs" />

@@ -1,0 +1,9 @@
+notify simpy:
+  Process._resume:
+    "if self._value is not PENDING:" should be "if self.triggered:"
+
+To port:
+ * Condition
+ * Container (Resource)
+ * Store (Resource)
+ * Unit Tests

@@ -22,7 +22,7 @@ namespace SimSharp {
   public class Event {
     public static readonly object PENDING = new object();
 
-    protected Environment Environment { get; private set; }
+    protected internal Environment Environment { get; private set; }
     protected internal List<Action<Event>> CallbackList { get; set; }
     public IEnumerable<Action<Event>> Callbacks { get { return CallbackList.AsReadOnly(); } }
 
@@ -72,6 +72,13 @@ namespace SimSharp {
       Exception = ex;
       Environment.Schedule(this);
       return this;
+    }
+
+    public static Condition operator &(Event event1, Event event2) {
+      return new Condition(event1.Environment, Condition.Operator.All, event1, event2);
+    }
+    public static Condition operator |(Event event1, Event event2) {
+      return new Condition(event1.Environment, Condition.Operator.Any, event1, event2);
     }
   }
 }

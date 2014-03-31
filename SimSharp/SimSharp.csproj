@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="Core\ActiveObject.cs" />
     <Compile Include="Core\Environment.cs" />
+    <Compile Include="Core\Events\Condition.cs" />
     <Compile Include="Core\Events\Event.cs" />
     <Compile Include="Core\Events\Process.cs" />
     <Compile Include="Core\Events\Release.cs" />

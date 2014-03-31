@@ -75,7 +75,7 @@ Scenario:
       public bool broken;
       public Process process;
 
-      public Machine(Environment env, string name, Resource repairman)
+      public Machine(Environment env, string name, PreemptiveResource repairman)
         : base(env) {
         this.name = name;
         this.parts_made = 0;
@@ -86,7 +86,7 @@ Scenario:
         env.Process(break_machine());
       }
 
-      private IEnumerable<Event> working(Resource repairman) {
+      private IEnumerable<Event> working(PreemptiveResource repairman) {
         /*
           Produce parts as long as the simulation runs.
 
@@ -131,7 +131,7 @@ Scenario:
       }
     }
 
-    private static IEnumerable<Event> other_jobs(Environment env, Resource repairman) {
+    private static IEnumerable<Event> other_jobs(Environment env, PreemptiveResource repairman) {
       // The repairman's other (unimportant) job.
       while (true) {
         // Start a new job

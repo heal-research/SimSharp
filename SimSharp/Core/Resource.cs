@@ -16,42 +16,76 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
+using System;
 using System.Collections.Generic;
 
 namespace SimSharp {
-  public class Resource : ResourceBase {
+  public class Resource {
+
+    public int Capacity { get; protected set; }
+
+    protected Environment Environment { get; private set; }
 
     protected List<Request> RequestQueue { get; private set; }
     protected List<Release> ReleaseQueue { get; private set; }
+    protected List<Request> Users { get; private set; }
 
-    public Resource(Environment environment, int capacity = 1)
-      : base(environment, capacity) {
+    public Resource(Environment environment, int capacity = 1) {
+      if (capacity <= 0) throw new ArgumentException("Capacity must > 0.", "capacity");
+      Environment = environment;
+      Capacity = capacity;
       RequestQueue = new List<Request>();
       ReleaseQueue = new List<Release>();
+      Users = new List<Request>();
     }
 
-    protected override IEnumerable<Request> Requests {
-      get { return RequestQueue; }
-    }
-
-    protected override IEnumerable<Release> Releases {
-      get { return ReleaseQueue; }
-    }
-
-    protected override void AddRequest(Request request) {
+    public virtual Request Request() {
+      var request = new Request(Environment, TriggerRelease, ReleaseCallback);
       RequestQueue.Add(request);
+      DoRequest(request);
+      return request;
     }
 
-    protected override void RemoveRequest(Request request) {
-      RequestQueue.Remove(request);
-    }
-
-    protected override void AddRelease(Release release) {
+    public virtual Release Release(Request request) {
+      var release = new Release(Environment, request, TriggerRequest);
       ReleaseQueue.Add(release);
+      DoRelease(release);
+      return release;
     }
 
-    protected override void RemoveRelease(Release release) {
-      ReleaseQueue.Remove(release);
+    protected virtual void ReleaseCallback(Event @event) {
+      var request = @event as Request;
+      if (request != null) Release(request);
+    }
+
+    protected virtual void DoRequest(Request request) {
+      if (Users.Count < Capacity) {
+        Users.Add(request);
+        request.Succeed();
+      }
+    }
+
+    protected virtual void DoRelease(Release release) {
+      if (!release.Request.IsTriggered) RequestQueue.Remove(release.Request);
+      Users.Remove(release.Request);
+      release.Succeed();
+      if (!release.IsTriggered) ReleaseQueue.Remove(release);
+    }
+
+    protected virtual void TriggerRequest(Event @event) {
+      ReleaseQueue.Remove((Release)@event);
+      foreach (var requestEvent in RequestQueue) {
+        if (!requestEvent.IsTriggered) DoRequest(requestEvent);
+        if (!requestEvent.IsTriggered) break;
+      }
+    }
+
+    protected virtual void TriggerRelease(Event @event) {
+      RequestQueue.Remove((Request)@event);
+      foreach (var releaseEvent in ReleaseQueue) {
+        if (!releaseEvent.IsTriggered) DoRelease(releaseEvent);
+        if (!releaseEvent.IsTriggered) break;
+      }
     }
   }
 }

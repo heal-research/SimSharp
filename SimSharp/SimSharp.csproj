@@ -53,10 +53,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Core\ActiveObject.cs" />
+    <Compile Include="Core\Container.cs" />
     <Compile Include="Core\Environment.cs" />
+    <Compile Include="Core\Events\ContainerGet.cs" />
+    <Compile Include="Core\Events\ContainerPut.cs" />
     <Compile Include="Core\Events\Event.cs" />
+    <Compile Include="Core\Events\PreemptivePriorityRequest.cs" />
     <Compile Include="Core\Events\Process.cs" />
     <Compile Include="Core\Events\Release.cs" />
+    <Compile Include="Core\Events\PriorityRequest.cs" />
     <Compile Include="Core\Events\Request.cs" />
     <Compile Include="Core\Events\Timeout.cs" />
     <Compile Include="Core\Exceptions\EmptyScheduleException.cs" />
@@ -64,7 +69,6 @@
     <Compile Include="Core\PreemptiveResource.cs" />
     <Compile Include="Core\PriorityResource.cs" />
     <Compile Include="Core\Resource.cs" />
-    <Compile Include="Core\ResourceBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Random\RandomDist.cs" />
   </ItemGroup>

@@ -18,21 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 
 namespace SimSharp {
-  public class Request : Event, IDisposable {
-    private readonly Action<Event> disposeCallback;
-    public DateTime Time { get; private set; }
-    public Process Process { get; private set; }
+  public sealed class PreemptivePriorityRequest : PriorityRequest {
+    public bool Preempt { get; private set; }
 
-    public Request(Environment environment, Action<Event> callback, Action<Event> disposeCallback)
-      : base(environment) {
-      CallbackList.Add(callback);
-      this.disposeCallback = disposeCallback;
-      Time = environment.Now;
-      Process = environment.ActiveProcess;
-    }
-
-    public virtual void Dispose() {
-      if (disposeCallback != null) disposeCallback(this);
+    public PreemptivePriorityRequest(Environment environment, Action<Event> callback, Action<Event> disposeCallback, int priority = 1, bool preempt = false)
+      : base(environment, callback, disposeCallback, priority) {
+      Preempt = preempt;
     }
   }
 }

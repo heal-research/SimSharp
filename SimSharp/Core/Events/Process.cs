@@ -31,6 +31,12 @@ namespace SimSharp {
       target = new Initialize(environment, this);
     }
 
+    public override Event Fail(object cause) {
+      IsFaulted = true;
+      Fault = cause;
+      return base.Fail(cause);
+    }
+
     public virtual void Interrupt(object cause = null) {
       if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
@@ -45,7 +51,14 @@ namespace SimSharp {
       if (@event != target) target.CallbackList.Remove(Resume);
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
-        if (generator.MoveNext()) ProceedToEvent();
+        bool hasMove;
+        try {
+          hasMove = generator.MoveNext();
+        } catch (Exception exc) {
+          Fail(exc);
+          return;
+        }
+        if (hasMove) ProceedToEvent();
         else FinishProcess();
       } else {
         // Fault handling differs from SimPy as in .NET it is not possible to inject an
@@ -57,7 +70,16 @@ namespace SimSharp {
         // the flag.
         IsFaulted = true;
         Fault = @event.Value;
-        if (generator.MoveNext()) {
+
+        bool hasMove;
+        try {
+          hasMove = generator.MoveNext();
+        } catch (Exception exc) {
+          Fail(exc);
+          return;
+        }
+
+        if (hasMove) {
           // if we move next, but IsFaulted is still true
           if (IsFaulted) throw new InvalidOperationException("The process continued despite being faulted.");
           // otherwise HandleFault was called and the fault was handled
@@ -76,9 +98,11 @@ namespace SimSharp {
     }
 
     protected void FinishProcess() {
-      IsOk = true;
-      Value = null;
-      Environment.Schedule(this);
+      if (!IsFaulted) {
+        IsOk = true;
+        Value = null;
+        Environment.Schedule(this);
+      }
     }
 
     public virtual bool HandleFault() {

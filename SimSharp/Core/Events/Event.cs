@@ -35,8 +35,6 @@ namespace SimSharp {
       protected set { this.value = value; }
     }
 
-    public Exception Exception { get; protected set; }
-
     public bool IsOk { get; protected set; }
     public bool IsProcessed { get { return CallbackList == null; } }
     public bool IsTriggered { get { return value != PENDING; } }
@@ -51,7 +49,6 @@ namespace SimSharp {
     public virtual void Trigger(Event @event) {
       IsOk = @event.IsOk;
       value = @event.value;
-      Exception = @event.Exception;
       Environment.Schedule(this);
     }
 
@@ -64,12 +61,11 @@ namespace SimSharp {
       return this;
     }
 
-    public virtual Event Fail(Exception ex) {
-      if (value != PENDING)
+    public virtual Event Fail(object value) {
+      if (this.value != PENDING)
         throw new InvalidOperationException("Event has already been triggered");
       IsOk = false;
-      this.value = null;
-      Exception = ex;
+      this.value = value;
       Environment.Schedule(this);
       return this;
     }

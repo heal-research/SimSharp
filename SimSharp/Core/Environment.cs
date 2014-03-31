@@ -93,7 +93,7 @@ namespace SimSharp {
         }
       } catch (EmptyScheduleException) { }
       if (!stopEvent.IsTriggered) return null;
-      if (!stopEvent.IsOk) throw stopEvent.Exception;
+      if (!stopEvent.IsOk) return null;
       return stopEvent.Value;
     }
 
@@ -103,10 +103,11 @@ namespace SimSharp {
       var @event = nextEvents.Value.Item1.Count > 0 ? nextEvents.Value.Item1.Dequeue() : nextEvents.Value.Item2.Dequeue();
       if (nextEvents.Value.Item1.Count == 0 && nextEvents.Value.Item2.Count == 0)
         queue.Remove(Now);
-      foreach (var callback in @event.Callbacks)
-        callback(@event);
-      @event.CallbackList = null;
-      if (!@event.IsOk && @event.Exception != null) throw @event.Exception;
+      if (!@event.IsProcessed) {
+        foreach (var callback in @event.Callbacks)
+          callback(@event);
+        @event.CallbackList = null;
+      }
     }
 
     protected virtual void StopSimulation(Event @event) {

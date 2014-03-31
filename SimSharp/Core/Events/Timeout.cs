@@ -19,10 +19,11 @@ using System;
 
 namespace SimSharp {
   public class Timeout : Event {
-    public Timeout(Environment environment, TimeSpan delay)
+    public Timeout(Environment environment, TimeSpan delay, object value = null)
       : base(environment) {
-      Value = null;
       IsOk = true;
+      Value = value;
+      IsScheduled = true;
       environment.Schedule(delay, this);
     }
   }

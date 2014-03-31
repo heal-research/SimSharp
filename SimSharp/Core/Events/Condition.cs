@@ -57,7 +57,7 @@ namespace SimSharp {
       if (!@event.IsOk)
         Fail(@event.Value);
       else if (!IsProcessed && Evaluate()) {
-        Succeed(PENDING);
+        Succeed();
       }
     }
 

@@ -61,7 +61,7 @@ Scenario:
         // Get event for message pipe
         var get = in_pipe.Get();
         yield return get;
-        var msg = (object[])get.Item;
+        var msg = (object[])get.Value;
         if (((DateTime)msg[0]) < env.Now) {
           // if message was already put into pipe, then
           // message_consumer was late getting to it. Depending on what

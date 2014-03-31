@@ -71,20 +71,20 @@ namespace SimSharp {
       }
     }
 
-    public virtual object Run(TimeSpan span) {
-      return Run(Now + span);
+    public virtual void Run(TimeSpan span) {
+      Run(Now + span);
     }
 
-    public virtual object Run(DateTime? until = null) {
+    public virtual void Run(DateTime? until = null) {
       var limit = until ?? DateTime.MaxValue;
       if (limit <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
       var stopEvent = new Event(this);
       if (limit < DateTime.MaxValue)
         Schedule(limit - Now, stopEvent, urgent: true);
-      return Run(stopEvent);
+      Run(stopEvent);
     }
 
-    public virtual object Run(Event stopEvent) {
+    public virtual void Run(Event stopEvent) {
       stopEvent.CallbackList.Add(StopSimulation);
       try {
         while (queue.Count > 0) {
@@ -92,9 +92,6 @@ namespace SimSharp {
           ProcessedEvents++;
         }
       } catch (EmptyScheduleException) { }
-      if (!stopEvent.IsTriggered) return null;
-      if (!stopEvent.IsOk) return null;
-      return stopEvent.Value;
     }
 
     protected virtual void Step() {

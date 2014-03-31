@@ -72,16 +72,16 @@ namespace SimSharp {
     protected virtual void TriggerPut(Event @event) {
       GetQueue.Remove((ContainerGet)@event);
       foreach (var requestEvent in PutQueue) {
-        if (!requestEvent.IsTriggered) DoPut(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+        if (!requestEvent.IsScheduled) DoPut(requestEvent);
+        if (!requestEvent.IsScheduled) break;
       }
     }
 
     protected virtual void TriggerGet(Event @event) {
       PutQueue.Remove((ContainerPut)@event);
       foreach (var releaseEvent in GetQueue) {
-        if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+        if (!releaseEvent.IsScheduled) DoGet(releaseEvent);
+        if (!releaseEvent.IsScheduled) break;
       }
     }
   }

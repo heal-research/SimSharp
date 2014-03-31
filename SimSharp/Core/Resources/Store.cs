@@ -36,7 +36,7 @@ namespace SimSharp {
 
     protected virtual void DoPut(StorePut put) {
       if (Items.Count < Capacity) {
-        Items.Add(put.Item);
+        Items.Add(put.Value);
         put.Succeed();
       }
     }
@@ -52,16 +52,16 @@ namespace SimSharp {
     protected virtual void TriggerPut(Event @event) {
       GetQueue.Remove((StoreGet)@event);
       foreach (var requestEvent in PutQueue) {
-        if (!requestEvent.IsTriggered) DoPut(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+        if (!requestEvent.IsScheduled) DoPut(requestEvent);
+        if (!requestEvent.IsScheduled) break;
       }
     }
 
     protected virtual void TriggerGet(Event @event) {
       PutQueue.Remove((StorePut)@event);
       foreach (var releaseEvent in GetQueue) {
-        if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+        if (!releaseEvent.IsScheduled) DoGet(releaseEvent);
+        if (!releaseEvent.IsScheduled) break;
       }
     }
   }

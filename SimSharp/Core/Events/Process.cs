@@ -31,35 +31,37 @@ namespace SimSharp {
       target = new Initialize(environment, this);
     }
 
-    public override Event Fail(object cause) {
+    public override Event Fail(object value = null, bool urgent = false) {
       IsFaulted = true;
-      Fault = cause;
-      return base.Fail(cause);
+      return base.Fail(value, urgent);
     }
 
     public virtual void Interrupt(object cause = null) {
-      if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
+      if (IsScheduled) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
-      var interruptEvent = new Event(Environment, cause);
+      var interruptEvent = new Event(Environment);
       interruptEvent.CallbackList.Add(Resume);
-      Environment.Schedule(interruptEvent, urgent: true);
+      interruptEvent.Fail(cause, urgent: true);
     }
 
     protected virtual void Resume(Event @event) {
-      if (IsTriggered) return;
+      if (IsScheduled) return;
       if (@event != target) target.CallbackList.Remove(Resume);
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
-        bool hasMove;
+        bool hasMoved;
         try {
-          hasMove = generator.MoveNext();
+          hasMoved = generator.MoveNext();
+          if (IsScheduled) return; // the generator called e.g. Environment.ActiveProcess.Fail
         } catch (Exception exc) {
-          Fail(exc);
+          Fail(exc, urgent: true);
           return;
+        } finally {
+          Environment.ActiveProcess = null;
         }
-        if (hasMove) ProceedToEvent();
-        else FinishProcess();
+        if (hasMoved) ProceedToEvent();
+        else FinishProcess(@event.Value);
       } else {
         // Fault handling differs from SimPy as in .NET it is not possible to inject an
         // exception into an enumerator. It is even impossible to put a yield return inside
@@ -71,38 +73,40 @@ namespace SimSharp {
         IsFaulted = true;
         Fault = @event.Value;
 
-        bool hasMove;
+        bool hasMoved;
         try {
-          hasMove = generator.MoveNext();
+          hasMoved = generator.MoveNext();
+          if (IsScheduled) return; // the generator called e.g. Environment.ActiveProcess.Fail
         } catch (Exception exc) {
-          Fail(exc);
+          Fail(exc, urgent: true);
           return;
+        } finally {
+          Environment.ActiveProcess = null;
         }
 
-        if (hasMove) {
+        if (hasMoved) {
           // if we move next, but IsFaulted is still true
           if (IsFaulted) throw new InvalidOperationException("The process continued despite being faulted.");
           // otherwise HandleFault was called and the fault was handled
           ProceedToEvent();
         } else if (IsFaulted) throw new InvalidOperationException("The process cannot finish when it is faulted.");
-        else FinishProcess();
+        else FinishProcess(@event.Value);
       }
       Environment.ActiveProcess = null;
     }
 
-    protected void ProceedToEvent() {
+    protected virtual void ProceedToEvent() {
       target = generator.Current;
       if (target.CallbackList != null)
         target.CallbackList.Add(Resume);
       else throw new InvalidOperationException("Resuming on an event that was already triggered.");
     }
 
-    protected void FinishProcess() {
-      if (!IsFaulted) {
-        IsOk = true;
-        Value = null;
-        Environment.Schedule(this);
-      }
+    protected virtual void FinishProcess(object value = null) {
+      IsOk = true;
+      Value = value;
+      IsScheduled = true;
+      Environment.Schedule(this);
     }
 
     public virtual bool HandleFault() {
@@ -115,8 +119,8 @@ namespace SimSharp {
       public Initialize(Environment environment, Process process)
         : base(environment) {
         CallbackList.Add(process.Resume);
-        Value = null;
         IsOk = true;
+        IsScheduled = true;
         environment.Schedule(this);
       }
     }

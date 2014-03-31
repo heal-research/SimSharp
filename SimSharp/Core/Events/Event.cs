@@ -20,53 +20,38 @@ using System.Collections.Generic;
 
 namespace SimSharp {
   public class Event {
-    public static readonly object PENDING = new object();
-
     protected internal Environment Environment { get; private set; }
     protected internal List<Action<Event>> CallbackList { get; set; }
     public IEnumerable<Action<Event>> Callbacks { get { return CallbackList.AsReadOnly(); } }
 
-    private object value;
-    public object Value {
-      get {
-        if (value == PENDING) throw new InvalidOperationException("Value of event is not yet available.");
-        return value;
-      }
-      protected set { this.value = value; }
-    }
+    public object Value { get; protected set; }
 
     public bool IsOk { get; protected set; }
     public bool IsProcessed { get { return CallbackList == null; } }
-    public bool IsTriggered { get { return value != PENDING; } }
+    public bool IsScheduled { get; protected set; }
 
-    public Event(Environment environment) : this(environment, PENDING) { }
-    public Event(Environment environment, object value) {
+    public Event(Environment environment) {
       Environment = environment;
       CallbackList = new List<Action<Event>>();
-      this.value = value;
     }
 
-    public virtual void Trigger(Event @event) {
-      IsOk = @event.IsOk;
-      value = @event.value;
-      Environment.Schedule(this);
-    }
-
-    public virtual Event Succeed(object value = null) {
-      if (this.value != PENDING)
-        throw new InvalidOperationException("Event has already been triggered");
+    public virtual Event Succeed(object value = null, bool urgent = false) {
+      if (IsScheduled)
+        throw new InvalidOperationException("Event has already been triggered.");
       IsOk = true;
-      this.value = value;
-      Environment.Schedule(this);
+      Value = value;
+      IsScheduled = true;
+      Environment.Schedule(this, urgent: urgent);
       return this;
     }
 
-    public virtual Event Fail(object value) {
-      if (this.value != PENDING)
-        throw new InvalidOperationException("Event has already been triggered");
+    public virtual Event Fail(object value = null, bool urgent = false) {
+      if (IsScheduled)
+        throw new InvalidOperationException("Event has already been triggered.");
       IsOk = false;
-      this.value = value;
-      Environment.Schedule(this);
+      Value = value;
+      IsScheduled = true;
+      Environment.Schedule(this, urgent: urgent);
       return this;
     }
 

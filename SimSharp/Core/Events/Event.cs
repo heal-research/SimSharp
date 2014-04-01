@@ -26,7 +26,7 @@ namespace SimSharp {
     public object Value { get; protected set; }
 
     public bool IsOk { get; protected set; }
-    public bool IsProcessed { get { return CallbackList == null; } }
+    public bool IsProcessed { get; protected set; }
     public bool IsScheduled { get; protected set; }
 
     public Event(Environment environment) {
@@ -70,9 +70,10 @@ namespace SimSharp {
     }
 
     public virtual IEnumerable<Action<Event>> Process() {
-      var callback = CallbackList.AsReadOnly();
+      foreach (var callback in CallbackList)
+        yield return callback;
       CallbackList = null;
-      return callback;
+      IsProcessed = true;
     }
 
     public static Condition operator &(Event event1, Event event2) {

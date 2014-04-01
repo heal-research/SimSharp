@@ -63,7 +63,9 @@ namespace SimSharp {
     protected virtual void Request(PreemptivePriorityRequest request) {
       if (Users.Count >= Capacity && request.Preempt) {
         // Check if we can preempt another process
-        var oldest = Users.OfType<PriorityRequest>().OrderByDescending(x => x.Priority).ThenByDescending(x => x.Time).First();
+        var oldest = Users.OfType<PriorityRequest>().Select((r, i) => new { Request = r, Index = i })
+          .OrderByDescending(x => x.Request.Priority).ThenByDescending(x => x.Request.Time).ThenByDescending(x => x.Index)
+          .First().Request;
         if (oldest.Priority > request.Priority || (oldest.Priority == request.Priority && oldest.Time > request.Time)) {
           Users.Remove(oldest);
           oldest.Process.Interrupt(new Preempted(request.Process, oldest.Time));

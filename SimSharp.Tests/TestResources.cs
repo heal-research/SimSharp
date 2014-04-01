@@ -42,7 +42,6 @@ namespace SimSharp.Tests {
       Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["a"]);
       Assert.AreEqual(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-
     private IEnumerable<Event> TestResource(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       var req = resource.Request();
@@ -72,7 +71,6 @@ namespace SimSharp.Tests {
       Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["a"]);
       Assert.AreEqual(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-
     private IEnumerable<Event> TestResourceWithUsing(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
@@ -99,7 +97,6 @@ namespace SimSharp.Tests {
       }.ToDictionary(x => x.Key, x => start + TimeSpan.FromSeconds(x.Value));
       CollectionAssert.AreEqual(expected, log);
     }
-
     private IEnumerable<Event> TestResourceSlots(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
@@ -162,7 +159,7 @@ namespace SimSharp.Tests {
       var req = res.Request();
       yield return req;
       Assert.IsFalse(req.IsOk);
-      env.ActiveProcess.HandleFault();
+      Assert.IsTrue(env.ActiveProcess.HandleFault());
       // Dont wait for the resource
       res.Release(req);
       Assert.AreEqual(new DateTime(2014, 4, 1), env.Now);
@@ -206,6 +203,67 @@ namespace SimSharp.Tests {
       Assert.AreEqual(new DateTime(2014, 4, 1) + TimeSpan.FromSeconds(resTime), env.Now);
       yield return env.Timeout(TimeSpan.FromSeconds(5));
       resource.Release(req);
+    }
+
+    [TestMethod, Ignore]
+    public void TestSortedQueueMaxlen() {
+      // Because .net collections doesn't have max capacities, the unittest is skipped
+    }
+
+    [TestMethod, Ignore]
+    public void TestGetUsers() {
+      // Because we do not want to test internal structure of the users and request/release queue, the unittest is skipped
+    }
+
+    [TestMethod]
+    public void TestPreemtiveResource() {
+      var start = new DateTime(2014, 4, 1);
+      var env = new Environment(start);
+      var res = new PreemptiveResource(env, capacity: 2);
+      var log = new Dictionary<DateTime, int>();
+      //                                id           d  p
+      env.Process(TestPreemtiveResource(0, env, res, 0, 1, log));
+      env.Process(TestPreemtiveResource(1, env, res, 0, 1, log));
+      env.Process(TestPreemtiveResource(2, env, res, 1, 0, log));
+      env.Process(TestPreemtiveResource(3, env, res, 2, 2, log));
+      env.Run();
+
+      var expected = new Dictionary<int, int> {
+        {5, 0}, {6, 2}, {10, 3}
+      }.ToDictionary(x => x.Key, x => start + TimeSpan.FromSeconds(x.Value));
+      CollectionAssert.AreEqual(expected, log);
+    }
+    private IEnumerable<Event> TestPreemtiveResource(int id, Environment env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
+      yield return env.Timeout(TimeSpan.FromSeconds(delay));
+      using (var req = res.Request(priority: prio, preempt: true)) {
+        yield return req;
+        yield return env.Timeout(TimeSpan.FromSeconds(5));
+        // TODO: It seems ALL processes are faulting but only process 1 should fail
+        if (!env.ActiveProcess.HandleFault())
+          log.Add(env.Now, id);
+      }
+    }
+
+    [TestMethod]
+    public void TestPreemetiveResourceTimeout() {
+      var env = new Environment();
+      var res = new PreemptiveResource(env, capacity: 1);
+      env.Process(TestPreemtiveResourceTimeoutA(env, res, 1));
+      env.Process(TestPreemtiveResourceTimeoutB(env, res, 0));
+      env.Run();
+    }
+    private IEnumerable<Event> TestPreemtiveResourceTimeoutA(Environment env, PreemptiveResource res, int prio) {
+      using (var req = res.Request(priority: prio, preempt: true)) {
+        yield return req;
+        Assert.IsTrue(env.ActiveProcess.HandleFault());
+        yield return env.Timeout(TimeSpan.FromSeconds(1));
+        Assert.IsFalse(env.ActiveProcess.HandleFault());
+      }
+    }
+    private IEnumerable<Event> TestPreemtiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
+      using (var req = res.Request(priority: prio, preempt: true)) {
+        yield return req;
+      }
     }
   }
 }

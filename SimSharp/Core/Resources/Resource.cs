@@ -24,6 +24,8 @@ namespace SimSharp {
 
     public int Capacity { get; protected set; }
 
+    public int Count { get { return Users.Count; } }
+
     protected Environment Environment { get; private set; }
 
     protected List<Request> RequestQueue { get; private set; }

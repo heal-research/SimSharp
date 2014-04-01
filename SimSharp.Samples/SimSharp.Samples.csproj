@@ -34,7 +34,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>SimSharp.Samples.GasStationRefuelingSimulation</StartupObject>
-    <StartupObject>SimSharp.Samples.BankRenege</StartupObject>
+    <StartupObject>SimSharp.Samples.RunAllSamples</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -51,6 +51,7 @@
     <Compile Include="MachineShop.cs" />
     <Compile Include="ProcessCommunication.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RunAllSamples.cs" />
     <Compile Include="SteelFactory.cs" />
   </ItemGroup>
   <ItemGroup>

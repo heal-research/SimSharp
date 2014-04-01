@@ -22,8 +22,6 @@ namespace SimSharp {
   public class Process : Event {
     private readonly IEnumerator<Event> generator;
     private Event target;
-    public bool IsFaulted { get; protected set; }
-    public object Fault { get; protected set; }
 
     public Process(Environment environment, IEnumerable<Event> generator)
       : base(environment) {
@@ -31,65 +29,50 @@ namespace SimSharp {
       target = new Initialize(environment, this);
     }
 
-    public override Event Fail(object value = null, bool urgent = false) {
-      IsFaulted = true;
-      return base.Fail(value, urgent);
-    }
-
     public virtual void Interrupt(object cause = null) {
       if (IsScheduled) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
       var interruptEvent = new Event(Environment);
-      interruptEvent.CallbackList.Add(Resume);
+      interruptEvent.AddCallback(Resume);
       interruptEvent.Fail(cause, urgent: true);
     }
 
     protected virtual void Resume(Event @event) {
       if (IsScheduled) return;
-      if (@event != target) target.CallbackList.Remove(Resume);
+      if (@event != target) target.RemoveCallback(Resume);
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
-        bool hasMoved;
-        try {
-          hasMoved = generator.MoveNext();
-          if (IsScheduled) return; // the generator called e.g. Environment.ActiveProcess.Fail
-        } catch (Exception exc) {
-          Fail(exc, urgent: true);
-          return;
-        } finally {
-          Environment.ActiveProcess = null;
-        }
-        if (hasMoved) ProceedToEvent();
-        else FinishProcess(@event.Value);
+        if (generator.MoveNext()) {
+          if (IsScheduled) {
+            // the generator called e.g. Environment.ActiveProcess.Fail
+            Environment.ActiveProcess = null;
+            return;
+          }
+          ProceedToEvent();
+        } else FinishProcess(@event.Value);
       } else {
-        // Fault handling differs from SimPy as in .NET it is not possible to inject an
-        // exception into an enumerator. It is even impossible to put a yield return inside
-        // a try-catch block, so here the Process will set IsFaulted and will then move to
-        // the next yield in the generator. However, if after this move IsFaulted is still
-        // true we know that the error was not handled. It is assumed the error is handled
-        // if HandleFault() is called on the environment's ActiveProcess which will reset
-        // the flag.
-        IsFaulted = true;
-        Fault = @event.Value;
+        /* Fault handling differs from SimPy as in .NET it is not possible to inject an
+         * exception into an enumerator. It is even impossible to put a yield return inside
+         * a try-catch block, so here the Process will set IsOk and will then move to the
+         * next yield in the generator. However, if after this move IsOk is still true we
+         * know that the error was not handled. It is assumed the error is handled if
+         * HandleFault() is called on the environment's ActiveProcess which will reset the
+         * flag. */
+        IsOk = false;
+        Value = @event.Value;
 
-        bool hasMoved;
-        try {
-          hasMoved = generator.MoveNext();
-          if (IsScheduled) return; // the generator called e.g. Environment.ActiveProcess.Fail
-        } catch (Exception exc) {
-          Fail(exc, urgent: true);
-          return;
-        } finally {
-          Environment.ActiveProcess = null;
-        }
-
-        if (hasMoved) {
+        if (generator.MoveNext()) {
+          if (IsScheduled) {
+            // the generator called e.g. Environment.ActiveProcess.Fail
+            Environment.ActiveProcess = null;
+            return;
+          }
           // if we move next, but IsFaulted is still true
-          if (IsFaulted) throw new InvalidOperationException("The process continued despite being faulted.");
+          if (!IsOk) throw new InvalidOperationException("The process did not react to being faulted.");
           // otherwise HandleFault was called and the fault was handled
           ProceedToEvent();
-        } else if (IsFaulted) throw new InvalidOperationException("The process cannot finish when it is faulted.");
+        } else if (!IsOk) throw new InvalidOperationException("The process cannot finish when it is faulted.");
         else FinishProcess(@event.Value);
       }
       Environment.ActiveProcess = null;
@@ -97,12 +80,14 @@ namespace SimSharp {
 
     protected virtual void ProceedToEvent() {
       target = generator.Current;
-      if (target.CallbackList != null)
-        target.CallbackList.Add(Resume);
+      Value = target.Value;
+      if (!target.IsProcessed)
+        target.AddCallback(Resume);
       else throw new InvalidOperationException("Resuming on an event that was already triggered.");
     }
 
     protected virtual void FinishProcess(object value = null) {
+      if (IsScheduled) return;
       IsOk = true;
       Value = value;
       IsScheduled = true;
@@ -110,8 +95,8 @@ namespace SimSharp {
     }
 
     public virtual bool HandleFault() {
-      if (!IsFaulted) return false;
-      IsFaulted = false;
+      if (IsOk) return false;
+      IsOk = true;
       return true;
     }
 

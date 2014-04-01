@@ -115,7 +115,7 @@ namespace SimSharp.Tests {
 
       yield return proc | env.Timeout(TimeSpan.FromSeconds(1));
 
-      Assert.IsTrue(proc.IsFaulted);
+      Assert.IsTrue(!proc.IsOk);
       Assert.AreEqual(proc.Value, "Onoes, failed after 0 delay!");
       env.ActiveProcess.HandleFault();
     }

@@ -85,7 +85,7 @@ namespace SimSharp {
     }
 
     public virtual void Run(Event stopEvent) {
-      stopEvent.CallbackList.Add(StopSimulation);
+      stopEvent.AddCallback(StopSimulation);
       try {
         while (queue.Count > 0) {
           Step();
@@ -101,9 +101,8 @@ namespace SimSharp {
       if (nextEvents.Value.Item1.Count == 0 && nextEvents.Value.Item2.Count == 0)
         queue.Remove(Now);
       if (!@event.IsProcessed) {
-        foreach (var callback in @event.Callbacks)
+        foreach (var callback in @event.Process())
           callback(@event);
-        @event.CallbackList = null;
       }
     }
 

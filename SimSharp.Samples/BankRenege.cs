@@ -27,9 +27,9 @@ namespace SimSharp.Samples {
     private const int MinPatience = 1; // Min. customer patience
     private const int MaxPatience = 3; // Max. customer patience
 
-    private static readonly Random random = new Random();
+    private Random random;
 
-    private static IEnumerable<Event> Source(Environment env, int number, double interval, Resource counter) {
+    private IEnumerable<Event> Source(Environment env, int number, double interval, Resource counter) {
       for (int i = 0; i < number; i++) {
         var c = Customer(env, string.Format("Customer {0}", i), counter, timeInBank: 12.0);
         env.Process(c);
@@ -38,7 +38,7 @@ namespace SimSharp.Samples {
       }
     }
 
-    private static IEnumerable<Event> Customer(Environment env, string name, Resource counter, double timeInBank) {
+    private IEnumerable<Event> Customer(Environment env, string name, Resource counter, double timeInBank) {
       var arrive = env.Now;
 
       Console.WriteLine("{0} {1}: Here I am", arrive, name);
@@ -66,9 +66,10 @@ namespace SimSharp.Samples {
       }
     }
 
-    public static void Main(string[] args) {
+    public void Simulate(int rseed = 41) {
       // Setup and start the simulation
-      Console.WriteLine("Bank renege");
+      Console.WriteLine("== Bank renege ==");
+      random = new Random(41);
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
       var env = new Environment(start);

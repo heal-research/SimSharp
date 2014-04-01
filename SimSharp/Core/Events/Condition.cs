@@ -48,7 +48,7 @@ namespace SimSharp {
 
     private void AddEvent(Event @event) {
       Events.Add(@event);
-      @event.CallbackList.Add(Check);
+      @event.AddCallback(Check);
     }
 
     private void Check(Event @event) {

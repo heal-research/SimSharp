@@ -50,10 +50,9 @@ Scenario:
     private const int MIN_T_INTER = 30; // Create a car every min seconds
     private const int MAX_T_INTER = 300; // Create a car every max seconds
     private static readonly TimeSpan SIM_TIME = TimeSpan.FromMinutes(30); // Simulation time in seconds
+    private Random random;
 
-    private static readonly Random random = new Random(RANDOM_SEED);
-
-    private static IEnumerable<Event> Car(string name, Environment env, Resource gas_station, Container fuel_pump) {
+    private IEnumerable<Event> Car(string name, Environment env, Resource gas_station, Container fuel_pump) {
       /*
     A car arrives at the gas station for refueling.
 
@@ -80,7 +79,7 @@ Scenario:
     }
 
 
-    private static IEnumerable<Event> Gas_station_control(Environment env, Container fuel_pump) {
+    private IEnumerable<Event> Gas_station_control(Environment env, Container fuel_pump) {
       /*
     Periodically check the level of the *fuel_pump* and call the tank
     truck if the level falls below a threshold.
@@ -97,7 +96,7 @@ Scenario:
       }
     }
 
-    private static IEnumerable<Event> Tank_truck(Environment env, Container fuel_pump) {
+    private IEnumerable<Event> Tank_truck(Environment env, Container fuel_pump) {
       // Arrives at the gas station after a certain delay and refuels it.
       yield return env.Timeout(TimeSpan.FromMinutes(TANK_TRUCK_TIME));
       Console.Out.WriteLine("Tank truck arriving at time {0}", env.Now);
@@ -106,7 +105,7 @@ Scenario:
       yield return fuel_pump.Put(amount);
     }
 
-    private static IEnumerable<Event> Car_generator(Environment env, Resource gas_station, Container fuel_pump) {
+    private IEnumerable<Event> Car_generator(Environment env, Resource gas_station, Container fuel_pump) {
       // Generate new cars that arrive at the gas station.
       int i = 0;
       while (true) {
@@ -116,11 +115,11 @@ Scenario:
       }
     }
 
-    public static void Main(string[] args) {
+    public void Simulate(int rseed = RANDOM_SEED) {
 
       // Setup and start the simulation
-      Console.Out.WriteLine("Gas Station refuelling");
-
+      Console.Out.WriteLine("== Gas Station refuelling ==");
+      random = new Random(rseed);
       // Create environment and start processes
       var env = new Environment();
       var gas_station = new Resource(env, 2);
@@ -130,7 +129,6 @@ Scenario:
 
       // Execute!
       env.Run(SIM_TIME);
-      Console.In.ReadLine();
     }
   }
 }

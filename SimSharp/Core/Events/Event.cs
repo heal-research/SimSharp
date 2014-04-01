@@ -21,8 +21,7 @@ using System.Collections.Generic;
 namespace SimSharp {
   public class Event {
     protected internal Environment Environment { get; private set; }
-    protected internal List<Action<Event>> CallbackList { get; set; }
-    public IEnumerable<Action<Event>> Callbacks { get { return CallbackList.AsReadOnly(); } }
+    protected List<Action<Event>> CallbackList { get; set; }
 
     public object Value { get; protected set; }
 
@@ -35,24 +34,45 @@ namespace SimSharp {
       CallbackList = new List<Action<Event>>();
     }
 
-    public virtual Event Succeed(object value = null, bool urgent = false) {
+    public virtual void Trigger(Event @event) {
+      if (IsScheduled)
+        throw new InvalidOperationException("Event has already been triggered.");
+      IsOk = @event.IsOk;
+      Value = @event.Value;
+      IsScheduled = true;
+      Environment.Schedule(this);
+    }
+
+    public virtual void Succeed(object value = null, bool urgent = false) {
       if (IsScheduled)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = true;
       Value = value;
       IsScheduled = true;
       Environment.Schedule(this, urgent: urgent);
-      return this;
     }
 
-    public virtual Event Fail(object value = null, bool urgent = false) {
+    public virtual void Fail(object value = null, bool urgent = false) {
       if (IsScheduled)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = false;
       Value = value;
       IsScheduled = true;
       Environment.Schedule(this, urgent: urgent);
-      return this;
+    }
+
+    public virtual void AddCallback(Action<Event> callback) {
+      CallbackList.Add(callback);
+    }
+
+    public virtual void RemoveCallback(Action<Event> callback) {
+      CallbackList.Remove(callback);
+    }
+
+    public virtual IEnumerable<Action<Event>> Process() {
+      var callback = CallbackList.AsReadOnly();
+      CallbackList = null;
+      return callback;
     }
 
     public static Condition operator &(Event event1, Event event2) {

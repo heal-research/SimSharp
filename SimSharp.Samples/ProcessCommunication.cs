@@ -34,9 +34,9 @@ Scenario:
   asynchronous processes.
      */
 
-    private static readonly Random random = new Random();
+    private Random random;
 
-    private static IEnumerable<Event> Message_generator(string name, Environment env, Store out_pipe) {
+    private IEnumerable<Event> MessageGenerator(string name, Environment env, Store out_pipe) {
       // A process which randomly generates messages.
       while (true) {
         // wait for next transmission
@@ -55,7 +55,7 @@ Scenario:
     }
 
 
-    private static IEnumerable<Event> Message_consumer(string name, Environment env, Store in_pipe) {
+    private IEnumerable<Event> MessageConsumer(string name, Environment env, Store in_pipe) {
       // A process which consumes messages.
       while (true) {
         // Get event for message pipe
@@ -78,16 +78,16 @@ Scenario:
       }
     }
 
-    public static void Main(string[] args) {
+    public void Simulate(int rseed = 42) {
       // Setup and start the simulation
-      Console.Out.WriteLine("Process communication");
+      Console.Out.WriteLine("== Process communication ==");
+      random = new Random(rseed);
       var env = new Environment();
 
       var pipe = new Store(env);
-      env.Process(Message_generator("Generator A", env, pipe));
-      env.Process(Message_consumer("Consumer A", env, pipe));
+      env.Process(MessageGenerator("Generator A", env, pipe));
+      env.Process(MessageConsumer("Consumer A", env, pipe));
 
-      Console.Out.WriteLine(System.Environment.NewLine + "One-to-one pipe communication" + System.Environment.NewLine);
       env.Run(TimeSpan.FromSeconds(100));
     }
   }

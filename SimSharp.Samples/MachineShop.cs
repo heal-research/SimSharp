@@ -49,19 +49,19 @@ Scenario:
     private const int NUM_MACHINES = 10; // Number of machines in the machine shop
     private static readonly TimeSpan SIM_TIME = TimeSpan.FromDays(28); // Simulation time in minutes
 
-    private static readonly Random random = new Random(RANDOM_SEED);
+    private Random random;
 
-    public static double time_per_part() {
+    public static double TimePerPart(Random random) {
       // Return actual processing time for a concrete part.
       return RandomDist.Normal(random, PT_MEAN, PT_SIGMA);
     }
 
-    public static double time_to_failure() {
+    public static double TimeToFailure(Random random) {
       // Return time until next failure for a machine.
       return RandomDist.Exponential(random, BREAK_MEAN);
     }
 
-    public class Machine : ActiveObject<Environment> {
+    private class Machine : ActiveObject<Environment> {
       /*
         A machine produces parts and my get broken every now and then.
         If it breaks, it requests a *repairman* and continues the production
@@ -74,9 +74,11 @@ Scenario:
       public int parts_made;
       public bool broken;
       public Process process;
+      private Random random;
 
-      public Machine(Environment env, string name, PreemptiveResource repairman)
+      public Machine(Environment env, Random random, string name, PreemptiveResource repairman)
         : base(env) {
+        this.random = random;
         this.name = name;
         this.parts_made = 0;
         this.broken = false;
@@ -95,7 +97,7 @@ Scenario:
         */
         while (true) {
           // Start making a new part
-          var doneIn = TimeSpan.FromMinutes(time_per_part());
+          var doneIn = TimeSpan.FromMinutes(TimePerPart(random));
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -122,7 +124,7 @@ Scenario:
       private IEnumerable<Event> break_machine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(time_to_failure()));
+          yield return Environment.Timeout(TimeSpan.FromMinutes(TimeToFailure(random)));
           if (!broken) {
             // Only break the machine if it is currently working.
             process.Interrupt();
@@ -131,7 +133,7 @@ Scenario:
       }
     }
 
-    private static IEnumerable<Event> other_jobs(Environment env, PreemptiveResource repairman) {
+    private IEnumerable<Event> other_jobs(Environment env, PreemptiveResource repairman) {
       // The repairman's other (unimportant) job.
       while (true) {
         // Start a new job
@@ -151,14 +153,15 @@ Scenario:
       }
     }
 
-    public static void Main(string[] args) {
+    public void Simulate(int rseed = RANDOM_SEED) {
       // Setup and start the simulation
-      Console.Out.WriteLine("Machine shop");
+      Console.Out.WriteLine("== Machine shop ==");
+      random = new Random(rseed);
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
       var env = new Environment(start);
       var repairman = new PreemptiveResource(env, 1);
-      var machines = Enumerable.Range(0, NUM_MACHINES).Select(x => new Machine(env, "Machine " + x, repairman)).ToArray();
+      var machines = Enumerable.Range(0, NUM_MACHINES).Select(x => new Machine(env, random, "Machine " + x, repairman)).ToArray();
       env.Process(other_jobs(env, repairman));
 
       var startPerf = DateTime.UtcNow;
@@ -172,7 +175,6 @@ Scenario:
         Console.Out.WriteLine("{0} made {1} parts.", machine.name, machine.parts_made);
       Console.Out.WriteLine();
       Console.Out.WriteLine("Processed {0} events in {1} seconds ({2} events/s).", env.ProcessedEvents, perf.TotalSeconds, (env.ProcessedEvents / perf.TotalSeconds));
-      Console.In.ReadLine();
     }
   }
 }

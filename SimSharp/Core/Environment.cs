@@ -97,7 +97,7 @@ namespace SimSharp {
       } catch (EmptyScheduleException) { }
     }
 
-    protected virtual void Step() {
+    public virtual void Step() {
       var nextEvents = queue.First();
       Now = nextEvents.Key;
       var @event = nextEvents.Value.Item1.Count > 0 ? nextEvents.Value.Item1.Dequeue() : nextEvents.Value.Item2.Dequeue();
@@ -107,6 +107,10 @@ namespace SimSharp {
         foreach (var callback in @event.Process())
           callback(@event);
       }
+    }
+
+    public virtual DateTime Peek() {
+      return queue.Count > 0 ? queue.First().Key : DateTime.MaxValue;
     }
 
     protected virtual void StopSimulation(Event @event) {

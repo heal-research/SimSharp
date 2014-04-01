@@ -78,21 +78,21 @@ namespace SimSharp {
     }
 
     protected virtual void Release(Release release) {
-      if (!release.Request.IsScheduled) {
+      if (!release.Request.IsTriggered) {
         var prioRequest = release.Request as PreemptivePriorityRequest;
         if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "release");
         RequestQueue[prioRequest.Priority].Remove(prioRequest);
       }
       Users.Remove(release.Request);
       release.Succeed();
-      if (!release.IsScheduled) ReleaseQueue.Remove(release);
+      if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
     protected virtual void TriggerRequest(Event @event) {
       ReleaseQueue.Remove((Release)@event);
       foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value)) {
-        if (!requestEvent.IsScheduled) Request(requestEvent);
-        if (!requestEvent.IsScheduled) break;
+        if (!requestEvent.IsTriggered) Request(requestEvent);
+        if (!requestEvent.IsTriggered) break;
       }
     }
 
@@ -102,8 +102,8 @@ namespace SimSharp {
       RequestQueue[prioRequest.Priority].Remove(prioRequest);
 
       foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsScheduled) Release(releaseEvent);
-        if (!releaseEvent.IsScheduled) break;
+        if (!releaseEvent.IsTriggered) Release(releaseEvent);
+        if (!releaseEvent.IsTriggered) break;
       }
     }
   }

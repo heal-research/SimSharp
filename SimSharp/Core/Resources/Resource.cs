@@ -68,25 +68,25 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      if (!release.Request.IsScheduled) RequestQueue.Remove(release.Request);
+      if (!release.Request.IsTriggered) RequestQueue.Remove(release.Request);
       Users.Remove(release.Request);
       release.Succeed();
-      if (!release.IsScheduled) ReleaseQueue.Remove(release);
+      if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
     protected virtual void TriggerRequest(Event @event) {
       ReleaseQueue.Remove((Release)@event);
       foreach (var requestEvent in RequestQueue) {
-        if (!requestEvent.IsScheduled) DoRequest(requestEvent);
-        if (!requestEvent.IsScheduled) break;
+        if (!requestEvent.IsTriggered) DoRequest(requestEvent);
+        if (!requestEvent.IsTriggered) break;
       }
     }
 
     protected virtual void TriggerRelease(Event @event) {
       RequestQueue.Remove((Request)@event);
       foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsScheduled) DoRelease(releaseEvent);
-        if (!releaseEvent.IsScheduled) break;
+        if (!releaseEvent.IsTriggered) DoRelease(releaseEvent);
+        if (!releaseEvent.IsTriggered) break;
       }
     }
   }

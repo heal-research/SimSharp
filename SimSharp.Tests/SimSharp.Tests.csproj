@@ -52,10 +52,11 @@
   </Choose>
   <ItemGroup>
     <Compile Include="EnvironmentTests.cs" />
+    <Compile Include="ProcessTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ConditionTest.cs" />
     <Compile Include="TimeoutTest.cs" />
-    <Compile Include="TestResources.cs" />
+    <Compile Include="ResourceTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimSharp\SimSharp.csproj">

@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
+
 using System;
 using System.Collections.Generic;
 
@@ -26,8 +27,9 @@ namespace SimSharp {
     public object Value { get; protected set; }
 
     public bool IsOk { get; protected set; }
+    public bool IsAlive { get { return !IsTriggered && !IsProcessed; } }
     public bool IsProcessed { get; protected set; }
-    public bool IsScheduled { get; protected set; }
+    public bool IsTriggered { get; protected set; }
 
     public Event(Environment environment) {
       Environment = environment;
@@ -35,29 +37,29 @@ namespace SimSharp {
     }
 
     public virtual void Trigger(Event @event) {
-      if (IsScheduled)
+      if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = @event.IsOk;
       Value = @event.Value;
-      IsScheduled = true;
+      IsTriggered = true;
       Environment.Schedule(this);
     }
 
     public virtual void Succeed(object value = null, bool urgent = false) {
-      if (IsScheduled)
+      if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = true;
       Value = value;
-      IsScheduled = true;
+      IsTriggered = true;
       Environment.Schedule(this, urgent: urgent);
     }
 
     public virtual void Fail(object value = null, bool urgent = false) {
-      if (IsScheduled)
+      if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = false;
       Value = value;
-      IsScheduled = true;
+      IsTriggered = true;
       Environment.Schedule(this, urgent: urgent);
     }
 

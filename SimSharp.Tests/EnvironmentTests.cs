@@ -33,7 +33,7 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void test_event_queue_empty() {
+    public void TestEventQueueEmpty() {
       /*The simulation should stop if there are no more events, that means, no
         more active process.*/
       var log = new List<string>();
@@ -44,7 +44,7 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void test_run_negative_until() {
+    public void TestRunNegativeUntil() {
       /*Test passing a negative time to run.*/
       var env = new Environment();
       var errorThrown = false;
@@ -57,7 +57,7 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void test_run_resume() {
+    public void TestRunResume() {
       /* Stopped simulation can be resumed. */
       var env = new Environment();
       var events = new List<Event>() {
@@ -89,7 +89,7 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void test_run_until_value() {
+    public void TestRunUntilValue() {
       /* Anything that can be converted to a float is a valid until value. */
       var env = new Environment();
       env.Run(new DateTime(1980, 9, 16, 18, 45, 0));

@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
+
 using System;
 using System.Collections.Generic;
 
@@ -22,15 +23,20 @@ namespace SimSharp {
   public class Process : Event {
     private readonly IEnumerator<Event> generator;
     private Event target;
+    public Event Target {
+      get { return target; }
+      protected set { target = value; }
+    }
 
     public Process(Environment environment, IEnumerable<Event> generator)
       : base(environment) {
       this.generator = generator.GetEnumerator();
+      IsOk = true;
       target = new Initialize(environment, this);
     }
 
     public virtual void Interrupt(object cause = null) {
-      if (IsScheduled) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
+      if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
       var interruptEvent = new Event(Environment);
@@ -39,12 +45,12 @@ namespace SimSharp {
     }
 
     protected virtual void Resume(Event @event) {
-      if (IsScheduled) return;
+      if (IsTriggered) return;
       if (@event != target) target.RemoveCallback(Resume);
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
         if (generator.MoveNext()) {
-          if (IsScheduled) {
+          if (IsTriggered) {
             // the generator called e.g. Environment.ActiveProcess.Fail
             Environment.ActiveProcess = null;
             return;
@@ -63,7 +69,7 @@ namespace SimSharp {
         Value = @event.Value;
 
         if (generator.MoveNext()) {
-          if (IsScheduled) {
+          if (IsTriggered) {
             // the generator called e.g. Environment.ActiveProcess.Fail
             Environment.ActiveProcess = null;
             return;
@@ -87,10 +93,10 @@ namespace SimSharp {
     }
 
     protected virtual void FinishProcess(object value = null) {
-      if (IsScheduled) return;
+      if (IsTriggered) return;
       IsOk = true;
       Value = value;
-      IsScheduled = true;
+      IsTriggered = true;
       Environment.Schedule(this);
     }
 
@@ -105,7 +111,7 @@ namespace SimSharp {
         : base(environment) {
         CallbackList.Add(process.Resume);
         IsOk = true;
-        IsScheduled = true;
+        IsTriggered = true;
         environment.Schedule(this);
       }
     }

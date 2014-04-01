@@ -19,12 +19,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SimSharp.Tests {
   [TestClass]
-  public class TestResources {
+  public class ResourceTest {
     [TestMethod]
     public void TestResource() {
       var start = new DateTime(2014, 4, 1);
@@ -230,7 +229,7 @@ namespace SimSharp.Tests {
 
       var expected = new Dictionary<int, int> {
         {5, 0}, {6, 2}, {10, 3}
-      }.ToDictionary(x => x.Key, x => start + TimeSpan.FromSeconds(x.Value));
+      }.ToDictionary(x => start + TimeSpan.FromSeconds(x.Key), x => x.Value);
       CollectionAssert.AreEqual(expected, log);
     }
     private IEnumerable<Event> TestPreemtiveResource(int id, Environment env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
@@ -238,7 +237,6 @@ namespace SimSharp.Tests {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(5));
-        // TODO: It seems ALL processes are faulting but only process 1 should fail
         if (!env.ActiveProcess.HandleFault())
           log.Add(env.Now, id);
       }

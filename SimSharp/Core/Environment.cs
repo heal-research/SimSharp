@@ -61,6 +61,9 @@ namespace SimSharp {
     }
 
     public virtual void Schedule(TimeSpan delay, Event @event, bool urgent = false) {
+      if (delay < TimeSpan.Zero)
+        throw new ArgumentException("Negative delays are not allowed.");
+
       var eventTime = Now + delay;
       if (queue.ContainsKey(eventTime)) {
         if (urgent) queue[eventTime].Item1.Enqueue(@event);

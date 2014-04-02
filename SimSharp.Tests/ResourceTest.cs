@@ -206,12 +206,12 @@ namespace SimSharp.Tests {
 
     [TestMethod, Ignore]
     public void TestSortedQueueMaxlen() {
-      // Because .net collections doesn't have max capacities, the unittest is skipped
+      // Skipped because .net collections doesn't have max capacities
     }
 
     [TestMethod, Ignore]
     public void TestGetUsers() {
-      // Because we do not want to test internal structure of the users and request/release queue, the unittest is skipped
+      // Skipped because we do not want to test internal structure of the users and request/release queue
     }
 
     [TestMethod]
@@ -261,6 +261,33 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestPreemtiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
+      }
+    }
+
+    [TestMethod]
+    public void TestMixedPreemtion() {
+      var start = new DateTime(2014, 4, 2);
+      var env = new Environment(start);
+      var res = new PreemptiveResource(env, capacity: 2);
+      var log = new Dictionary<DateTime, int>();
+      env.Process(TestMixedPreemtion(0, env, res, 0, 1, true, log));
+      env.Process(TestMixedPreemtion(1, env, res, 0, 1, true, log));
+      env.Process(TestMixedPreemtion(2, env, res, 1, 0, false, log));
+      env.Process(TestMixedPreemtion(3, env, res, 1, 0, true, log));
+      env.Process(TestMixedPreemtion(4, env, res, 2, 2, true, log));
+      env.Run();
+      var expected = new Dictionary<int, int> {
+        {5, 0}, {6, 3}, {10, 2}, {11,4}
+      }.ToDictionary(x => start + TimeSpan.FromSeconds(x.Key), x => x.Value);
+      CollectionAssert.AreEqual(expected, log);
+    }
+    private IEnumerable<Event> TestMixedPreemtion(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, Dictionary<DateTime, int> log) {
+      yield return env.Timeout(TimeSpan.FromSeconds(delay));
+      using (var req = res.Request(priority: prio, preempt: preempt)) {
+        yield return req;
+        yield return env.Timeout(TimeSpan.FromSeconds(5));
+        if (!env.ActiveProcess.HandleFault())
+          log.Add(env.Now, id);
       }
     }
   }

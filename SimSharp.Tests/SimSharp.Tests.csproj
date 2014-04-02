@@ -57,6 +57,7 @@
     <Compile Include="ConditionTest.cs" />
     <Compile Include="TimeoutTest.cs" />
     <Compile Include="ResourceTest.cs" />
+    <Compile Include="ContainerTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimSharp\SimSharp.csproj">

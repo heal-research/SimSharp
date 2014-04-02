@@ -23,6 +23,8 @@ be spawned that run next to each other.
 To demonstrate how simple models can be expressed with little code,
 consider a production facility that has two machines and one person after
 the machines who grabs the products and puts each of them into a crate.
+The machine cannot continue until the person is available to grab the
+product. The total waiting time of the machine is recorded.
 
 private static TimeSpan delay = TimeSpan.Zero;
 

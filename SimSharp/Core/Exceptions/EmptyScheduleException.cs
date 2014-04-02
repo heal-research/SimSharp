@@ -20,6 +20,10 @@ using System;
 using System.Runtime.Serialization;
 
 namespace SimSharp {
+  /// <summary>
+  /// An exception that is thrown the event queue is empty and the
+  /// simulation needs to stop.
+  /// </summary>
   [Serializable]
   public class EmptyScheduleException : Exception {
     public EmptyScheduleException() { }

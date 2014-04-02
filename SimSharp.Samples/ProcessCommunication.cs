@@ -22,25 +22,21 @@ using System.Collections.Generic;
 namespace SimSharp.Samples {
   public class ProcessCommunication {
     /*
-Process communication example
-
-Covers:
-
-- Resources: Store
-
-Scenario:
-  This example shows how to interconnect simulation model elements
-  together using :class:`~simpy.resources.store.Store` for one-to-one,
-  asynchronous processes.
+     * Process communication example
+     * 
+     * Covers:
+     *  - Resources: Store
+     * 
+     * Scenario:
+     *  This example shows how to interconnect simulation model elements
+     *  together using :class:`~simpy.resources.store.Store` for one-to-one,
+     *  asynchronous processes.
      */
-
-    private Random random;
-
-    private IEnumerable<Event> MessageGenerator(string name, Environment env, Store out_pipe) {
+    private IEnumerable<Event> MessageGenerator(string name, Environment env, Store outPipe) {
       // A process which randomly generates messages.
       while (true) {
         // wait for next transmission
-        yield return env.Timeout(TimeSpan.FromSeconds(random.Next(6, 11)));
+        yield return env.Timeout(TimeSpan.FromSeconds(env.Random.Next(6, 11)));
 
         // messages are time stamped to later check if the consumer was
         // late getting them.  Note, using event.triggered to do this may
@@ -50,16 +46,16 @@ Scenario:
         // the event.triggered will be True in the other order it will be
         // False
         var msg = new object[] { env.Now, string.Format("{0} says hello at {1}", name, env.Now) };
-        out_pipe.Put(msg);
+        outPipe.Put(msg);
       }
     }
 
 
-    private IEnumerable<Event> MessageConsumer(string name, Environment env, Store in_pipe) {
+    private IEnumerable<Event> MessageConsumer(string name, Environment env, Store inPipe) {
       // A process which consumes messages.
       while (true) {
         // Get event for message pipe
-        var get = in_pipe.Get();
+        var get = inPipe.Get();
         yield return get;
         var msg = (object[])get.Value;
         if (((DateTime)msg[0]) < env.Now) {
@@ -67,22 +63,21 @@ Scenario:
           // message_consumer was late getting to it. Depending on what
           // is being modeled this, may, or may not have some
           // significance
-          Console.Out.WriteLine("LATE Getting Message: at time {0}: {1} received message: {2}", env.Now, name, msg[1]);
+          env.Log("LATE Getting Message: at time {0}: {1} received message: {2}", env.Now, name, msg[1]);
         } else {
           // message_consumer is synchronized with message_generator
-          Console.Out.WriteLine("at time {0}: {1} received message: {2}.", env.Now, name, msg[1]);
+          env.Log("at time {0}: {1} received message: {2}.", env.Now, name, msg[1]);
         }
 
         // Process does some other work, which may result in missing messages
-        yield return env.Timeout(TimeSpan.FromSeconds(random.Next(4, 9)));
+        yield return env.Timeout(TimeSpan.FromSeconds(env.Random.Next(4, 9)));
       }
     }
 
     public void Simulate(int rseed = 42) {
       // Setup and start the simulation
-      Console.Out.WriteLine("== Process communication ==");
-      random = new Random(rseed);
-      var env = new Environment();
+      var env = new Environment(rseed);
+      env.Log("== Process communication ==");
 
       var pipe = new Store(env);
       env.Process(MessageGenerator("Generator A", env, pipe));

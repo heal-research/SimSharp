@@ -18,28 +18,43 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// Environments hold the event queues, schedule and process events.
+  /// </summary>
   public class Environment {
+    /// <summary>
+    /// The current simulation date
+    /// </summary>
     public DateTime Now { get; set; }
+    /// <summary>
+    /// The random number generator that is to be used in all events in
+    /// order to produce reproducible results.
+    /// </summary>
     public Random Random { get; protected set; }
 
     private SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>> queue;
     public Process ActiveProcess { get; set; }
 
+    public TextWriter Logger { get; set; }
     public int ProcessedEvents { get; protected set; }
 
     public Environment() : this(new DateTime(1970, 1, 1)) { }
+    public Environment(int randomSeed) : this(new DateTime(1970, 1, 1), randomSeed) { }
     public Environment(DateTime initialDateTime) {
       Now = initialDateTime;
       Random = new Random();
       queue = new SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>>();
+      Logger = Console.Out;
     }
     public Environment(DateTime initialDateTime, int randomSeed) {
       Now = initialDateTime;
       Random = new Random(randomSeed);
       queue = new SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>>();
+      Logger = Console.Out;
     }
 
     public Process Process(IEnumerable<Event> generator) {
@@ -103,10 +118,7 @@ namespace SimSharp {
       var @event = nextEvents.Value.Item1.Count > 0 ? nextEvents.Value.Item1.Dequeue() : nextEvents.Value.Item2.Dequeue();
       if (nextEvents.Value.Item1.Count == 0 && nextEvents.Value.Item2.Count == 0)
         queue.Remove(Now);
-      if (!@event.IsProcessed) {
-        foreach (var callback in @event.Process())
-          callback(@event);
-      }
+      @event.Process();
     }
 
     public virtual DateTime Peek() {
@@ -117,8 +129,9 @@ namespace SimSharp {
       throw new EmptyScheduleException();
     }
 
-    public void Log(string message) {
-      Console.Out.WriteLine(message);
+    public void Log(string message, params object[] args) {
+      if (Logger != null)
+        Logger.WriteLine(message, args);
     }
   }
 }

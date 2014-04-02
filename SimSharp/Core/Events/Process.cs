@@ -20,9 +20,22 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp {
+  /// <summary>
+  /// A Process handles the iteration of events. Processes may define steps that
+  /// a certain entity in the simulation has to perform. Each time the process
+  /// should wait it yields an event and will be resumed when that event is processed.
+  /// </summary>
+  /// <remarks>
+  /// Since an iterator method does not have access to its process, the method can
+  /// retrieve the associated Process through the ActiveProcess property of the
+  /// environment. Each Process sets and resets that property during Resume.
+  /// </remarks>
   public class Process : Event {
     private readonly IEnumerator<Event> generator;
     private Event target;
+    /// <summary>
+    /// Target is the event that is expected to be executed next in the process.
+    /// </summary>
     public Event Target {
       get { return target; }
       protected set { target = value; }
@@ -35,6 +48,16 @@ namespace SimSharp {
       target = new Initialize(environment, this);
     }
 
+    /// <summary>
+    /// This interrupts a process and causes the IsOk flag to be set to false.
+    /// If a process is interrupted the iterator method needs to call HandleFault()
+    /// before continuing to yield further events.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">This is thrown in three conditions:
+    ///  - If the process has already been triggered.
+    ///  - If the process attempts to interrupt itself.
+    ///  - If the process continues to yield events despite being faulted.</exception>
+    /// <param name="cause">The cause of the interrupt.</param>
     public virtual void Interrupt(object cause = null) {
       if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
@@ -56,7 +79,7 @@ namespace SimSharp {
             return;
           }
           ProceedToEvent();
-        } else FinishProcess(@event.Value);
+        } else if (!IsTriggered) Succeed(@event.Value);
       } else {
         /* Fault handling differs from SimPy as in .NET it is not possible to inject an
          * exception into an enumerator. It is even impossible to put a yield return inside
@@ -78,8 +101,10 @@ namespace SimSharp {
           if (!IsOk) throw new InvalidOperationException("The process did not react to being faulted.");
           // otherwise HandleFault was called and the fault was handled
           ProceedToEvent();
-        } else if (!IsOk) throw new InvalidOperationException("The process cannot finish when it is faulted.");
-        else FinishProcess(@event.Value);
+        } else if (!IsTriggered) {
+          if (!IsOk) Fail(@event.Value);
+          else Succeed(@event.Value);
+        }
       }
       Environment.ActiveProcess = null;
     }
@@ -89,17 +114,21 @@ namespace SimSharp {
       Value = target.Value;
       if (!target.IsProcessed)
         target.AddCallback(Resume);
-      else throw new InvalidOperationException("Resuming on an event that was already triggered.");
+      else throw new InvalidOperationException("Resuming on an event that was already processed.");
     }
 
-    protected virtual void FinishProcess(object value = null) {
-      if (IsTriggered) return;
-      IsOk = true;
-      Value = value;
-      IsTriggered = true;
-      Environment.Schedule(this);
-    }
-
+    /// <summary>
+    /// This method must be called to reset the IsOk flag of the process back to true.
+    /// The IsOk flag may be set to false if the process waited on an event that failed.
+    /// </summary>
+    /// <remarks>
+    /// In SimPy a faulting process would throw an exception which is then catched and
+    /// chained. In SimSharp catching exceptions from a yield is not possible as a yield
+    /// return statement may not throw an exception.
+    /// If a processes faulted the Value property may indicate a cause for the fault.
+    /// </remarks>
+    /// <returns>True if a faulting situation needs to be handled, false if the process
+    /// is okay and the last yielded event succeeded.</returns>
     public virtual bool HandleFault() {
       if (IsOk) return false;
       IsOk = true;

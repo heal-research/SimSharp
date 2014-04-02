@@ -19,10 +19,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 
 namespace SimSharp {
-  public class Timeout : Event {
-    public Timeout(Environment environment, TimeSpan delay, object value = null)
+  /// <summary>
+  /// Timeouts are simple events that are executed after a certain timespan has passed.
+  /// </summary>
+  public sealed class Timeout : Event {
+    /// <summary>
+    /// A timeout is an event that is executed after a certain timespan has passed.
+    /// </summary>
+    /// <remarks>
+    /// Timeout events are scheduled when they are created. They are always triggered
+    /// when they are created.
+    /// </remarks>
+    /// <param name="environment">The environment in which it is scheduled.</param>
+    /// <param name="delay">The timespan for the timeout.</param>
+    /// <param name="value">The value of the timeout.</param>
+    /// <param name="isOk">Whether the timeout should succeed or fail.</param>
+    public Timeout(Environment environment, TimeSpan delay, object value = null, bool isOk = true)
       : base(environment) {
-      IsOk = true;
+      IsOk = isOk;
       Value = value;
       IsTriggered = true;
       environment.Schedule(delay, this);

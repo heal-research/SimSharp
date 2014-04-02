@@ -22,7 +22,13 @@ using System.Diagnostics;
 using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// Conditions are events that execute when any or all of its sub-events are executed.
+  /// </summary>
   public class Condition : Event {
+    /// <summary>
+    /// The operation of the condition can be to wait for All or Any event.
+    /// </summary>
     public Operator Operation { get; private set; }
 
     protected List<Event> Events { get; private set; }
@@ -46,12 +52,12 @@ namespace SimSharp {
         AddEvent(@event);
     }
 
-    private void AddEvent(Event @event) {
+    protected virtual void AddEvent(Event @event) {
       Events.Add(@event);
       @event.AddCallback(Check);
     }
 
-    private void Check(Event @event) {
+    protected virtual void Check(Event @event) {
       FiredEvents.Add(@event);
 
       if (!@event.IsOk)
@@ -61,7 +67,7 @@ namespace SimSharp {
       }
     }
 
-    private bool Evaluate() {
+    protected virtual bool Evaluate() {
       switch (Operation) {
         case Operator.All:
           return FiredEvents.Count == Events.Count;

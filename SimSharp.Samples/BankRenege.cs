@@ -27,13 +27,11 @@ namespace SimSharp.Samples {
     private const int MinPatience = 1; // Min. customer patience
     private const int MaxPatience = 3; // Max. customer patience
 
-    private Random random;
-
     private IEnumerable<Event> Source(Environment env, int number, double interval, Resource counter) {
       for (int i = 0; i < number; i++) {
-        var c = Customer(env, string.Format("Customer {0}", i), counter, timeInBank: 12.0);
+        var c = Customer(env, "Customer " + i, counter, timeInBank: 12.0);
         env.Process(c);
-        var t = RandomDist.Exponential(random, 1.0 / interval);
+        var t = RandomDist.Exponential(env.Random, 1.0 / interval);
         yield return env.Timeout(TimeSpan.FromMinutes(t));
       }
     }
@@ -41,10 +39,10 @@ namespace SimSharp.Samples {
     private IEnumerable<Event> Customer(Environment env, string name, Resource counter, double timeInBank) {
       var arrive = env.Now;
 
-      Console.WriteLine("{0} {1}: Here I am", arrive, name);
+      env.Log("{0} {1}: Here I am", arrive, name);
 
       using (var req = counter.Request()) {
-        var patience = RandomDist.Uniform(random, MinPatience, MaxPatience);
+        var patience = RandomDist.Uniform(env.Random, MinPatience, MaxPatience);
 
         // Wait for the counter or abort at the end of our tether
         var timeout = env.Timeout(TimeSpan.FromMinutes(patience));
@@ -54,25 +52,24 @@ namespace SimSharp.Samples {
 
         if (req.IsProcessed) {
           // We got the counter
-          Console.WriteLine("{0} {1}: waited {2}", env.Now, name, wait);
+          env.Log("{0} {1}: waited {2}", env.Now, name, wait);
 
-          var tib = RandomDist.Exponential(random, 1.0 / timeInBank);
+          var tib = RandomDist.Exponential(env.Random, 1.0 / timeInBank);
           yield return env.Timeout(TimeSpan.FromMinutes(tib));
-          Console.WriteLine("{0} {1}: Finished", env.Now, name);
+          env.Log("{0} {1}: Finished", env.Now, name);
         } else {
           // We reneged
-          Console.WriteLine("{0} {1}: RENEGED after {2}", env.Now, name, wait);
+          env.Log("{0} {1}: RENEGED after {2}", env.Now, name, wait);
         }
       }
     }
 
     public void Simulate(int rseed = 41) {
       // Setup and start the simulation
-      Console.WriteLine("== Bank renege ==");
-      random = new Random(41);
-      // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
-      var env = new Environment(start);
+      // Create an environment and start the setup process
+      var env = new Environment(start, 41);
+      env.Log("== Bank renege ==");
       var counter = new Resource(env, capacity: 1);
       env.Process(Source(env, NewCustomers, IntervalCustomers, counter));
       env.Run();

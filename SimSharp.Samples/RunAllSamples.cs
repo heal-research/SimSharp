@@ -21,6 +21,7 @@ using System;
 namespace SimSharp.Samples {
   class RunAllSamples {
     public static void Main(string[] args) {
+      // Run all samples one after another
       new BankRenege().Simulate();
       Console.WriteLine();
       new GasStationRefueling().Simulate();

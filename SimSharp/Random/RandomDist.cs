@@ -56,6 +56,23 @@ namespace SimSharp {
       return mu + z * sigma;
     }
 
+    public static double NormalPositive(Random urand, double mu, double sigma) {
+      double val;
+      do {
+        val = Normal(urand, mu, sigma);
+      } while (val <= 0);
+      return val;
+    }
+
+    public static double NormalNegative(Random urand, double mu, double sigma) {
+      double val;
+      do {
+        val = Normal(urand, mu, sigma);
+      } while (val >= 0);
+      return val;
+    }
+
+
     public static double LogNormal(Random urand, double mu, double sigma) {
       return Math.Exp(Normal(urand, mu, sigma));
     }

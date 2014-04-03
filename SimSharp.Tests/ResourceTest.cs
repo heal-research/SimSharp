@@ -18,7 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SimSharp.Tests {
@@ -288,6 +290,61 @@ namespace SimSharp.Tests {
         yield return env.Timeout(TimeSpan.FromSeconds(5));
         if (!env.ActiveProcess.HandleFault())
           log.Add(env.Now, id);
+      }
+    }
+
+    [TestMethod]
+    public void TestFilterStore() {
+      var start = new DateTime(1970, 1, 1, 0, 0, 0);
+      var sb = new StringBuilder();
+      var env = new Environment(start) {
+        Logger = new StringWriter(sb)
+      };
+      var sto = new FilterStore(env, capacity: 1);
+      env.Process(FilterStoreProducer(env, sto));
+      env.Process(FilterStoreConsumerA(env, sto));
+      env.Process(FilterStoreConsumerB(env, sto));
+      env.Run(TimeSpan.FromSeconds(20));
+      Assert.AreEqual(sb.ToString(),
+@"4: Produce A
+4: Consume A
+6: Produce B
+6: Consume B
+10: Produce A
+14: Consume A
+14: Produce B
+14: Consume B
+18: Produce A
+");
+    }
+
+    private static readonly object FilterStoreObjA = new object();
+    private static readonly object FilterStoreObjB = new object();
+
+    private IEnumerable<Event> FilterStoreProducer(Environment env, FilterStore sto) {
+      while (true) {
+        yield return env.Timeout(TimeSpan.FromSeconds(4));
+        yield return sto.Put(FilterStoreObjA);
+        env.Log("{0}: Produce A", env.Now.Second);
+        yield return env.Timeout(TimeSpan.FromSeconds(2));
+        yield return sto.Put(FilterStoreObjB);
+        env.Log("{0}: Produce B", env.Now.Second);
+      }
+    }
+
+    private IEnumerable<Event> FilterStoreConsumerA(Environment env, FilterStore sto) {
+      while (true) {
+        yield return sto.Get(x => x == FilterStoreObjA);
+        env.Log("{0}: Consume A", env.Now.Second);
+        yield return env.Timeout(TimeSpan.FromSeconds(10));
+      }
+    }
+
+    private IEnumerable<Event> FilterStoreConsumerB(Environment env, FilterStore sto) {
+      while (true) {
+        yield return sto.Get(x => x == FilterStoreObjB);
+        env.Log("{0}: Consume B", env.Now.Second);
+        yield return env.Timeout(TimeSpan.FromSeconds(3));
       }
     }
   }

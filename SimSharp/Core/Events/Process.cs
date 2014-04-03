@@ -82,10 +82,10 @@ namespace SimSharp {
         } else if (!IsTriggered) Succeed(@event.Value);
       } else {
         /* Fault handling differs from SimPy as in .NET it is not possible to inject an
-         * exception into an enumerator. It is even impossible to put a yield return inside
-         * a try-catch block, so here the Process will set IsOk and will then move to the
-         * next yield in the generator. However, if after this move IsOk is still true we
-         * know that the error was not handled. It is assumed the error is handled if
+         * exception into an enumerator and it is impossible to put a yield return inside
+         * a try-catch block. In SimSharp the Process will set IsOk and will then move to
+         * the next yield in the generator. However, if after this move IsOk is still true
+         * we know that the error was not handled. It is assumed the error is handled if
          * HandleFault() is called on the environment's ActiveProcess which will reset the
          * flag. */
         IsOk = false;

@@ -1,18 +1,18 @@
-SimSharp
+Sim# (SimSharp)
 ========
 
 A .NET port of SimPy, discrete event simulation framework
 
 Disclaimer:
-SimSharp is distributed in the hope that it will be useful, but WITHOUT
+Sim# is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.
-SimSharp is free software: you can redistribute it and/or modify it under
+Sim# is free software: you can redistribute it and/or modify it under
 the terms of the  GNU General Public License (GPL) as published by the
 Free Software Foundation, either version 3 of the license, or (at your
 option) any later version. 
 
-SimSharp aims to port the concepts used in SimPy [1] to the .NET world.
+Sim# aims to port the concepts used in SimPy [1] to the .NET world.
 It is implemented in C# and builds on the .NET Framework 4.0.
 
 SimPy allows to model processes easily and with little boiler plate code.
@@ -54,9 +54,9 @@ public static void Main(string[] args) {
   Console.WriteLine("The machines were delayed for {0}", delay);
 }
 
-SimSharp tries to be as easy to use as SimPy, but also remains true
+Sim# tries to be as easy to use as SimPy, but also remains true
 to the .NET Framework. The most obvious difference between SimPy
-and SimSharp is handling process interruptions. In SimSharp a process
+and Sim# is handling process interruptions. In Sim# a process
 that can be interrupted needs to call
 
   if (Environment.ActiveProcess.HandleFault()) {...}

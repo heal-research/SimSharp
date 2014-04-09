@@ -1,2 +1,6 @@
 To port:
  * Unit Tests
+
+Changes:
+ * Throw away RandomDist and add methods directly to the Environment
+  * Restrict the visibility of the RNG to the environment and subclasses only

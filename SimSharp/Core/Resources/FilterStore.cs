@@ -81,6 +81,7 @@ namespace SimSharp {
       PutQueue.Remove((StorePut)@event);
       foreach (var releaseEvent in GetQueue) {
         if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
+        if (Items.Count == 0) break;
       }
     }
   }

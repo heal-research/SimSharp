@@ -91,6 +91,7 @@ namespace SimSharp {
       ReleaseQueue.Remove((Release)@event);
       foreach (var requestEvent in RequestQueue) {
         if (!requestEvent.IsTriggered) DoRequest(requestEvent);
+        if (Resources.Count == 0) break;
       }
     }
 

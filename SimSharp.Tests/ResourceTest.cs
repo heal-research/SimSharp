@@ -347,5 +347,27 @@ namespace SimSharp.Tests {
         yield return env.Timeout(TimeSpan.FromSeconds(3));
       }
     }
+
+    [TestMethod]
+    public void TestFilterStoreGetAfterMismatch() {
+      var env = new Environment(new DateTime(2014, 1, 1));
+      var store = new FilterStore(env, capacity: 2);
+      var proc1 = env.Process(TestFilterStoreGetAfterMismatch_Getter(env, store, 1));
+      var proc2 = env.Process(TestFilterStoreGetAfterMismatch_Getter(env, store, 2));
+      env.Process(TestFilterStoreGetAfterMismatch_Putter(env, store));
+      env.Run();
+      Assert.AreEqual(proc1.Value, 1);
+      Assert.AreEqual(proc2.Value, 0);
+    }
+    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Putter(Environment env, FilterStore store) {
+      yield return store.Put(2);
+      yield return env.Timeout(TimeSpan.FromSeconds(1));
+      yield return store.Put(1);
+    }
+
+    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Getter(Environment env, FilterStore store, int value) {
+      yield return store.Get(x => (int)x == value);
+      env.ActiveProcess.Succeed(env.Now.Second);
+    }
   }
 }

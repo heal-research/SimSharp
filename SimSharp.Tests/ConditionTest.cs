@@ -124,5 +124,27 @@ namespace SimSharp.Tests {
       yield return timeout;
       env.ActiveProcess.Fail(string.Format("Onoes, failed after {0} delay!", delay.Ticks));
     }
+
+    [TestMethod]
+    public void TestConditionWithUncaughtError() {
+      var env = new Environment(new DateTime(2014, 1, 1));
+      env.Process(TestConditionWithUncaughtError_Process(env));
+      try {
+        env.Run();
+        Assert.Fail("There should have been an InvalidOperationException");
+      } catch (Exception e) {
+        Assert.IsInstanceOfType(e, typeof(InvalidOperationException));
+      }
+      Assert.AreEqual(env.Now, new DateTime(2014, 1, 3));
+    }
+
+    private IEnumerable<Event> TestConditionWithUncaughtError_Process(Environment env) {
+      yield return env.Timeout(TimeSpan.FromDays(1)) | env.Process(TestConditionWithUncaughtError_Explode(env, 2));
+    }
+
+    private IEnumerable<Event> TestConditionWithUncaughtError_Explode(Environment env, int delay) {
+      yield return env.Timeout(TimeSpan.FromDays(delay));
+      env.ActiveProcess.Fail();
+    }
   }
 }

@@ -16,10 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Linq;
 
 namespace SimSharp {
   /// <summary>
@@ -32,23 +31,34 @@ namespace SimSharp {
 
     protected Condition(Environment environment, params Event[] events)
       : base(environment) {
-      Debug.Assert(events.All(e => ReferenceEquals(e.Environment, environment)));
-
       CallbackList.Add(CollectValues);
       Events = new List<Event>(events.Length);
       FiredEvents = new List<Event>();
 
       foreach (var @event in events)
         AddEvent(@event);
+
+      if (IsAlive && Evaluate())
+        Succeed();
     }
 
     protected virtual void AddEvent(Event @event) {
+      if (Environment != @event.Environment)
+        throw new ArgumentException("It is not allowed to mix events from different environments");
+      if (IsProcessed)
+        throw new InvalidOperationException("Event has already been processed");
       Events.Add(@event);
-      @event.AddCallback(Check);
+      if (@event.IsProcessed) Check(@event);
+      else @event.AddCallback(Check);
     }
 
     protected virtual void Check(Event @event) {
-      if (IsTriggered || IsProcessed) return;
+      if (IsTriggered || IsProcessed) {
+        if (!@event.IsOk) throw new InvalidOperationException(
+@"Errors that happen after the condition has been triggered will not be
+handled by the condition and cause the simulation to crash.");
+        return;
+      }
       FiredEvents.Add(@event);
 
       if (!@event.IsOk)

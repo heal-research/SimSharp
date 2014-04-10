@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
-using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 
@@ -25,26 +25,16 @@ namespace SimSharp {
   /// <summary>
   /// Conditions are events that execute when any or all of its sub-events are executed.
   /// </summary>
-  public class Condition : Event {
-    /// <summary>
-    /// The operation of the condition can be to wait for All or Any event.
-    /// </summary>
-    public Operator Operation { get; private set; }
-
+  public abstract class Condition : Event {
     protected List<Event> Events { get; private set; }
 
     protected List<Event> FiredEvents { get; private set; }
 
-    public enum Operator {
-      All,
-      Any
-    }
-
-    public Condition(Environment environment, Operator operation, params Event[] events)
+    protected Condition(Environment environment, params Event[] events)
       : base(environment) {
       Debug.Assert(events.All(e => ReferenceEquals(e.Environment, environment)));
-      Operation = operation;
 
+      CallbackList.Add(CollectValues);
       Events = new List<Event>(events.Length);
       FiredEvents = new List<Event>();
 
@@ -58,24 +48,38 @@ namespace SimSharp {
     }
 
     protected virtual void Check(Event @event) {
+      if (IsTriggered || IsProcessed) return;
       FiredEvents.Add(@event);
 
       if (!@event.IsOk)
         Fail(@event.Value);
-      else if (!IsProcessed && Evaluate()) {
+      else if (Evaluate()) {
         Succeed();
       }
     }
 
-    protected virtual bool Evaluate() {
-      switch (Operation) {
-        case Operator.All:
-          return FiredEvents.Count == Events.Count;
-        case Operator.Any:
-          return FiredEvents.Count > 0 || Events.Count == 0;
-        default:
-          throw new InvalidOperationException("Invalid Condition Operator.");
+    protected virtual IEnumerable<KeyValuePair<object, object>> GetValues() {
+      var values = new List<KeyValuePair<object, object>>();
+      foreach (var e in Events) {
+        var condition = e as Condition;
+        if (condition != null) {
+          values.AddRange(condition.GetValues());
+        } else if (e.IsProcessed) {
+          values.Add(new KeyValuePair<object, object>(e, e.Value));
+        }
+      }
+      return values;
+    }
+
+    protected virtual void CollectValues(Event @event) {
+      if (@event.IsOk) {
+        var value = new OrderedDictionary();
+        foreach (var v in GetValues())
+          value.Add(v.Key, v.Value);
+        Value = value;
       }
     }
+
+    protected abstract bool Evaluate();
   }
 }

@@ -191,10 +191,10 @@ namespace SimSharp {
     }
 
     public static Condition operator &(Event event1, Event event2) {
-      return new Condition(event1.Environment, Condition.Operator.All, event1, event2);
+      return new AllOf(event1.Environment, event1, event2);
     }
     public static Condition operator |(Event event1, Event event2) {
-      return new Condition(event1.Environment, Condition.Operator.Any, event1, event2);
+      return new AnyOf(event1.Environment, event1, event2);
     }
   }
 }

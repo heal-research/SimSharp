@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimSharp {
   public class FilterStore {
@@ -38,10 +39,14 @@ namespace SimSharp {
       Items = new List<object>();
     }
 
+    public virtual bool IsAvailable(Func<object, bool> filter) {
+      return Items.Any(filter);
+    }
+
     public virtual StorePut Put(object item) {
       var put = new StorePut(Environment, TriggerGet, item);
       PutQueue.Add(put);
-      DoPut(put);
+      TriggerPut();
       return put;
     }
 
@@ -49,7 +54,7 @@ namespace SimSharp {
       if (filter == null) filter = _ => true;
       var get = new FilterStoreGet(Environment, TriggerPut, filter);
       GetQueue.Add(get);
-      DoGet(get);
+      TriggerGet();
       return get;
     }
 
@@ -69,18 +74,20 @@ namespace SimSharp {
       }
     }
 
-    protected virtual void TriggerPut(Event @event) {
-      GetQueue.Remove((FilterStoreGet)@event);
-      foreach (var requestEvent in PutQueue) {
-        if (!requestEvent.IsTriggered) DoPut(requestEvent);
+    protected virtual void TriggerPut(Event @event = null) {
+      var fsg = @event as FilterStoreGet;
+      if (fsg != null) GetQueue.Remove(fsg);
+      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
+        DoPut(requestEvent);
         if (!requestEvent.IsTriggered) break;
       }
     }
 
-    protected virtual void TriggerGet(Event @event) {
-      PutQueue.Remove((StorePut)@event);
-      foreach (var releaseEvent in GetQueue) {
-        if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
+    protected virtual void TriggerGet(Event @event = null) {
+      var sp = @event as StorePut;
+      if (sp != null) PutQueue.Remove(sp);
+      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
+        DoGet(releaseEvent);
         if (Items.Count == 0) break;
       }
     }

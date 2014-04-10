@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimSharp {
   public class Container {
@@ -43,7 +44,7 @@ namespace SimSharp {
       if (amount > Capacity) throw new ArgumentException("Cannot put more than capacity", "amount");
       var put = new ContainerPut(Environment, TriggerGet, amount);
       PutQueue.Add(put);
-      DoPut(put);
+      TriggerPut();
       return put;
     }
 
@@ -51,7 +52,7 @@ namespace SimSharp {
       if (amount > Capacity) throw new ArgumentException("Cannot get more than capacity", "amount");
       var get = new ContainerGet(Environment, TriggerPut, amount);
       GetQueue.Add(get);
-      DoGet(get);
+      TriggerGet();
       return get;
     }
 
@@ -69,18 +70,20 @@ namespace SimSharp {
       }
     }
 
-    protected virtual void TriggerPut(Event @event) {
-      GetQueue.Remove((ContainerGet)@event);
-      foreach (var requestEvent in PutQueue) {
-        if (!requestEvent.IsTriggered) DoPut(requestEvent);
+    protected virtual void TriggerPut(Event @event = null) {
+      var cg = @event as ContainerGet;
+      if (cg != null) GetQueue.Remove(cg);
+      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
+        DoPut(requestEvent);
         if (!requestEvent.IsTriggered) break;
       }
     }
 
-    protected virtual void TriggerGet(Event @event) {
-      PutQueue.Remove((ContainerPut)@event);
-      foreach (var releaseEvent in GetQueue) {
-        if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
+    protected virtual void TriggerGet(Event @event = null) {
+      var cp = @event as ContainerPut;
+      if (cp != null) PutQueue.Remove(cp);
+      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
+        DoGet(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

@@ -271,25 +271,28 @@ namespace SimSharp.Tests {
       var start = new DateTime(2014, 4, 2);
       var env = new Environment(start);
       var res = new PreemptiveResource(env, capacity: 2);
-      var log = new Dictionary<DateTime, int>();
+      var log = new List<Tuple<int, int>>();
       env.Process(TestMixedPreemtion(0, env, res, 0, 1, true, log));
       env.Process(TestMixedPreemtion(1, env, res, 0, 1, true, log));
       env.Process(TestMixedPreemtion(2, env, res, 1, 0, false, log));
       env.Process(TestMixedPreemtion(3, env, res, 1, 0, true, log));
       env.Process(TestMixedPreemtion(4, env, res, 2, 2, true, log));
       env.Run();
-      var expected = new Dictionary<int, int> {
-        {5, 0}, {6, 3}, {10, 2}, {11,4}
-      }.ToDictionary(x => start + TimeSpan.FromSeconds(x.Key), x => x.Value);
+      var expected = new List<Tuple<int, int>> {
+        Tuple.Create(5, 0),
+        Tuple.Create(6, 3),
+        Tuple.Create(10, 2),
+        Tuple.Create(11, 4)
+      };
       CollectionAssert.AreEqual(expected, log);
     }
-    private IEnumerable<Event> TestMixedPreemtion(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, Dictionary<DateTime, int> log) {
+    private IEnumerable<Event> TestMixedPreemtion(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, List<Tuple<int, int>> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       using (var req = res.Request(priority: prio, preempt: preempt)) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(5));
         if (!env.ActiveProcess.HandleFault())
-          log.Add(env.Now, id);
+          log.Add(Tuple.Create(env.Now.Second, id));
       }
     }
 
@@ -369,5 +372,40 @@ namespace SimSharp.Tests {
       yield return store.Get(x => (int)x == value);
       env.ActiveProcess.Succeed(env.Now.Second);
     }
+
+    [TestMethod]
+    public void TestResourceImmediateRequests() {
+      /* A process must not acquire a resource if it releases it and immediately
+       * requests it again while there are already other requesting processes.
+       */
+      var env = new Environment(new DateTime(2014, 1, 1));
+      env.Process(TestResourceImmediateRequests_Parent(env));
+      env.Run();
+      Assert.AreEqual(env.Now.Second, 6);
+    }
+
+    private IEnumerable<Event> TestResourceImmediateRequests_Parent(Environment env) {
+      var res = new Resource(env, 1);
+      var childA = env.Process(TestResourceImmediateRequests_Child(env, res));
+      var childB = env.Process(TestResourceImmediateRequests_Child(env, res));
+      yield return childA;
+      yield return childB;
+
+      Assert.IsTrue(new[] { 0, 2, 4 }.SequenceEqual((IList<int>)childA.Value));
+      Assert.IsTrue(new[] { 1, 3, 5 }.SequenceEqual((IList<int>)childB.Value));
+    }
+
+    private IEnumerable<Event> TestResourceImmediateRequests_Child(Environment env, Resource res) {
+      var result = new List<int>();
+      for (var i = 0; i < 3; i++) {
+        using (var req = res.Request()) {
+          yield return req;
+          result.Add(env.Now.Second);
+          yield return env.Timeout(TimeSpan.FromSeconds(1));
+        }
+      }
+      env.ActiveProcess.Succeed(result);
+    }
+
   }
 }

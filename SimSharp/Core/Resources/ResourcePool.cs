@@ -42,28 +42,22 @@ namespace SimSharp {
       TotalCapacity = Resources.Count;
     }
 
+    public virtual bool IsAvailable(Func<object, bool> filter) {
+      return Resources.Any(filter);
+    }
+
     public virtual ResourcePoolRequest Request(Func<object, bool> filter = null) {
       var request = new ResourcePoolRequest(Environment, TriggerRelease, ReleaseCallback, filter ?? TrueFunc);
       RequestQueue.Add(request);
-      DoRequest(request);
+      TriggerRequest();
       return request;
     }
 
     public virtual Release Release(Request request) {
       var release = new Release(Environment, request, TriggerRequest);
       ReleaseQueue.Add(release);
-      DoRelease(release);
+      TriggerRelease();
       return release;
-    }
-
-    public virtual void ProcessRequests() {
-      foreach (var @event in RequestQueue) {
-        if (!@event.IsTriggered) DoRequest(@event);
-      }
-    }
-
-    public virtual bool IsAvailable(Func<object, bool> filter) {
-      return Resources.Any(filter);
     }
 
     protected virtual void ReleaseCallback(Event @event) {
@@ -87,18 +81,20 @@ namespace SimSharp {
       if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
-    protected virtual void TriggerRequest(Event @event) {
-      ReleaseQueue.Remove((Release)@event);
-      foreach (var requestEvent in RequestQueue) {
-        if (!requestEvent.IsTriggered) DoRequest(requestEvent);
+    protected virtual void TriggerRequest(Event @event = null) {
+      var rel = @event as Release;
+      if (rel != null) ReleaseQueue.Remove(rel);
+      foreach (var requestEvent in RequestQueue.Where(x => !x.IsTriggered)) {
+        DoRequest(requestEvent);
         if (Resources.Count == 0) break;
       }
     }
 
-    protected virtual void TriggerRelease(Event @event) {
-      RequestQueue.Remove((ResourcePoolRequest)@event);
-      foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsTriggered) DoRelease(releaseEvent);
+    protected virtual void TriggerRelease(Event @event = null) {
+      var rpr = @event as ResourcePoolRequest;
+      if (rpr != null) RequestQueue.Remove(rpr);
+      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
+        DoRelease(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

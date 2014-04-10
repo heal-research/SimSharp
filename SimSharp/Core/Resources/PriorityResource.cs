@@ -44,14 +44,14 @@ namespace SimSharp {
       var request = new PriorityRequest(Environment, TriggerRelease, ReleaseCallback, priority);
       if (RequestQueue.ContainsKey(request.Priority)) RequestQueue[request.Priority].Add(request);
       else RequestQueue.Add(request.Priority, new List<PriorityRequest>() { request });
-      Request(request);
+      TriggerRequest();
       return request;
     }
 
     public virtual Release Release(PriorityRequest request) {
       var release = new Release(Environment, request, TriggerRequest);
       ReleaseQueue.Add(release);
-      Release(release);
+      TriggerRelease();
       return release;
     }
 
@@ -60,14 +60,14 @@ namespace SimSharp {
       if (request != null) Release(request);
     }
 
-    protected virtual void Request(Request request) {
+    protected virtual void DoRequest(Request request) {
       if (Users.Count < Capacity) {
         Users.Add(request);
         request.Succeed();
       }
     }
 
-    protected virtual void Release(Release release) {
+    protected virtual void DoRelease(Release release) {
       if (!release.Request.IsTriggered) {
         var prioRequest = release.Request as PriorityRequest;
         if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "release");
@@ -78,21 +78,21 @@ namespace SimSharp {
       if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
-    protected virtual void TriggerRequest(Event @event) {
-      ReleaseQueue.Remove((Release)@event);
-      foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value)) {
-        if (!requestEvent.IsTriggered) Request(requestEvent);
+    protected virtual void TriggerRequest(Event @event = null) {
+      var rel = @event as Release;
+      if (rel != null) ReleaseQueue.Remove(rel);
+      foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value).Where(x => !x.IsTriggered)) {
+        DoRequest(requestEvent);
         if (!requestEvent.IsTriggered) break;
       }
     }
 
-    protected virtual void TriggerRelease(Event @event) {
-      var prioRequest = @event as PriorityRequest;
-      if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "event");
-      RequestQueue[prioRequest.Priority].Remove(prioRequest);
+    protected virtual void TriggerRelease(Event @event = null) {
+      var prioReq = @event as PriorityRequest;
+      if (prioReq != null) RequestQueue[prioReq.Priority].Remove(prioReq);
 
-      foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsTriggered) Release(releaseEvent);
+      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
+        DoRelease(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

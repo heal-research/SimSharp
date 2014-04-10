@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimSharp {
   public class Resource {
@@ -44,14 +45,14 @@ namespace SimSharp {
     public virtual Request Request() {
       var request = new Request(Environment, TriggerRelease, ReleaseCallback);
       RequestQueue.Add(request);
-      DoRequest(request);
+      TriggerRequest();
       return request;
     }
 
     public virtual Release Release(Request request) {
       var release = new Release(Environment, request, TriggerRequest);
       ReleaseQueue.Add(release);
-      DoRelease(release);
+      TriggerRelease();
       return release;
     }
 
@@ -74,18 +75,18 @@ namespace SimSharp {
       if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
-    protected virtual void TriggerRequest(Event @event) {
-      ReleaseQueue.Remove((Release)@event);
-      foreach (var requestEvent in RequestQueue) {
-        if (!requestEvent.IsTriggered) DoRequest(requestEvent);
+    protected virtual void TriggerRequest(Event @event = null) {
+      if (@event != null) ReleaseQueue.Remove((Release)@event);
+      foreach (var requestEvent in RequestQueue.Where(x => !x.IsTriggered)) {
+        DoRequest(requestEvent);
         if (!requestEvent.IsTriggered) break;
       }
     }
 
-    protected virtual void TriggerRelease(Event @event) {
-      RequestQueue.Remove((Request)@event);
-      foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsTriggered) DoRelease(releaseEvent);
+    protected virtual void TriggerRelease(Event @event = null) {
+      if (@event != null) RequestQueue.Remove((Request)@event);
+      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
+        DoRelease(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

@@ -44,14 +44,14 @@ namespace SimSharp {
       var request = new PreemptivePriorityRequest(Environment, TriggerRelease, ReleaseCallback, priority, preempt);
       if (RequestQueue.ContainsKey(request.Priority)) RequestQueue[request.Priority].Add(request);
       else RequestQueue.Add(request.Priority, new List<PreemptivePriorityRequest>() { request });
-      Request(request);
+      TriggerRequest();
       return request;
     }
 
     public virtual Release Release(PreemptivePriorityRequest request) {
       var release = new Release(Environment, request, TriggerRequest);
       ReleaseQueue.Add(release);
-      Release(release);
+      TriggerRelease();
       return release;
     }
 
@@ -60,13 +60,18 @@ namespace SimSharp {
       if (request != null) Release(request);
     }
 
-    protected virtual void Request(PreemptivePriorityRequest request) {
+    protected virtual void DoRequest(PreemptivePriorityRequest request) {
       if (Users.Count >= Capacity && request.Preempt) {
         // Check if we can preempt another process
-        var oldest = Users.OfType<PriorityRequest>().Select((r, i) => new { Request = r, Index = i })
-          .OrderByDescending(x => x.Request.Priority).ThenByDescending(x => x.Request.Time).ThenByDescending(x => x.Index)
+        var oldest = Users.OfType<PreemptivePriorityRequest>().Select((r, i) => new { Request = r, Index = i })
+          .OrderByDescending(x => x.Request.Priority)
+          .ThenByDescending(x => x.Request.Time)
+          .ThenByDescending(x => x.Request.Preempt)
+          .ThenByDescending(x => x.Index)
           .First().Request;
-        if (oldest.Priority > request.Priority || (oldest.Priority == request.Priority && oldest.Time > request.Time)) {
+        if (oldest.Priority > request.Priority || (oldest.Priority == request.Priority
+            && (!oldest.Preempt && request.Preempt || (oldest.Preempt == request.Preempt
+              && oldest.Time > request.Time)))) {
           Users.Remove(oldest);
           oldest.Process.Interrupt(new Preempted(request.Process, oldest.Time));
         }
@@ -77,7 +82,7 @@ namespace SimSharp {
       }
     }
 
-    protected virtual void Release(Release release) {
+    protected virtual void DoRelease(Release release) {
       if (!release.Request.IsTriggered) {
         var prioRequest = release.Request as PreemptivePriorityRequest;
         if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "release");
@@ -88,21 +93,20 @@ namespace SimSharp {
       if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
-    protected virtual void TriggerRequest(Event @event) {
-      ReleaseQueue.Remove((Release)@event);
-      foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value)) {
-        if (!requestEvent.IsTriggered) Request(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+    protected virtual void TriggerRequest(Event @event = null) {
+      var rel = @event as Release;
+      if (rel != null) ReleaseQueue.Remove(rel);
+      foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value).Where(x => !x.IsTriggered)) {
+        DoRequest(requestEvent);
       }
     }
 
-    protected virtual void TriggerRelease(Event @event) {
-      var prioRequest = @event as PreemptivePriorityRequest;
-      if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "event");
-      RequestQueue[prioRequest.Priority].Remove(prioRequest);
+    protected virtual void TriggerRelease(Event @event = null) {
+      var prePrioReq = @event as PreemptivePriorityRequest;
+      if (prePrioReq != null) RequestQueue[prePrioReq.Priority].Remove(prePrioReq);
 
-      foreach (var releaseEvent in ReleaseQueue) {
-        if (!releaseEvent.IsTriggered) Release(releaseEvent);
+      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
+        DoRelease(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

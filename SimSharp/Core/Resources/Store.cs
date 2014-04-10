@@ -41,14 +41,14 @@ namespace SimSharp {
     public virtual StorePut Put(object item) {
       var put = new StorePut(Environment, TriggerGet, item);
       PutQueue.Add(put);
-      DoPut(put);
+      TriggerPut();
       return put;
     }
 
     public virtual StoreGet Get() {
       var get = new StoreGet(Environment, TriggerPut);
       GetQueue.Add(get);
-      DoGet(get);
+      TriggerGet();
       return get;
     }
 
@@ -67,18 +67,20 @@ namespace SimSharp {
       }
     }
 
-    protected virtual void TriggerPut(Event @event) {
-      GetQueue.Remove((StoreGet)@event);
-      foreach (var requestEvent in PutQueue) {
-        if (!requestEvent.IsTriggered) DoPut(requestEvent);
+    protected virtual void TriggerPut(Event @event = null) {
+      var sg = @event as StoreGet;
+      if (sg != null) GetQueue.Remove(sg);
+      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
+        DoPut(requestEvent);
         if (!requestEvent.IsTriggered) break;
       }
     }
 
-    protected virtual void TriggerGet(Event @event) {
-      PutQueue.Remove((StorePut)@event);
-      foreach (var releaseEvent in GetQueue) {
-        if (!releaseEvent.IsTriggered) DoGet(releaseEvent);
+    protected virtual void TriggerGet(Event @event = null) {
+      var sp = @event as StorePut;
+      if (sp != null) PutQueue.Remove(sp);
+      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
+        DoGet(releaseEvent);
         if (!releaseEvent.IsTriggered) break;
       }
     }

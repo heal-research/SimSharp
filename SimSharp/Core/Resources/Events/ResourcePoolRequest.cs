@@ -18,21 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 
-namespace SimSharp.Samples {
-  class RunAllSamples {
-    public static void Main(string[] args) {
-      // Run all samples one after another
-      new BankRenege().Simulate();
-      Console.WriteLine();
-      new GasStationRefueling().Simulate();
-      Console.WriteLine();
-      new MachineShop().Simulate();
-      Console.WriteLine();
-      new ProcessCommunication().Simulate();
-      Console.WriteLine();
-      new SteelFactory().Simulate();
-      Console.WriteLine();
-      new MachineShopSpecialist().Simulate();
+namespace SimSharp {
+  public class ResourcePoolRequest : Request {
+    public Func<object, bool> Filter { get; private set; }
+
+    public ResourcePoolRequest(Environment environment, Action<Event> callback, Action<Event> disposeCallback, Func<object, bool> filter)
+      : base(environment, callback, disposeCallback) {
+      Filter = filter;
     }
   }
 }

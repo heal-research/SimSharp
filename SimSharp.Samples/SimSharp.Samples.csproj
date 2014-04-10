@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="GasStationRefueling.cs" />
     <Compile Include="BankRenege.cs" />
+    <Compile Include="MachineShopSpecialist.cs" />
     <Compile Include="MachineShop.cs" />
     <Compile Include="ProcessCommunication.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -55,6 +55,7 @@
     <Compile Include="Core\ActiveObject.cs" />
     <Compile Include="Core\Resources\Container.cs" />
     <Compile Include="Core\Environment.cs" />
+    <Compile Include="Core\Resources\Events\ResourcePoolRequest.cs" />
     <Compile Include="Core\Resources\Events\FilterStoreGet.cs" />
     <Compile Include="Core\Resources\Events\StorePut.cs" />
     <Compile Include="Core\Resources\Events\StoreGet.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Core\Resources\PreemptiveResource.cs" />
     <Compile Include="Core\Resources\PriorityResource.cs" />
     <Compile Include="Core\Resources\Resource.cs" />
+    <Compile Include="Core\Resources\ResourcePool.cs" />
     <Compile Include="Core\Resources\Store.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Random\RandomDist.cs" />

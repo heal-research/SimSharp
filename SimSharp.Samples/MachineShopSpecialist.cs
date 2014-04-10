@@ -34,18 +34,29 @@ namespace SimSharp.Samples {
      *  a capacity. A workshop has *n* machines. A stream of jobs
      *  (enough to  keep the machines busy) arrives. Each machine
      *  breaks down periodically. Repairs are carried out by two
-     *  repairman: Jack can repair machines 1-n/2 faster than John
-     *  and vice versa. The workshop works continuously.
+     *  repairman: Jack and John that vary in their efficiency with
+     *  different machine brands. The workshop works continuously.
      */
     private const int RandomSeed = 42;
     private const double PtMean = 10.0; // Avg. processing time in minutes
     private const double PtSigma = 2.0; // Sigma of processing time
     private const double Mttf = 300.0; // Mean time to failure in minutes
     private const double BreakMean = 1 / Mttf; // Param. for expovariate distribution
-    private const double RepairTimeShort = 30.0; // Time it takes to repair a machine in minutes
-    private const double RepairTimeLong = 45.0; // Time it takes to repair a machine in minutes
     private const int NumMachines = 10; // Number of machines in the machine shop
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(28); // Simulation time in minutes
+    private enum MachineBrands { BigBrand = 0, NiceBrand = 1, OldBrand = 2 }
+
+    private static double RepairTime(MachineBrands brand, object repairman) {
+      switch (brand) {
+        case MachineBrands.BigBrand:
+          return repairman == Jack ? 35.0 : 45.0;
+        case MachineBrands.NiceBrand:
+          return repairman == Jack ? 40.0 : 30.0;
+        case MachineBrands.OldBrand:
+          return repairman == Jack ? 35.0 : 60.0;
+        default: throw new Exception("Unknown brand.");
+      }
+    }
 
     public static double TimePerPart(Random random) {
       // Return actual processing time for a concrete part.
@@ -64,20 +75,18 @@ namespace SimSharp.Samples {
       /*
        * A machine produces parts and my get broken every now and then.
        * If it breaks, it requests a *repairman* and continues the production
-       * after the it is repaired.
-       * 
-       *  A machine has a *name* and a numberof *parts_made* thus far.
+       * after it is repaired.
        */
       public string Name { get; private set; }
-      public int Index { get; private set; }
+      public MachineBrands Brand { get; private set; }
       public int PartsMade { get; private set; }
       public bool Broken { get; private set; }
       public Process Process { get; private set; }
 
-      public Machine(Environment env, int idx, ResourcePool repairman)
+      public Machine(Environment env, string name, MachineBrands brand, ResourcePool repairman)
         : base(env) {
-        Index = idx;
-        Name = "Machine " + idx;
+        Brand = brand;
+        Name = name;
         PartsMade = 0;
         Broken = false;
 
@@ -104,16 +113,11 @@ namespace SimSharp.Samples {
               Broken = true;
               doneIn -= Environment.Now - start;
               // How much time left?
-              // Request a repairman. This will preempt its "other_job".
-              Func<object, bool> getSpecialist = x => Index < NumMachines / 2 ? x == Jack : x == John;
-              var specialistAvailable = repairman.IsAvailable(getSpecialist);
-              using (var req = repairman.Request(specialistAvailable ? getSpecialist : null)) {
+              using (var req = repairman.Request()) {
                 yield return req;
-                var repairTime = getSpecialist(req.Value)
-                  ? TimeSpan.FromMinutes(RepairTimeShort)
-                  : TimeSpan.FromMinutes(RepairTimeLong);
-                //Environment.Log((req.Value == Jack ? "Jack" : "John") + " is working on " + Name + " for " + repairTime.Minutes + " minutes.");
-                yield return Environment.Timeout(repairTime);
+                var repairTime = RepairTime(Brand, req);
+                //Environment.Log((req.Value == Jack ? "Jack" : "John") + " is working on " + Name + " for " + repairTime + " minutes.");
+                yield return Environment.Timeout(TimeSpan.FromMinutes(repairTime));
               }
               Broken = false;
             } else {
@@ -144,7 +148,7 @@ namespace SimSharp.Samples {
       var env = new Environment(start, rseed);
       env.Log("== Machine shop specialist ==");
       var repairman = new ResourcePool(env, new[] { Jack, John });
-      var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, x, repairman)).ToArray();
+      var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, (MachineBrands)(x % Enum.GetValues(typeof(MachineBrands)).Length), repairman)).ToArray();
 
       // Execute!
       env.Run(SimTime);

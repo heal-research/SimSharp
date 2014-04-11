@@ -58,7 +58,7 @@ namespace SimSharp.Samples {
        * desired amount of gas from it. If the stations reservoir is
        * depleted, the car has to wait for the tank truck to arrive.
        */
-      var fuelTankLevel = env.Random.Next(MinFuelTankLevel, MaxFuelTankLevel + 1);
+      var fuelTankLevel = env.RandUniform(MinFuelTankLevel, MaxFuelTankLevel + 1);
       env.Log("{0} arriving at gas station at {1}", name, env.Now);
       using (var req = gasStation.Request()) {
         var start = env.Now;
@@ -108,7 +108,7 @@ namespace SimSharp.Samples {
       var i = 0;
       while (true) {
         i++;
-        yield return env.Timeout(TimeSpan.FromSeconds(env.Random.Next(MinTInter, MaxTInter + 1)));
+        yield return env.Timeout(TimeSpan.FromSeconds(env.RandUniform(MinTInter, MaxTInter + 1)));
         env.Process(Car("Car " + i, env, gasStation, fuelPump));
       }
     }

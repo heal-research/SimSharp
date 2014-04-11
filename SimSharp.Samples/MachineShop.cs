@@ -47,16 +47,6 @@ namespace SimSharp.Samples {
     private const int NumMachines = 10; // Number of machines in the machine shop
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(28); // Simulation time in minutes
 
-    public static double TimePerPart(Random random) {
-      // Return actual processing time for a concrete part.
-      return RandomDist.Normal(random, PtMean, PtSigma);
-    }
-
-    public static double TimeToFailure(Random random) {
-      // Return time until next failure for a machine.
-      return RandomDist.Exponential(random, BreakMean);
-    }
-
     private class Machine : ActiveObject<Environment> {
       /*
        * A machine produces parts and my get broken every now and then.
@@ -90,7 +80,7 @@ namespace SimSharp.Samples {
          */
         while (true) {
           // Start making a new part
-          var doneIn = TimeSpan.FromMinutes(TimePerPart(Environment.Random));
+          var doneIn = TimeSpan.FromMinutes(Environment.RandNormal(PtMean, PtSigma));
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -117,7 +107,7 @@ namespace SimSharp.Samples {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(TimeToFailure(Environment.Random)));
+          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(BreakMean)));
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

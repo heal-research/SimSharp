@@ -31,7 +31,7 @@ namespace SimSharp.Samples {
       for (int i = 0; i < number; i++) {
         var c = Customer(env, "Customer " + i, counter, timeInBank: 12.0);
         env.Process(c);
-        var t = RandomDist.Exponential(env.Random, 1.0 / interval);
+        var t = env.RandExponential(1.0 / interval);
         yield return env.Timeout(TimeSpan.FromMinutes(t));
       }
     }
@@ -42,7 +42,7 @@ namespace SimSharp.Samples {
       env.Log("{0} {1}: Here I am", arrive, name);
 
       using (var req = counter.Request()) {
-        var patience = RandomDist.Uniform(env.Random, MinPatience, MaxPatience);
+        var patience = env.RandUniform(MinPatience, MaxPatience);
 
         // Wait for the counter or abort at the end of our tether
         var timeout = env.Timeout(TimeSpan.FromMinutes(patience));
@@ -54,7 +54,7 @@ namespace SimSharp.Samples {
           // We got the counter
           env.Log("{0} {1}: waited {2}", env.Now, name, wait);
 
-          var tib = RandomDist.Exponential(env.Random, 1.0 / timeInBank);
+          var tib = env.RandExponential(1.0 / timeInBank);
           yield return env.Timeout(TimeSpan.FromMinutes(tib));
           env.Log("{0} {1}: Finished", env.Now, name);
         } else {

@@ -80,7 +80,6 @@
     <Compile Include="Core\Resources\ResourcePool.cs" />
     <Compile Include="Core\Resources\Store.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Random\RandomDist.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

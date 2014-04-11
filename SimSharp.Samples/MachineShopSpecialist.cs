@@ -58,16 +58,6 @@ namespace SimSharp.Samples {
       }
     }
 
-    public static double TimePerPart(Random random) {
-      // Return actual processing time for a concrete part.
-      return RandomDist.Normal(random, PtMean, PtSigma);
-    }
-
-    public static double TimeToFailure(Random random) {
-      // Return time until next failure for a machine.
-      return RandomDist.Exponential(random, BreakMean);
-    }
-
     private static readonly object Jack = new object();
     private static readonly object John = new object();
 
@@ -104,7 +94,7 @@ namespace SimSharp.Samples {
          */
         while (true) {
           // Start making a new part
-          var doneIn = TimeSpan.FromMinutes(TimePerPart(Environment.Random));
+          var doneIn = TimeSpan.FromMinutes(Environment.RandNormal(PtMean, PtSigma));
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -132,7 +122,7 @@ namespace SimSharp.Samples {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(TimeToFailure(Environment.Random)));
+          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(BreakMean)));
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

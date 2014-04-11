@@ -30,7 +30,7 @@ private static TimeSpan delay = TimeSpan.Zero;
 
 private static IEnumerable<Event> Machine(Environment env, Resource packer) {
   while (true) {
-    var procTimeSec = RandomDist.NormalPositive(env.Random, 20, 5);
+    var procTimeSec = env.RandNormalPositive(20, 5);
     yield return env.Timeout(TimeSpan.FromSeconds(procTimeSec));
     var token = packer.Request();
     yield return token;
@@ -40,13 +40,13 @@ private static IEnumerable<Event> Machine(Environment env, Resource packer) {
 }
 
 private static IEnumerable<Event> Pack(Environment env, Resource packer, Request token) {
-  var packTimeSec = RandomDist.NormalPositive(env.Random, 10, 2);
+  var packTimeSec = env.RandNormalPositive(10, 2);
   yield return env.Timeout(TimeSpan.FromSeconds(packTimeSec));
   packer.Release(token);
 }
 
 public static void Main(string[] args) {
-  var env = new Environment();
+  var env = new Environment(randomSeed: 41);
   var packer = new Resource(env, 1);
   env.Process(Machine(env, packer));
   env.Process(Machine(env, packer));

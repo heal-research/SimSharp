@@ -245,14 +245,14 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void TestPreemetiveResourceTimeout() {
+    public void TestPreemptiveResourceTimeout0() {
       var env = new Environment();
       var res = new PreemptiveResource(env, capacity: 1);
-      env.Process(TestPreemtiveResourceTimeoutA(env, res, 1));
-      env.Process(TestPreemtiveResourceTimeoutB(env, res, 0));
+      env.Process(TestPreemptiveResourceTimeoutA(env, res, 1));
+      env.Process(TestPreemptiveResourceTimeoutB(env, res, 0));
       env.Run();
     }
-    private IEnumerable<Event> TestPreemtiveResourceTimeoutA(Environment env, PreemptiveResource res, int prio) {
+    private IEnumerable<Event> TestPreemptiveResourceTimeoutA(Environment env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
         Assert.IsTrue(env.ActiveProcess.HandleFault());
@@ -260,7 +260,7 @@ namespace SimSharp.Tests {
         Assert.IsFalse(env.ActiveProcess.HandleFault());
       }
     }
-    private IEnumerable<Event> TestPreemtiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
+    private IEnumerable<Event> TestPreemptiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
       }

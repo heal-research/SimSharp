@@ -38,7 +38,9 @@ namespace SimSharp {
     /// </summary>
     protected Random Random { get; set; }
 
-    private SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>> queue;
+    private SortedList<DateTime, Queue<Event>> schedule;
+    private Queue<Event> priority;
+    private Queue<Event> queue;
     public Process ActiveProcess { get; set; }
 
     public TextWriter Logger { get; set; }
@@ -49,13 +51,17 @@ namespace SimSharp {
     public Environment(DateTime initialDateTime) {
       Now = initialDateTime;
       Random = new Random();
-      queue = new SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>>();
+      schedule = new SortedList<DateTime, Queue<Event>>();
+      priority = new Queue<Event>();
+      queue = new Queue<Event>();
       Logger = Console.Out;
     }
     public Environment(DateTime initialDateTime, int randomSeed) {
       Now = initialDateTime;
       Random = new Random(randomSeed);
-      queue = new SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>>();
+      schedule = new SortedList<DateTime, Queue<Event>>();
+      priority = new Queue<Event>();
+      queue = new Queue<Event>();
       Logger = Console.Out;
     }
 
@@ -70,24 +76,29 @@ namespace SimSharp {
     public virtual void Reset(DateTime initialTime, int randomSeed) {
       Now = initialTime;
       Random = new Random(randomSeed);
-      queue = new SortedList<DateTime, Tuple<Queue<Event>, Queue<Event>>>();
+      schedule = new SortedList<DateTime, Queue<Event>>();
+      queue = new Queue<Event>();
     }
 
     public virtual void Schedule(Event @event, bool urgent = false) {
-      Schedule(TimeSpan.FromSeconds(0), @event, urgent);
+      if (urgent) priority.Enqueue(@event);
+      else queue.Enqueue(@event);
     }
 
-    public virtual void Schedule(TimeSpan delay, Event @event, bool urgent = false) {
+    public virtual void Schedule(TimeSpan delay, Event @event) {
       if (delay < TimeSpan.Zero)
-        throw new ArgumentException("Negative delays are not allowed.");
-
+        throw new ArgumentException("Zero or negative delays are not allowed in Schedule(TimeSpan, Event). Use Schedule(Event, bool) for zero delays.");
+      if (delay == TimeSpan.Zero) {
+        Schedule(@event);
+        return;
+      }
       var eventTime = Now + delay;
-      if (queue.ContainsKey(eventTime)) {
-        if (urgent) queue[eventTime].Item1.Enqueue(@event);
-        else queue[eventTime].Item2.Enqueue(@event);
+      if (schedule.ContainsKey(eventTime)) {
+        schedule[eventTime].Enqueue(@event);
       } else {
-        if (urgent) queue.Add(eventTime, Tuple.Create(new Queue<Event>(new[] { @event }), new Queue<Event>()));
-        else queue.Add(eventTime, Tuple.Create(new Queue<Event>(), new Queue<Event>(new[] { @event })));
+        var q = new Queue<Event>();
+        q.Enqueue(@event);
+        schedule.Add(eventTime, q);
       }
     }
 
@@ -99,15 +110,18 @@ namespace SimSharp {
       var limit = until ?? DateTime.MaxValue;
       if (limit <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
       var stopEvent = new Event(this);
-      if (limit < DateTime.MaxValue)
-        Schedule(limit - Now, stopEvent, urgent: true);
+      if (limit < DateTime.MaxValue) {
+        if (schedule.ContainsKey(limit))
+          schedule[limit] = new Queue<Event>(new[] { stopEvent }.Concat(schedule[limit].ToArray()));
+        else schedule.Add(limit, new Queue<Event>(new[] { stopEvent }));
+      }
       Run(stopEvent);
     }
 
     public virtual void Run(Event stopEvent) {
       stopEvent.AddCallback(StopSimulation);
       try {
-        while (queue.Count > 0) {
+        while (priority.Count > 0 || queue.Count > 0 || schedule.Count > 0) {
           Step();
           ProcessedEvents++;
         }
@@ -115,16 +129,21 @@ namespace SimSharp {
     }
 
     public virtual void Step() {
-      var nextEvents = queue.First();
-      Now = nextEvents.Key;
-      var @event = nextEvents.Value.Item1.Count > 0 ? nextEvents.Value.Item1.Dequeue() : nextEvents.Value.Item2.Dequeue();
-      if (nextEvents.Value.Item1.Count == 0 && nextEvents.Value.Item2.Count == 0)
-        queue.Remove(Now);
-      @event.Process();
+      if (priority.Count > 0) {
+        priority.Dequeue().Process();
+      } else {
+        if (queue.Count == 0) {
+          var next = schedule.First();
+          Now = next.Key;
+          queue = next.Value;
+          schedule.Remove(next.Key);
+        }
+        queue.Dequeue().Process();
+      }
     }
 
     public virtual DateTime Peek() {
-      return queue.Count > 0 ? queue.First().Key : DateTime.MaxValue;
+      return (queue.Count > 0 || priority.Count > 0) ? Now : (schedule.Count > 0 ? schedule.First().Key : DateTime.MaxValue);
     }
 
     protected virtual void StopSimulation(Event @event) {

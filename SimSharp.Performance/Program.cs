@@ -142,7 +142,7 @@ namespace SimSharp.Performance {
       foreach (var machine in machines)
         env.Log("{0} made {1} parts.", machine.Name, machine.PartsMade);
       env.Log(string.Empty);
-      env.Log("Processed {0} events in {1} seconds ({2} events/s).", env.ProcessedEvents, perf.TotalSeconds, (env.ProcessedEvents / perf.TotalSeconds));
+      env.Log("Processed {0:#,###} events in {1:#.##} seconds ({2:#,###.##} events/s).", env.ProcessedEvents, perf.TotalSeconds, (env.ProcessedEvents / perf.TotalSeconds));
     }
   }
 }

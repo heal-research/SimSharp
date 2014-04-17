@@ -112,13 +112,13 @@ namespace SimSharp {
     /// <param name="urgent">Whether the event should be scheduled urgently.
     /// This is ususally not required and should be reserved for very special
     /// cases.</param>
-    public virtual void Succeed(object value = null, bool urgent = false) {
+    public virtual void Succeed(object value = null) {
       if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = true;
       Value = value;
       IsTriggered = true;
-      Environment.Schedule(this, urgent: urgent);
+      Environment.Schedule(this);
     }
 
     /// <summary>
@@ -134,13 +134,13 @@ namespace SimSharp {
     /// <param name="urgent">Whether the event should be scheduled urgently.
     /// This is ususally not required and should be reserved for very special
     /// cases.</param>
-    public virtual void Fail(object value = null, bool urgent = false) {
+    public virtual void Fail(object value = null) {
       if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = false;
       Value = value;
       IsTriggered = true;
-      Environment.Schedule(this, urgent: urgent);
+      Environment.Schedule(this);
     }
 
     /// <summary>

@@ -64,12 +64,17 @@ namespace SimSharp {
 
       var interruptEvent = new Event(Environment);
       interruptEvent.AddCallback(Resume);
-      interruptEvent.Fail(cause, urgent: true);
+      interruptEvent.Fail(cause);
+
+      if (target != null) {
+        target.RemoveCallback(Resume);
+        target = null;
+      }
     }
 
     protected virtual void Resume(Event @event) {
       if (IsTriggered) return;
-      if (@event != target) target.RemoveCallback(Resume);
+      if (@event != target && target != null) target.RemoveCallback(Resume);
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
         if (generator.MoveNext()) {

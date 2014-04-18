@@ -53,6 +53,7 @@
     <Compile Include="ProcessCommunication.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RunAllSamples.cs" />
+    <Compile Include="SimpleShop.cs" />
     <Compile Include="SteelFactory.cs" />
   </ItemGroup>
   <ItemGroup>

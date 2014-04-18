@@ -33,6 +33,8 @@ namespace SimSharp.Samples {
       new SteelFactory().Simulate();
       Console.WriteLine();
       new MachineShopSpecialist().Simulate();
+      Console.WriteLine();
+      new SimpleShop().Simulate();
     }
   }
 }

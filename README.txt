@@ -71,3 +71,4 @@ continuing to yield further events. This is due to a limitation of the
 
 
 [1]: https://pypi.python.org/pypi/simpy
+[2]: https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c

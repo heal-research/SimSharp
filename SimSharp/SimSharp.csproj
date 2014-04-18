@@ -88,8 +88,7 @@
     <None Include="SimSharp.snk" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Collections\PriorityQueue-License.txt" />
-    <Content Include="TODO.txt" />
+    <Content Include="Collections\EventQueue-License.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

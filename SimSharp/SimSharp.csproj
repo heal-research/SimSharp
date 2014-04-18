@@ -52,6 +52,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\EventQueue.cs" />
+    <Compile Include="Collections\EventQueueNode.cs" />
     <Compile Include="Core\ActiveObject.cs" />
     <Compile Include="Core\Events\AnyOf.cs" />
     <Compile Include="Core\Events\AllOf.cs" />
@@ -84,6 +86,10 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="SimSharp.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Collections\PriorityQueue-License.txt" />
+    <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

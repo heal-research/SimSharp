@@ -19,13 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace SimSharp {
   /// <summary>
   /// Environments hold the event queues, schedule and process events.
   /// </summary>
   public class Environment {
+    protected const int InitialMaxEvents = 1024;
     protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
 
     /// <summary>
@@ -38,7 +38,7 @@ namespace SimSharp {
     /// </summary>
     protected Random Random { get; set; }
 
-    private SortedList<DateTime, Queue<Event>> schedule;
+    private EventQueue schedule;
     private Queue<Event> queue;
     public Process ActiveProcess { get; set; }
 
@@ -50,14 +50,14 @@ namespace SimSharp {
     public Environment(DateTime initialDateTime) {
       Now = initialDateTime;
       Random = new Random();
-      schedule = new SortedList<DateTime, Queue<Event>>();
+      schedule = new EventQueue(InitialMaxEvents);
       queue = new Queue<Event>();
       Logger = Console.Out;
     }
     public Environment(DateTime initialDateTime, int randomSeed) {
       Now = initialDateTime;
       Random = new Random(randomSeed);
-      schedule = new SortedList<DateTime, Queue<Event>>();
+      schedule = new EventQueue(InitialMaxEvents);
       queue = new Queue<Event>();
       Logger = Console.Out;
     }
@@ -73,7 +73,7 @@ namespace SimSharp {
     public virtual void Reset(DateTime initialTime, int randomSeed) {
       Now = initialTime;
       Random = new Random(randomSeed);
-      schedule = new SortedList<DateTime, Queue<Event>>();
+      schedule = new EventQueue(InitialMaxEvents);
       queue = new Queue<Event>();
     }
 
@@ -89,13 +89,17 @@ namespace SimSharp {
         return;
       }
       var eventTime = Now + delay;
-      if (schedule.ContainsKey(eventTime)) {
-        schedule[eventTime].Enqueue(@event);
-      } else {
-        var q = new Queue<Event>();
-        q.Enqueue(@event);
-        schedule.Add(eventTime, q);
+      DoSchedule(eventTime, @event);
+    }
+
+    protected virtual EventQueueNode DoSchedule(DateTime date, Event @event) {
+      if (schedule.MaxSize == schedule.Count) {
+        // the capacity has to be adjusted, there are more events in the queue than anticipated
+        var oldSchedule = schedule;
+        schedule = new EventQueue(schedule.MaxSize * 2);
+        foreach (var e in oldSchedule) schedule.Enqueue(e.Priority, e.Event);
       }
+      return schedule.Enqueue(date, @event);
     }
 
     public virtual void Run(TimeSpan span) {
@@ -107,9 +111,10 @@ namespace SimSharp {
       if (limit <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
       var stopEvent = new Event(this);
       if (limit < DateTime.MaxValue) {
-        if (schedule.ContainsKey(limit))
-          schedule[limit] = new Queue<Event>(new[] { stopEvent }.Concat(schedule[limit].ToArray()));
-        else schedule.Add(limit, new Queue<Event>(new[] { stopEvent }));
+        var node = DoSchedule(limit, stopEvent);
+        // stop event is always the first to execute at the given time
+        node.InsertionIndex = -1;
+        schedule.OnNodeUpdated(node);
       }
       Run(stopEvent);
     }
@@ -126,16 +131,14 @@ namespace SimSharp {
 
     public virtual void Step() {
       if (queue.Count == 0) {
-        var next = schedule.First();
-        Now = next.Key;
-        queue = next.Value;
-        schedule.Remove(next.Key);
-      }
-      queue.Dequeue().Process();
+        var next = schedule.Dequeue();
+        Now = next.Priority;
+        next.Event.Process();
+      } else queue.Dequeue().Process();
     }
 
     public virtual DateTime Peek() {
-      return queue.Count > 0 ? Now : (schedule.Count > 0 ? schedule.First().Key : DateTime.MaxValue);
+      return queue.Count > 0 ? Now : (schedule.Count > 0 ? schedule.First.Priority : DateTime.MaxValue);
     }
 
     protected virtual void StopSimulation(Event @event) {

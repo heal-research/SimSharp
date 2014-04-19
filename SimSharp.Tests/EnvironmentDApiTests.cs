@@ -18,38 +18,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SimSharp.Tests {
   [TestClass]
-  public class EnvironmentTests {
+  public class EnvironmentDApiTests {
 
     private static IEnumerable<Event> AProcess(Environment env, List<string> log) {
-      while (env.Now < new DateTime(1970, 1, 1, 0, 2, 0)) {
-        log.Add(env.Now.ToString("mm"));
-        yield return env.Timeout(TimeSpan.FromMinutes(1));
+      while (env.NowD < 2) {
+        log.Add(env.NowD.ToString("00", CultureInfo.InvariantCulture.NumberFormat));
+        yield return env.TimeoutD(1);
       }
     }
 
     [TestMethod]
-    public void TestEventQueueEmpty() {
+    public void TestEventQueueEmptyDApi() {
       /*The simulation should stop if there are no more events, that means, no
         more active process.*/
       var log = new List<string>();
-      var env = new Environment();
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
       env.Process(AProcess(env, log));
-      env.Run(TimeSpan.FromMinutes(10));
+      env.RunD(10);
       Assert.IsTrue(log.SequenceEqual(new[] { "00", "01" }));
     }
 
     [TestMethod]
-    public void TestRunNegativeUntil() {
+    public void TestRunNegativeUntilDApi() {
       /*Test passing a negative time to run.*/
-      var env = new Environment();
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
       var errorThrown = false;
       try {
-        env.Run(new DateTime(1969, 12, 30));
+        env.RunD(-1);
       } catch (InvalidOperationException) {
         errorThrown = true;
       }
@@ -57,52 +58,52 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
-    public void TestRunResume() {
+    public void TestRunResumeDApi() {
       /* Stopped simulation can be resumed. */
-      var env = new Environment();
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
       var events = new List<Event>() {
-        env.Timeout(TimeSpan.FromMinutes(5)),
-        env.Timeout(TimeSpan.FromMinutes(10)),
-        env.Timeout(TimeSpan.FromMinutes(15)),
-        env.Timeout(TimeSpan.FromMinutes(20))
+        env.TimeoutD(5),
+        env.TimeoutD(10),
+        env.TimeoutD(15),
+        env.TimeoutD(20)
       };
 
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 5, 0));
+      Assert.AreEqual(env.NowD, 0);
+      Assert.AreEqual(env.PeekD(), 5);
       Assert.IsFalse(events.Any(x => x.IsProcessed));
 
-      env.Run(TimeSpan.FromMinutes(10));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 10, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 10, 0));
+      env.RunD(10);
+      Assert.AreEqual(env.NowD, 10);
+      Assert.AreEqual(env.PeekD(), 10);
       Assert.IsTrue(events[0].IsProcessed);
       Assert.IsFalse(events[1].IsProcessed);
       Assert.IsFalse(events[2].IsProcessed);
 
-      env.Run(TimeSpan.FromMinutes(5));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 15, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 15, 0));
+      env.RunD(5);
+      Assert.AreEqual(env.NowD, 15);
+      Assert.AreEqual(env.PeekD(), 15);
       Assert.IsTrue(events[0].IsProcessed);
       Assert.IsTrue(events[1].IsProcessed);
       Assert.IsFalse(events[2].IsProcessed);
 
-      env.Run(TimeSpan.FromMinutes(1));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 16, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 20, 0));
+      env.RunD(1);
+      Assert.AreEqual(env.NowD, 16);
+      Assert.AreEqual(env.PeekD(), 20);
       Assert.IsTrue(events[0].IsProcessed);
       Assert.IsTrue(events[1].IsProcessed);
       Assert.IsTrue(events[2].IsProcessed);
 
-      env.Run();
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 20, 0));
-      Assert.AreEqual(env.Peek(), DateTime.MaxValue);
+      env.RunD();
+      Assert.AreEqual(env.NowD, 20);
+      Assert.AreEqual(env.PeekD(), double.MaxValue);
     }
 
     [TestMethod]
-    public void TestRunUntilValue() {
+    public void TestRunUntilValueDApi() {
       /* Anything that can be converted to a float is a valid until value. */
-      var env = new Environment(new DateTime(2014, 1, 1));
-      env.Run(new DateTime(2014, 3, 1));
-      Assert.AreEqual(env.Now, new DateTime(2014, 3, 1));
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      env.RunD(100);
+      Assert.AreEqual(env.NowD, 100);
     }
   }
 }

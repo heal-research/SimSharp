@@ -25,40 +25,64 @@ namespace SimSharp {
   /// Environments hold the event queues, schedule and process events.
   /// </summary>
   public class Environment {
-    protected const int InitialMaxEvents = 1024;
-    protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
+    private const int InitialMaxEvents = 1024;
 
     /// <summary>
-    /// The current simulation date
+    /// Describes the number of seconds that a logical step of 1 in the *D-API takes.
     /// </summary>
-    public DateTime Now { get; set; }
+    protected double DefaultTimeStepSeconds { get; private set; }
+
+    /// <summary>
+    /// Calculates the logical date of the simulation by the amount of default steps
+    /// that have passed.
+    /// </summary>
+    public double NowD {
+      get { return (Now - StartDate).TotalSeconds / DefaultTimeStepSeconds; }
+    }
+
+    /// <summary>
+    /// The current simulation time as a calendar date.
+    /// </summary>
+    public DateTime Now { get; protected set; }
+
+    /// <summary>
+    /// The calendar date when the simulation started. This defaults to 1970-1-1 if
+    /// no other date has been specified in the overloaded constructor.
+    /// </summary>
+    public DateTime StartDate { get; protected set; }
+
     /// <summary>
     /// The random number generator that is to be used in all events in
     /// order to produce reproducible results.
     /// </summary>
     protected Random Random { get; set; }
 
-    private EventQueue schedule;
-    private Queue<Event> queue;
+    protected EventQueue ScheduleQ;
+    protected Queue<Event> Queue;
     public Process ActiveProcess { get; set; }
 
     public TextWriter Logger { get; set; }
     public int ProcessedEvents { get; protected set; }
 
     public Environment() : this(new DateTime(1970, 1, 1)) { }
-    public Environment(int randomSeed) : this(new DateTime(1970, 1, 1), randomSeed) { }
-    public Environment(DateTime initialDateTime) {
+    public Environment(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
+    public Environment(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public Environment(DateTime initialDateTime, TimeSpan? defaultStep = null) {
+      DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
+      StartDate = initialDateTime;
       Now = initialDateTime;
       Random = new Random();
-      schedule = new EventQueue(InitialMaxEvents);
-      queue = new Queue<Event>();
+      ScheduleQ = new EventQueue(InitialMaxEvents);
+      Queue = new Queue<Event>();
       Logger = Console.Out;
     }
-    public Environment(DateTime initialDateTime, int randomSeed) {
+    public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
+      DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
+      StartDate = initialDateTime;
       Now = initialDateTime;
       Random = new Random(randomSeed);
-      schedule = new EventQueue(InitialMaxEvents);
-      queue = new Queue<Event>();
+      ScheduleQ = new EventQueue(InitialMaxEvents);
+      Queue = new Queue<Event>();
       Logger = Console.Out;
     }
 
@@ -66,26 +90,34 @@ namespace SimSharp {
       return new Process(this, generator);
     }
 
+    public Timeout TimeoutD(double delay) {
+      return Timeout(TimeSpan.FromSeconds(DefaultTimeStepSeconds * delay));
+    }
+
     public Timeout Timeout(TimeSpan delay) {
       return new Timeout(this, delay);
     }
 
-    public virtual void Reset(DateTime initialTime, int randomSeed) {
-      Now = initialTime;
+    public virtual void Reset(int randomSeed) {
+      Now = StartDate;
       Random = new Random(randomSeed);
-      schedule = new EventQueue(InitialMaxEvents);
-      queue = new Queue<Event>();
+      ScheduleQ = new EventQueue(InitialMaxEvents);
+      Queue = new Queue<Event>();
+    }
+
+    public virtual void ScheduleD(double delay, Event @event) {
+      Schedule(TimeSpan.FromSeconds(DefaultTimeStepSeconds * delay), @event);
     }
 
     public virtual void Schedule(Event @event) {
-      queue.Enqueue(@event);
+      Queue.Enqueue(@event);
     }
 
     public virtual void Schedule(TimeSpan delay, Event @event) {
       if (delay < TimeSpan.Zero)
         throw new ArgumentException("Zero or negative delays are not allowed in Schedule(TimeSpan, Event). Use Schedule(Event, bool) for zero delays.");
       if (delay == TimeSpan.Zero) {
-        queue.Enqueue(@event);
+        Queue.Enqueue(@event);
         return;
       }
       var eventTime = Now + delay;
@@ -93,13 +125,18 @@ namespace SimSharp {
     }
 
     protected virtual EventQueueNode DoSchedule(DateTime date, Event @event) {
-      if (schedule.MaxSize == schedule.Count) {
+      if (ScheduleQ.MaxSize == ScheduleQ.Count) {
         // the capacity has to be adjusted, there are more events in the queue than anticipated
-        var oldSchedule = schedule;
-        schedule = new EventQueue(schedule.MaxSize * 2);
-        foreach (var e in oldSchedule) schedule.Enqueue(e.Priority, e.Event);
+        var oldSchedule = ScheduleQ;
+        ScheduleQ = new EventQueue(ScheduleQ.MaxSize * 2);
+        foreach (var e in oldSchedule) ScheduleQ.Enqueue(e.Priority, e.Event);
       }
-      return schedule.Enqueue(date, @event);
+      return ScheduleQ.Enqueue(date, @event);
+    }
+
+    public virtual void RunD(double? until = null) {
+      if (!until.HasValue) Run();
+      else Run(Now + TimeSpan.FromSeconds(DefaultTimeStepSeconds * until.Value));
     }
 
     public virtual void Run(TimeSpan span) {
@@ -114,7 +151,7 @@ namespace SimSharp {
         var node = DoSchedule(limit, stopEvent);
         // stop event is always the first to execute at the given time
         node.InsertionIndex = -1;
-        schedule.OnNodeUpdated(node);
+        ScheduleQ.OnNodeUpdated(node);
       }
       Run(stopEvent);
     }
@@ -122,7 +159,7 @@ namespace SimSharp {
     public virtual void Run(Event stopEvent) {
       stopEvent.AddCallback(StopSimulation);
       try {
-        while (queue.Count > 0 || schedule.Count > 0) {
+        while (Queue.Count > 0 || ScheduleQ.Count > 0) {
           Step();
           ProcessedEvents++;
         }
@@ -130,15 +167,20 @@ namespace SimSharp {
     }
 
     public virtual void Step() {
-      if (queue.Count == 0) {
-        var next = schedule.Dequeue();
+      if (Queue.Count == 0) {
+        var next = ScheduleQ.Dequeue();
         Now = next.Priority;
         next.Event.Process();
-      } else queue.Dequeue().Process();
+      } else Queue.Dequeue().Process();
+    }
+
+    public virtual double PeekD() {
+      if (Queue.Count == 0 && ScheduleQ.Count == 0) return double.MaxValue;
+      return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
     }
 
     public virtual DateTime Peek() {
-      return queue.Count > 0 ? Now : (schedule.Count > 0 ? schedule.First.Priority : DateTime.MaxValue);
+      return Queue.Count > 0 ? Now : (ScheduleQ.Count > 0 ? ScheduleQ.First.Priority : DateTime.MaxValue);
     }
 
     protected virtual void StopSimulation(Event @event) {
@@ -151,6 +193,8 @@ namespace SimSharp {
     }
 
     #region Random number distributions
+    protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
+
     public double RandUniform(double a, double b) {
       return a + (b - a) * Random.NextDouble();
     }

@@ -44,7 +44,7 @@ IEnumerable<Event> Item(Environment env, Resource server) {
 
 void RunSimulation() {
   var env = new Environment();
-  env.Process(SSQ);
+  env.Process(SSQ(env));
   env.Run(SIMULATION_TIME);
 }
 

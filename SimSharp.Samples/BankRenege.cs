@@ -23,20 +23,20 @@ namespace SimSharp.Samples {
   public class BankRenege {
 
     private const int NewCustomers = 5; // Total number of customers
-    private const double IntervalCustomers = 10.0; // Generate new customers roughly every x minutes
-    private const int MinPatience = 1; // Min. customer patience
-    private const int MaxPatience = 3; // Max. customer patience
+    private static readonly TimeSpan IntervalCustomers = TimeSpan.FromMinutes(10.0); // Generate new customers roughly every x minutes
+    private static readonly TimeSpan MinPatience = TimeSpan.FromMinutes(1); // Min. customer patience
+    private static readonly TimeSpan MaxPatience = TimeSpan.FromMinutes(3); // Max. customer patience
 
-    private IEnumerable<Event> Source(Environment env, int number, double interval, Resource counter) {
-      for (int i = 0; i < number; i++) {
-        var c = Customer(env, "Customer " + i, counter, timeInBank: 12.0);
+    private IEnumerable<Event> Source(Environment env, Resource counter) {
+      for (int i = 0; i < NewCustomers; i++) {
+        var c = Customer(env, "Customer " + i, counter, TimeSpan.FromMinutes(12.0));
         env.Process(c);
-        var t = env.RandExponential(1.0 / interval);
-        yield return env.Timeout(TimeSpan.FromMinutes(t));
+        var t = env.RandExponential(IntervalCustomers);
+        yield return env.Timeout(t);
       }
     }
 
-    private IEnumerable<Event> Customer(Environment env, string name, Resource counter, double timeInBank) {
+    private IEnumerable<Event> Customer(Environment env, string name, Resource counter, TimeSpan meanTimeInBank) {
       var arrive = env.Now;
 
       env.Log("{0} {1}: Here I am", arrive, name);
@@ -45,7 +45,7 @@ namespace SimSharp.Samples {
         var patience = env.RandUniform(MinPatience, MaxPatience);
 
         // Wait for the counter or abort at the end of our tether
-        var timeout = env.Timeout(TimeSpan.FromMinutes(patience));
+        var timeout = env.Timeout(patience);
         yield return req | timeout;
 
         var wait = env.Now - arrive;
@@ -54,8 +54,8 @@ namespace SimSharp.Samples {
           // We got the counter
           env.Log("{0} {1}: waited {2}", env.Now, name, wait);
 
-          var tib = env.RandExponential(1.0 / timeInBank);
-          yield return env.Timeout(TimeSpan.FromMinutes(tib));
+          var tib = env.RandExponential(meanTimeInBank);
+          yield return env.Timeout(tib);
           env.Log("{0} {1}: Finished", env.Now, name);
         } else {
           // We reneged
@@ -71,7 +71,7 @@ namespace SimSharp.Samples {
       var env = new Environment(start, 41);
       env.Log("== Bank renege ==");
       var counter = new Resource(env, capacity: 1);
-      env.Process(Source(env, NewCustomers, IntervalCustomers, counter));
+      env.Process(Source(env, counter));
       env.Run();
     }
   }

@@ -45,9 +45,9 @@ namespace SimSharp.Samples {
     private const int MinFuelTankLevel = 5; // Min levels of fuel tanks (in liters)
     private const int MaxFuelTankLevel = 25; // Max levels of fuel tanks (in liters)
     private const int RefuelingSpeed = 2; // liters / second
-    private const int TankTruckTime = 10; // Minutes it takes the tank truck to arrive
-    private const int MinTInter = 30; // Create a car every min seconds
-    private const int MaxTInter = 300; // Create a car every max seconds
+    private static readonly TimeSpan TankTruckTime = TimeSpan.FromMinutes(10); // Minutes it takes the tank truck to arrive
+    private static readonly TimeSpan MinTInter = TimeSpan.FromMinutes(30); // Create a car every min seconds
+    private static readonly TimeSpan MaxTInter = TimeSpan.FromMinutes(300); // Create a car every max seconds
     private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(30); // Simulation time in seconds
 
     private IEnumerable<Event> Car(string name, Environment env, Resource gasStation, Container fuelPump) {
@@ -70,7 +70,7 @@ namespace SimSharp.Samples {
         yield return fuelPump.Get(litersRequired);
 
         // The "actual" refueling process takes some time
-        yield return env.Timeout(TimeSpan.FromSeconds(litersRequired / (double)RefuelingSpeed));
+        yield return env.Timeout(TimeSpan.FromSeconds(litersRequired / RefuelingSpeed));
 
         env.Log("{0} finished refueling in {1} seconds.", name, (env.Now - start).TotalSeconds);
       }
@@ -96,7 +96,7 @@ namespace SimSharp.Samples {
 
     private IEnumerable<Event> TankTruck(Environment env, Container fuelPump) {
       // Arrives at the gas station after a certain delay and refuels it.
-      yield return env.Timeout(TimeSpan.FromMinutes(TankTruckTime));
+      yield return env.Timeout(TankTruckTime);
       env.Log("Tank truck arriving at time {0}", env.Now);
       var amount = fuelPump.Capacity - fuelPump.Level;
       env.Log("Tank truck refuelling {0} liters.", amount);
@@ -108,7 +108,7 @@ namespace SimSharp.Samples {
       var i = 0;
       while (true) {
         i++;
-        yield return env.Timeout(TimeSpan.FromSeconds(env.RandUniform(MinTInter, MaxTInter + 1)));
+        yield return env.Timeout(env.RandUniform(MinTInter, MaxTInter));
         env.Process(Car("Car " + i, env, gasStation, fuelPump));
       }
     }

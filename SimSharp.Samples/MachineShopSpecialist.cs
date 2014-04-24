@@ -38,11 +38,10 @@ namespace SimSharp.Samples {
      *  different machine brands. The workshop works continuously.
      */
     private const int RandomSeed = 42;
-    private const double PtMean = 10.0; // Avg. processing time in minutes
-    private const double PtSigma = 2.0; // Sigma of processing time
-    private const double Mttf = 300.0; // Mean time to failure in minutes
-    private const double BreakMean = 1 / Mttf; // Param. for expovariate distribution
     private const int NumMachines = 10; // Number of machines in the machine shop
+    private static readonly TimeSpan PtMean = TimeSpan.FromMinutes(10.0); // Avg. processing time in minutes
+    private static readonly TimeSpan PtSigma = TimeSpan.FromMinutes(2.0); // Sigma of processing time
+    private static readonly TimeSpan Mttf = TimeSpan.FromMinutes(300.0); // Mean time to failure in minutes
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(28); // Simulation time in minutes
     private enum MachineBrands { BigBrand = 0, NiceBrand = 1, OldBrand = 2 }
 
@@ -94,7 +93,7 @@ namespace SimSharp.Samples {
          */
         while (true) {
           // Start making a new part
-          var doneIn = TimeSpan.FromMinutes(Environment.RandNormal(PtMean, PtSigma));
+          var doneIn = Environment.RandNormal(PtMean, PtSigma);
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -122,7 +121,7 @@ namespace SimSharp.Samples {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(BreakMean)));
+          yield return Environment.Timeout(Environment.RandExponential(Mttf));
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

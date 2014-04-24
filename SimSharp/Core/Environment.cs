@@ -199,11 +199,19 @@ namespace SimSharp {
       return a + (b - a) * Random.NextDouble();
     }
 
+    public TimeSpan RandUniform(TimeSpan a, TimeSpan b) {
+      return TimeSpan.FromSeconds(RandUniform(a.TotalSeconds, b.TotalSeconds));
+    }
+
     public double RandTriangular(double low, double high) {
       var u = Random.NextDouble();
       if (u > 0.5)
         return high + (low - high) * Math.Sqrt(((1.0 - u) / 2));
       return low + (high - low) * Math.Sqrt(u / 2);
+    }
+
+    public TimeSpan RandTriangular(TimeSpan low, TimeSpan high) {
+      return TimeSpan.FromSeconds(RandTriangular(low.TotalSeconds, high.TotalSeconds));
     }
 
     public double RandTriangular(double low, double high, double mode) {
@@ -214,8 +222,32 @@ namespace SimSharp {
       return low + (high - low) * Math.Sqrt(u * c);
     }
 
-    public double RandExponential(double lambda) {
-      return -Math.Log(1 - Random.NextDouble()) / lambda;
+    public TimeSpan RandTriangular(TimeSpan low, TimeSpan high, TimeSpan mode) {
+      return TimeSpan.FromSeconds(RandTriangular(low.TotalSeconds, high.TotalSeconds, mode.TotalSeconds));
+    }
+
+    /// <summary>
+    /// Returns a number that is exponentially distributed given a certain mean.
+    /// </summary>
+    /// <remarks>
+    /// Unlike in other APIs here the mean should be given and not the lambda parameter.
+    /// </remarks>
+    /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
+    /// <returns>A number that is exponentially distributed</returns>
+    public double RandExponential(double mean) {
+      return -Math.Log(1 - Random.NextDouble()) * mean;
+    }
+
+    /// <summary>
+    /// Returns a timespan that is exponentially distributed given a certain mean.
+    /// </summary>
+    /// <remarks>
+    /// Unlike in other APIs here the mean should be given and not the lambda parameter.
+    /// </remarks>
+    /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
+    /// <returns>A number that is exponentially distributed</returns>
+    public TimeSpan RandExponential(TimeSpan mean) {
+      return TimeSpan.FromSeconds(RandExponential(mean.TotalSeconds));
     }
 
     public double RandNormal(double mu, double sigma) {
@@ -229,12 +261,20 @@ namespace SimSharp {
       return mu + z * sigma;
     }
 
+    public TimeSpan RandNormal(TimeSpan mu, TimeSpan sigma) {
+      return TimeSpan.FromSeconds(RandNormal(mu.TotalSeconds, sigma.TotalSeconds));
+    }
+
     public double RandNormalPositive(double mu, double sigma) {
       double val;
       do {
         val = RandNormal(mu, sigma);
       } while (val <= 0);
       return val;
+    }
+
+    public TimeSpan RandNormalPositive(TimeSpan mu, TimeSpan sigma) {
+      return TimeSpan.FromSeconds(RandNormalPositive(mu.TotalSeconds, sigma.TotalSeconds));
     }
 
     public double RandNormalNegative(double mu, double sigma) {
@@ -245,17 +285,33 @@ namespace SimSharp {
       return val;
     }
 
+    public TimeSpan RandNormalNegative(TimeSpan mu, TimeSpan sigma) {
+      return TimeSpan.FromSeconds(RandNormalNegative(mu.TotalSeconds, sigma.TotalSeconds));
+    }
+
 
     public double RandLogNormal(double mu, double sigma) {
       return Math.Exp(RandNormal(mu, sigma));
+    }
+
+    public TimeSpan RandLogNormal(TimeSpan mu, TimeSpan sigma) {
+      return TimeSpan.FromSeconds(RandLogNormal(mu.TotalSeconds, sigma.TotalSeconds));
     }
 
     public double RandCauchy(double x0, double gamma) {
       return x0 + gamma * Math.Tan(Math.PI * (Random.NextDouble() - 0.5));
     }
 
+    public TimeSpan RandCauchy(TimeSpan x0, TimeSpan gamma) {
+      return TimeSpan.FromSeconds(RandCauchy(x0.TotalSeconds, gamma.TotalSeconds));
+    }
+
     public double RandWeibull(double alpha, double beta) {
       return alpha * Math.Pow(-Math.Log(1 - Random.NextDouble()), 1 / beta);
+    }
+
+    public TimeSpan RandWeibull(TimeSpan mu, TimeSpan sigma) {
+      return TimeSpan.FromSeconds(RandWeibull(mu.TotalSeconds, sigma.TotalSeconds));
     }
     #endregion
   }

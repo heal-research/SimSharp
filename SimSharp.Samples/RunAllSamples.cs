@@ -17,12 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
 using System;
+using System.Collections.Generic;
 
 namespace SimSharp.Samples {
   class RunAllSamples {
     public static void Main(string[] args) {
       // Run all samples one after another
-      new BankRenege().Simulate();
+      /*new BankRenege().Simulate();
       Console.WriteLine();
       new GasStationRefueling().Simulate();
       Console.WriteLine();
@@ -34,7 +35,34 @@ namespace SimSharp.Samples {
       Console.WriteLine();
       new MachineShopSpecialist().Simulate();
       Console.WriteLine();
-      new SimpleShop().Simulate();
+      new SimpleShop().Simulate();*/
+      new RunAllSamples().RunSimulation();
+    }
+
+    private double ARRIVAL_TIME = 10;
+    private double PROCESSING_TIME = 9;
+    private TimeSpan SIMULATION_TIME = TimeSpan.FromMinutes(60);
+
+    IEnumerable<Event> SSQ(Environment env) {
+      var server = new Resource(env, capacity: 1);
+      while (true) {
+        yield return env.TimeoutD(env.RandExponential(ARRIVAL_TIME));
+        env.Process(Item(env, server));
+      }
+    }
+
+    IEnumerable<Event> Item(Environment env, Resource server) {
+      using (var s = server.Request()) {
+        yield return s;
+        yield return env.TimeoutD(env.RandExponential(PROCESSING_TIME));
+        Console.WriteLine("Duration {0}", env.Now - s.Time);
+      }
+    }
+
+    void RunSimulation() {
+      var env = new Environment();
+      env.Process(SSQ(env));
+      env.Run(SIMULATION_TIME);
     }
   }
 }

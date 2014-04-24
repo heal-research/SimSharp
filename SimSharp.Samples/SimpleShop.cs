@@ -4,11 +4,15 @@ using System.Collections.Generic;
 namespace SimSharp.Samples {
   class SimpleShop {
     static TimeSpan delay = TimeSpan.Zero;
+    private static readonly TimeSpan MachineProcTimeMu = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan MachineProcTimeSigma = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan PackerProcTimeMu = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan PackerProcTimeSigma = TimeSpan.FromSeconds(2);
 
     static IEnumerable<Event> Machine(Environment env, Resource packer) {
       while (true) {
-        var procTimeSec = env.RandNormalPositive(20, 5);
-        yield return env.Timeout(TimeSpan.FromSeconds(procTimeSec));
+        var procTime = env.RandNormalPositive(MachineProcTimeMu, MachineProcTimeSigma);
+        yield return env.Timeout(procTime);
         var token = packer.Request();
         yield return token;
         delay += env.Now - token.Time;
@@ -17,8 +21,8 @@ namespace SimSharp.Samples {
     }
 
     static IEnumerable<Event> Pack(Environment env, Resource packer, Request token) {
-      var packTimeSec = env.RandNormalPositive(10, 2);
-      yield return env.Timeout(TimeSpan.FromSeconds(packTimeSec));
+      var packTimeSec = env.RandNormalPositive(PackerProcTimeMu, PackerProcTimeSigma);
+      yield return env.Timeout(packTimeSec);
       packer.Release(token);
     }
 

@@ -27,7 +27,6 @@ namespace SimSharp.Performance {
     private const double PtMean = 10.0; // Avg. processing time in minutes
     private const double PtSigma = 2.0; // Sigma of processing time
     private const double Mttf = 300.0; // Mean time to failure in minutes
-    private const double BreakMean = 1 / Mttf; // Param. for expovariate distribution
     private const double RepairTime = 30.0; // Time it takes to repair a machine in minutes
     private const double JobDuration = 30.0; // Duration of other jobs in minutes
     private const int NumMachines = 10; // Number of machines in the machine shop
@@ -93,7 +92,7 @@ namespace SimSharp.Performance {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(BreakMean)));
+          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(Mttf)));
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

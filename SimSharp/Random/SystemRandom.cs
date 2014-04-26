@@ -18,27 +18,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 
-namespace SimSharp.Samples {
-  class RunAllSamples {
-    public static void Main(string[] args) {
-      // Run all samples one after another
-      new BankRenege().Simulate();
-      Console.WriteLine();
-      new GasStationRefueling().Simulate();
-      Console.WriteLine();
-      new MachineShop().Simulate();
-      Console.WriteLine();
-      new ProcessCommunication().Simulate();
-      Console.WriteLine();
-      new SteelFactory().Simulate();
-      Console.WriteLine();
-      new MachineShopSpecialist().Simulate();
-      Console.WriteLine();
-      new SimpleShop().Simulate();
-      Console.WriteLine();
-      new KanbanControl().Simulate();
-      Console.WriteLine();
-      new MM1Queueing().Simulate();
+namespace SimSharp {
+  public class SystemRandom : IRandom {
+    private Random random;
+
+    public SystemRandom() {
+      random = new Random();
+    }
+
+    public SystemRandom(int seed) {
+      random = new Random(seed);
+    }
+    public int Next() {
+      return random.Next();
+    }
+
+    public int Next(int upperBound) {
+      return random.Next(upperBound);
+    }
+
+    public int Next(int lowerBound, int upperBound) {
+      return random.Next(lowerBound, upperBound);
+    }
+
+    public double NextDouble() {
+      return random.NextDouble();
+    }
+
+    public void Reinitialise(int seed) {
+      random = new Random(seed);
     }
   }
 }

@@ -1,4 +1,5 @@
-﻿#region License Information
+﻿
+#region License Information
 /* SimSharp - A .NET port of SimPy, discrete event simulation framework
 Copyright (C) 2014  Heuristic and Evolutionary Algorithms Laboratory (HEAL)
 
@@ -16,29 +17,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
-using System;
+namespace SimSharp {
+  public interface IRandom {
+    int Next();
+    int Next(int upperBound);
+    int Next(int lowerBound, int upperBound);
+    double NextDouble();
 
-namespace SimSharp.Samples {
-  class RunAllSamples {
-    public static void Main(string[] args) {
-      // Run all samples one after another
-      new BankRenege().Simulate();
-      Console.WriteLine();
-      new GasStationRefueling().Simulate();
-      Console.WriteLine();
-      new MachineShop().Simulate();
-      Console.WriteLine();
-      new ProcessCommunication().Simulate();
-      Console.WriteLine();
-      new SteelFactory().Simulate();
-      Console.WriteLine();
-      new MachineShopSpecialist().Simulate();
-      Console.WriteLine();
-      new SimpleShop().Simulate();
-      Console.WriteLine();
-      new KanbanControl().Simulate();
-      Console.WriteLine();
-      new MM1Queueing().Simulate();
-    }
+    void Reinitialise(int seed);
   }
 }

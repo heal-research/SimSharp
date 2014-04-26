@@ -55,7 +55,7 @@ namespace SimSharp {
     /// The random number generator that is to be used in all events in
     /// order to produce reproducible results.
     /// </summary>
-    protected Random Random { get; set; }
+    protected IRandom Random { get; set; }
 
     protected EventQueue ScheduleQ;
     protected Queue<Event> Queue;
@@ -71,7 +71,7 @@ namespace SimSharp {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
-      Random = new Random();
+      Random = new SystemRandom();
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Queue = new Queue<Event>();
       Logger = Console.Out;
@@ -80,10 +80,18 @@ namespace SimSharp {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
-      Random = new Random(randomSeed);
+      Random = new SystemRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Queue = new Queue<Event>();
       Logger = Console.Out;
+    }
+
+    public double ToDouble(TimeSpan span) {
+      return span.TotalSeconds / DefaultTimeStepSeconds;
+    }
+
+    public TimeSpan ToTimeSpan(double span) {
+      return TimeSpan.FromSeconds(DefaultTimeStepSeconds * span);
     }
 
     public Process Process(IEnumerable<Event> generator) {
@@ -100,7 +108,7 @@ namespace SimSharp {
 
     public virtual void Reset(int randomSeed) {
       Now = StartDate;
-      Random = new Random(randomSeed);
+      Random = new SystemRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Queue = new Queue<Event>();
     }

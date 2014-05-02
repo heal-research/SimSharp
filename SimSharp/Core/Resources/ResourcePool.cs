@@ -24,8 +24,11 @@ namespace SimSharp {
   public class ResourcePool {
     protected static readonly Func<object, bool> TrueFunc = _ => true;
 
-    public int TotalCapacity { get; protected set; }
-    public int Capacity { get { return Resources.Count; } }
+    public int Capacity { get; protected set; }
+
+    public int InUse { get { return Capacity - Remaining; } }
+
+    public int Remaining { get { return Resources.Count; } }
 
     protected Environment Environment { get; private set; }
 
@@ -39,7 +42,7 @@ namespace SimSharp {
       RequestQueue = new List<ResourcePoolRequest>();
       ReleaseQueue = new List<Release>();
       Resources = new List<object>(resources);
-      TotalCapacity = Resources.Count;
+      Capacity = Resources.Count;
     }
 
     public virtual bool IsAvailable(Func<object, bool> filter) {

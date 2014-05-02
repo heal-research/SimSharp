@@ -297,7 +297,6 @@ namespace SimSharp {
       return TimeSpan.FromSeconds(RandNormalNegative(mu.TotalSeconds, sigma.TotalSeconds));
     }
 
-
     public double RandLogNormal(double mu, double sigma) {
       return Math.Exp(RandNormal(mu, sigma));
     }
@@ -320,6 +319,56 @@ namespace SimSharp {
 
     public TimeSpan RandWeibull(TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandWeibull(mu.TotalSeconds, sigma.TotalSeconds));
+    }
+    #endregion
+
+    #region Random timeouts
+    public Timeout TimeoutUniformD(double a, double b) {
+      return new Timeout(this, ToTimeSpan(RandUniform(a, b)));
+    }
+
+    public Timeout TimeoutUniform(TimeSpan a, TimeSpan b) {
+      return new Timeout(this, RandUniform(a, b));
+    }
+
+    public Timeout TimeoutTriangularD(double low, double high) {
+      return new Timeout(this, ToTimeSpan(RandTriangular(low, high)));
+    }
+
+    public Timeout TimeoutTriangular(TimeSpan low, TimeSpan high) {
+      return new Timeout(this, RandTriangular(low, high));
+    }
+
+    public Timeout TimeoutTriangularD(double low, double high, double mode) {
+      return new Timeout(this, ToTimeSpan(RandTriangular(low, high, mode)));
+    }
+
+    public Timeout TimeoutTriangular(TimeSpan low, TimeSpan high, TimeSpan mode) {
+      return new Timeout(this, RandTriangular(low, high, mode));
+    }
+
+    public Timeout TimeoutExponentialD(double mean) {
+      return new Timeout(this, ToTimeSpan(RandExponential(mean)));
+    }
+
+    public Timeout TimeoutExponential(TimeSpan mean) {
+      return new Timeout(this, RandExponential(mean));
+    }
+
+    public Timeout TimeoutNormalPositiveD(double mu, double sigma) {
+      return new Timeout(this, ToTimeSpan(RandNormalPositive(mu, sigma)));
+    }
+
+    public Timeout TimeoutNormalPositive(TimeSpan mu, TimeSpan sigma) {
+      return new Timeout(this, RandNormalPositive(mu, sigma));
+    }
+
+    public Timeout TimeoutLogNormalD(double mu, double sigma) {
+      return new Timeout(this, ToTimeSpan(RandLogNormal(mu, sigma)));
+    }
+
+    public Timeout TimeoutLogNormal(TimeSpan mu, TimeSpan sigma) {
+      return new Timeout(this, RandLogNormal(mu, sigma));
     }
     #endregion
   }

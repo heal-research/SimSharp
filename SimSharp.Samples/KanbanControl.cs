@@ -31,7 +31,7 @@ namespace SimSharp.Samples {
 
     private IEnumerable<Event> Source() {
       while (true) {
-        yield return env.Timeout(env.RandExponential(OrderArrivalTime));
+        yield return env.TimeoutExponential(OrderArrivalTime);
         env.Process(Order());
       }
     }
@@ -40,16 +40,16 @@ namespace SimSharp.Samples {
       var kb = kanban.Request();
       yield return kb;
       env.Process(Produce(kb));
-      stockStat.Add(kanban.Capacity - kanban.Count);
+      stockStat.Update(kanban.Remaining);
       completedOrders++;
     }
 
     private IEnumerable<Event> Produce(Request kb) {
       using (var srv = server.Request()) {
         yield return srv;
-        yield return env.Timeout(env.RandExponential(ProcessingTime));
+        yield return env.TimeoutExponential(ProcessingTime);
         kanban.Release(kb);
-        stockStat.Add(kanban.Capacity - kanban.Count);
+        stockStat.Update(kanban.Remaining);
       }
     }
 

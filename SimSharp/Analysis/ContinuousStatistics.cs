@@ -20,23 +20,18 @@ using System;
 
 namespace SimSharp {
   public sealed class ContinuousStatistics {
-    private Environment env;
+    private readonly Environment env;
 
-    private int count;
-    public int Count { get { return count; } }
-    private double totalTime;
-    public double TotalTimeD { get { return totalTime; } }
-    public TimeSpan TotalTime { get { return env.ToTimeSpan(totalTime); } }
+    public int Count { get; private set; }
+    public double TotalTimeD { get; private set; }
+    public TimeSpan TotalTime { get { return env.ToTimeSpan(TotalTimeD); } }
 
-    private double min;
-    public double Min { get { return min; } }
-    private double max;
-    public double Max { get { return max; } }
-    private double area;
-    public double Area { get { return area; } }
+    public double Min { get; private set; }
+    public double Max { get; private set; }
+    public double Area { get; private set; }
     public double Mean { get; private set; }
-    public double StdDev { get { return Math.Sqrt((totalTime > 0) ? newVar / totalTime : 0.0); } }
-    public double Variance { get { return (totalTime > 0) ? newVar / totalTime : 0.0; } }
+    public double StdDev { get { return Math.Sqrt((TotalTimeD > 0) ? newVar / TotalTimeD : 0.0); } }
+    public double Variance { get { return (TotalTimeD > 0) ? newVar / TotalTimeD : 0.0; } }
 
     private DateTime lastUpdateTime;
     private double lastValue;
@@ -44,39 +39,43 @@ namespace SimSharp {
 
     public ContinuousStatistics(Environment env) {
       this.env = env;
-      count = 0;
-      min = double.MaxValue;
-      max = double.MinValue;
-      area = 0;
+      Count = 0;
+      TotalTimeD = 0;
+      Min = double.MaxValue;
+      Max = double.MinValue;
+      Area = 0;
+      Mean = 0;
       lastUpdateTime = env.Now;
       lastValue = 0;
     }
 
-    public void Add(double value) {
-      count++;
+    public void Update(double value) {
+      Count++;
 
       var timeDiff = env.Now - lastUpdateTime;
       var duration = env.ToDouble(timeDiff);
-      totalTime += duration;
 
-      area += (lastValue * duration);
-      if (value < min) min = value;
-      if (value > max) max = value;
+      Area += (lastValue * duration);
+      if (value < Min) Min = value;
+      if (value > Max) Max = value;
       UpdateRunningMeanAndVariance(lastValue, duration);
+
+      TotalTimeD += duration;
 
       lastUpdateTime = env.Now;
       lastValue = value;
     }
 
-    double oldMean;
-    double oldVar;
-    double newVar;
+    double oldMean = double.NaN;
+    double oldVar = double.NaN;
+    double newVar = 0;
     private void UpdateRunningMeanAndVariance(double value, double duration) {
-      if (count == 1) {
+      if (TotalTimeD < 1e-12) {
         oldMean = Mean = value;
         oldVar = 0.0;
       } else {
-        Mean = oldMean + (value - oldMean) * duration / totalTime;
+        if (duration == 0) return;
+        Mean = oldMean + (value - oldMean) * duration / (duration + TotalTimeD);
         newVar = oldVar + (value - oldMean) * (value - Mean) * duration;
 
         // set up for next iteration

@@ -51,6 +51,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="ContinuousStatisticsTest.cs" />
     <Compile Include="EnvironmentDApiTests.cs" />
     <Compile Include="EnvironmentTests.cs" />
     <Compile Include="ProcessTest.cs" />

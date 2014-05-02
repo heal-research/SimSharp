@@ -31,8 +31,7 @@ namespace SimSharp.Samples {
       for (int i = 0; i < NewCustomers; i++) {
         var c = Customer(env, "Customer " + i, counter, TimeSpan.FromMinutes(12.0));
         env.Process(c);
-        var t = env.RandExponential(IntervalCustomers);
-        yield return env.Timeout(t);
+        yield return env.TimeoutExponential(IntervalCustomers);
       }
     }
 
@@ -42,10 +41,8 @@ namespace SimSharp.Samples {
       env.Log("{0} {1}: Here I am", arrive, name);
 
       using (var req = counter.Request()) {
-        var patience = env.RandUniform(MinPatience, MaxPatience);
-
         // Wait for the counter or abort at the end of our tether
-        var timeout = env.Timeout(patience);
+        var timeout = env.TimeoutUniform(MinPatience, MaxPatience);
         yield return req | timeout;
 
         var wait = env.Now - arrive;
@@ -54,8 +51,7 @@ namespace SimSharp.Samples {
           // We got the counter
           env.Log("{0} {1}: waited {2}", env.Now, name, wait);
 
-          var tib = env.RandExponential(meanTimeInBank);
-          yield return env.Timeout(tib);
+          yield return env.TimeoutExponential(meanTimeInBank);
           env.Log("{0} {1}: Finished", env.Now, name);
         } else {
           // We reneged

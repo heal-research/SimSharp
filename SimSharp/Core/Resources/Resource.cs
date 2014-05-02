@@ -25,7 +25,9 @@ namespace SimSharp {
 
     public int Capacity { get; protected set; }
 
-    public int Count { get { return Users.Count; } }
+    public int InUse { get { return Users.Count; } }
+
+    public int Remaining { get { return Capacity - InUse; } }
 
     protected Environment Environment { get; private set; }
 

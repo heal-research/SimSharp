@@ -12,21 +12,21 @@ namespace SimSharp.Samples {
 
     private IEnumerable<Event> Source() {
       while (true) {
-        yield return env.Timeout(env.RandExponential(OrderArrivalTime));
+        yield return env.TimeoutExponential(OrderArrivalTime);
         env.Process(Order());
       }
     }
 
     private IEnumerable<Event> Order() {
-      statistics.Add(++queueSize);
+      statistics.Update(++queueSize);
       var req = server.Request();
       yield return req;
       env.Process(Produce(req));
-      statistics.Add(--queueSize);
+      statistics.Update(--queueSize);
     }
 
     private IEnumerable<Event> Produce(Request req) {
-      yield return env.Timeout(env.RandExponential(ProcessingTime));
+      yield return env.TimeoutExponential(ProcessingTime);
       server.Release(req);
     }
 

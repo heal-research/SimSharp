@@ -29,8 +29,7 @@ namespace SimSharp.Samples {
 
     static IEnumerable<Event> Machine(Environment env, Resource packer) {
       while (true) {
-        var procTime = env.RandNormalPositive(MachineProcTimeMu, MachineProcTimeSigma);
-        yield return env.Timeout(procTime);
+        yield return env.TimeoutNormalPositive(MachineProcTimeMu, MachineProcTimeSigma);
         var token = packer.Request();
         yield return token;
         delay += env.Now - token.Time;
@@ -39,8 +38,7 @@ namespace SimSharp.Samples {
     }
 
     static IEnumerable<Event> Pack(Environment env, Resource packer, Request token) {
-      var packTimeSec = env.RandNormalPositive(PackerProcTimeMu, PackerProcTimeSigma);
-      yield return env.Timeout(packTimeSec);
+      yield return env.TimeoutNormalPositive(PackerProcTimeMu, PackerProcTimeSigma);
       packer.Release(token);
     }
 

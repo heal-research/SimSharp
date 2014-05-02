@@ -33,7 +33,7 @@ namespace SimSharp.Tests {
       var resource = new Resource(env, capacity: 1);
 
       Assert.AreEqual(1, resource.Capacity);
-      Assert.AreEqual(0, resource.Count);
+      Assert.AreEqual(0, resource.InUse);
 
       var log = new Dictionary<string, DateTime>();
       env.Process(TestResource(env, "a", resource, log));
@@ -47,7 +47,7 @@ namespace SimSharp.Tests {
       Dictionary<string, DateTime> log) {
       var req = resource.Request();
       yield return req;
-      Assert.AreEqual(1, resource.Count);
+      Assert.AreEqual(1, resource.InUse);
 
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       resource.Release(req);
@@ -62,7 +62,7 @@ namespace SimSharp.Tests {
       var resource = new Resource(env, capacity: 1);
 
       Assert.AreEqual(1, resource.Capacity);
-      Assert.AreEqual(0, resource.Count);
+      Assert.AreEqual(0, resource.InUse);
 
       var log = new Dictionary<string, DateTime>();
       env.Process(TestResourceWithUsing(env, "a", resource, log));
@@ -76,7 +76,7 @@ namespace SimSharp.Tests {
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         yield return req;
-        Assert.AreEqual(1, resource.Count);
+        Assert.AreEqual(1, resource.InUse);
 
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }

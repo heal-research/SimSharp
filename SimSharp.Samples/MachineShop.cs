@@ -106,7 +106,7 @@ namespace SimSharp.Samples {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(Environment.RandExponential(Mttf));
+          yield return Environment.TimeoutExponential(Mttf);
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

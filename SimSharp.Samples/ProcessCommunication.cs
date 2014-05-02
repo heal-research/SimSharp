@@ -36,7 +36,7 @@ namespace SimSharp.Samples {
       // A process which randomly generates messages.
       while (true) {
         // wait for next transmission
-        yield return env.TimeoutD(env.RandUniform(6, 11));
+        yield return env.TimeoutUniformD(6, 11);
 
         // messages are time stamped to later check if the consumer was
         // late getting them.  Note, using event.triggered to do this may
@@ -70,7 +70,7 @@ namespace SimSharp.Samples {
         }
 
         // Process does some other work, which may result in missing messages
-        yield return env.TimeoutD(env.RandUniform(4, 9));
+        yield return env.TimeoutUniformD(4, 9);
       }
     }
 

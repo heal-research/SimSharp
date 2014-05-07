@@ -58,6 +58,7 @@
     <Compile Include="Core\ActiveObject.cs" />
     <Compile Include="Core\Events\AnyOf.cs" />
     <Compile Include="Core\Events\AllOf.cs" />
+    <Compile Include="Core\Events\Interruption.cs" />
     <Compile Include="Core\Resources\Container.cs" />
     <Compile Include="Core\Environment.cs" />
     <Compile Include="Core\Resources\Events\ResourcePoolRequest.cs" />

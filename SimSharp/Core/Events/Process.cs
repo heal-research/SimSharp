@@ -62,19 +62,11 @@ namespace SimSharp {
       if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
-      var interruptEvent = new Event(Environment);
-      interruptEvent.AddCallback(Resume);
+      var interruptEvent = new Interruption(Environment, this);
       interruptEvent.Fail(cause);
-
-      if (target != null) {
-        target.RemoveCallback(Resume);
-        target = null;
-      }
     }
 
-    protected virtual void Resume(Event @event) {
-      if (IsTriggered) return;
-      if (@event != target && target != null) target.RemoveCallback(Resume);
+    protected internal virtual void Resume(Event @event) {
       Environment.ActiveProcess = this;
       if (@event.IsOk) {
         if (generator.MoveNext()) {

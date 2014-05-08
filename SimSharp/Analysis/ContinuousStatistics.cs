@@ -30,58 +30,43 @@ namespace SimSharp {
     public double Max { get; private set; }
     public double Area { get; private set; }
     public double Mean { get; private set; }
-    public double StdDev { get { return Math.Sqrt((TotalTimeD > 0) ? newVar / TotalTimeD : 0.0); } }
-    public double Variance { get { return (TotalTimeD > 0) ? newVar / TotalTimeD : 0.0; } }
+    public double StdDev { get { return Math.Sqrt(Variance); } }
+    public double Variance { get { return (TotalTimeD > 0) ? variance / TotalTimeD : 0.0; } }
 
-    private DateTime lastUpdateTime;
+    private double lastUpdateTime;
     private double lastValue;
+    private double variance;
+
+    private bool firstSample;
 
 
     public ContinuousStatistics(Environment env) {
       this.env = env;
-      Count = 0;
-      TotalTimeD = 0;
-      Min = double.MaxValue;
-      Max = double.MinValue;
-      Area = 0;
-      Mean = 0;
-      lastUpdateTime = env.Now;
-      lastValue = 0;
+      lastUpdateTime = env.NowD;
     }
 
     public void Update(double value) {
       Count++;
 
-      var timeDiff = env.Now - lastUpdateTime;
-      var duration = env.ToDouble(timeDiff);
-
-      Area += (lastValue * duration);
-      if (value < Min) Min = value;
-      if (value > Max) Max = value;
-      UpdateRunningMeanAndVariance(lastValue, duration);
-
-      TotalTimeD += duration;
-
-      lastUpdateTime = env.Now;
-      lastValue = value;
-    }
-
-    double oldMean = double.NaN;
-    double oldVar = double.NaN;
-    double newVar = 0;
-    private void UpdateRunningMeanAndVariance(double value, double duration) {
-      if (TotalTimeD < 1e-12) {
-        oldMean = Mean = value;
-        oldVar = 0.0;
+      if (!firstSample) {
+        Min = Max = Mean = value;
+        firstSample = true;
       } else {
-        if (duration == 0) return;
-        Mean = oldMean + (value - oldMean) * duration / (duration + TotalTimeD);
-        newVar = oldVar + (value - oldMean) * (value - Mean) * duration;
+        if (value < Min) Min = value;
+        if (value > Max) Max = value;
 
-        // set up for next iteration
-        oldMean = Mean;
-        oldVar = newVar;
+        var duration = env.NowD - lastUpdateTime;
+        if (duration > 0) {
+          Area += (lastValue * duration);
+          var oldMean = Mean;
+          Mean = oldMean + (lastValue - oldMean) * duration / (duration + TotalTimeD);
+          variance = variance + (lastValue - oldMean) * (lastValue - Mean) * duration;
+          TotalTimeD += duration;
+        }
       }
+
+      lastUpdateTime = env.NowD;
+      lastValue = value;
     }
   }
 }

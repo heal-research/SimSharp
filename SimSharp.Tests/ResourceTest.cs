@@ -140,6 +140,39 @@ namespace SimSharp.Tests {
     }
 
     [TestMethod]
+    public void TestResourceContinueAfterInterruptWaiting() {
+      var env = new Environment(new DateTime(2014, 4, 1));
+      var res = new Resource(env, capacity: 1);
+      env.Process(TestResourceContinueAfterInterruptWaiting(env, res));
+      var proc = env.Process(TestResourceContinueAfterInterruptWaitingVictim(env, res));
+      env.Process(TestResourceContinueAfterInterruptWaitingInterruptor(env, proc));
+      env.Run();
+    }
+
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaiting(Environment env, Resource res) {
+      using (var req = res.Request()) {
+        yield return req;
+        yield return env.Timeout(TimeSpan.FromSeconds(1));
+      }
+    }
+
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingVictim(Environment env, Resource res) {
+      var req = res.Request();
+      yield return req;
+      Assert.IsFalse(req.IsOk);
+      env.ActiveProcess.HandleFault();
+      yield return env.Timeout(TimeSpan.FromSeconds(2));
+      yield return req;
+      res.Release(req);
+      Assert.AreEqual(new DateTime(2014, 4, 1, 0, 0, 2), env.Now);
+    }
+
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingInterruptor(Environment env, Process proc) {
+      proc.Interrupt();
+      yield break;
+    }
+
+    [TestMethod]
     public void TestResourceReleaseAfterInterrupt() {
       var env = new Environment(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);

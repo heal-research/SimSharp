@@ -75,11 +75,12 @@ namespace SimSharp.Tests {
       log.Add(id, env.Now);
     }
 
-    [TestMethod, ExpectedException(typeof(InvalidOperationException))]
+    [TestMethod]
     public void TestTriggeredTimeout() {
       var env = new Environment();
       env.Process(TestTriggeredTimeout(env));
       env.Run();
+      Assert.AreEqual(2, env.NowD);
     }
     private IEnumerable<Event> TestTriggeredTimeout(Environment env) {
       var @event = env.Timeout(TimeSpan.FromSeconds(1));

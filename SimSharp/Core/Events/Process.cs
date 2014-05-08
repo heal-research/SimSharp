@@ -62,56 +62,66 @@ namespace SimSharp {
       if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
-      var interruptEvent = new Interruption(Environment, this);
+      var interruptEvent = new Event(Environment);
+      interruptEvent.AddCallback(Resume);
       interruptEvent.Fail(cause);
+
+      if (Target != null)
+        Target.RemoveCallback(Resume);
     }
 
-    protected internal virtual void Resume(Event @event) {
+    protected virtual void Resume(Event @event) {
       Environment.ActiveProcess = this;
-      if (@event.IsOk) {
-        if (generator.MoveNext()) {
-          if (IsTriggered) {
-            // the generator called e.g. Environment.ActiveProcess.Fail
-            Environment.ActiveProcess = null;
-            return;
-          }
-          ProceedToEvent();
-        } else if (!IsTriggered) Succeed(@event.Value);
-      } else {
-        /* Fault handling differs from SimPy as in .NET it is not possible to inject an
+      while (true) {
+        if (@event.IsOk) {
+          if (generator.MoveNext()) {
+            if (IsTriggered) {
+              // the generator called e.g. Environment.ActiveProcess.Fail
+              Environment.ActiveProcess = null;
+              return;
+            }
+            if (ProceedToEvent()) break;
+          } else if (!IsTriggered) {
+            Succeed(@event.Value);
+            break;
+          } else break;
+        } else {
+          /* Fault handling differs from SimPy as in .NET it is not possible to inject an
          * exception into an enumerator and it is impossible to put a yield return inside
          * a try-catch block. In SimSharp the Process will set IsOk and will then move to
          * the next yield in the generator. However, if after this move IsOk is still true
          * we know that the error was not handled. It is assumed the error is handled if
          * HandleFault() is called on the environment's ActiveProcess which will reset the
          * flag. */
-        IsOk = false;
-        Value = @event.Value;
+          IsOk = false;
+          Value = @event.Value;
 
-        if (generator.MoveNext()) {
-          if (IsTriggered) {
-            // the generator called e.g. Environment.ActiveProcess.Fail
-            Environment.ActiveProcess = null;
-            return;
-          }
-          // if we move next, but IsFaulted is still true
-          if (!IsOk) throw new InvalidOperationException("The process did not react to being faulted.");
-          // otherwise HandleFault was called and the fault was handled
-          ProceedToEvent();
-        } else if (!IsTriggered) {
-          if (!IsOk) Fail(@event.Value);
-          else Succeed(@event.Value);
+          if (generator.MoveNext()) {
+            if (IsTriggered) {
+              // the generator called e.g. Environment.ActiveProcess.Fail
+              Environment.ActiveProcess = null;
+              return;
+            }
+            // if we move next, but IsFaulted is still true
+            if (!IsOk) throw new InvalidOperationException("The process did not react to being faulted.");
+            // otherwise HandleFault was called and the fault was handled
+            if (ProceedToEvent()) break;
+          } else if (!IsTriggered) {
+            if (!IsOk) Fail(@event.Value);
+            else Succeed(@event.Value);
+            break;
+          } else break;
         }
       }
       Environment.ActiveProcess = null;
     }
 
-    protected virtual void ProceedToEvent() {
+    protected virtual bool ProceedToEvent() {
       target = generator.Current;
       Value = target.Value;
-      if (!target.IsProcessed)
-        target.AddCallback(Resume);
-      else throw new InvalidOperationException("Resuming on an event that was already processed.");
+      if (target.IsProcessed) return false;
+      target.AddCallback(Resume);
+      return true;
     }
 
     /// <summary>

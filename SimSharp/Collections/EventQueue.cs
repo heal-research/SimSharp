@@ -225,6 +225,9 @@ namespace SimSharp {
     /// Removes a node from the queue.  Note that the node does not need to be the head of the queue.  O(log n)
     /// </summary>
     public void Remove(EventQueueNode node) {
+      if (!Contains(node)) {
+        return;
+      }
       if (_numNodes <= 1) {
         _nodes[1] = null;
         _numNodes = 0;

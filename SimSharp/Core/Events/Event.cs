@@ -150,6 +150,7 @@ namespace SimSharp {
     /// <param name="callback">The callback to execute when the event is being
     /// processed.</param>
     public virtual void AddCallback(Action<Event> callback) {
+      if (IsProcessed) throw new InvalidOperationException("Event is already processed.");
       CallbackList.Add(callback);
     }
 
@@ -160,6 +161,7 @@ namespace SimSharp {
     /// <param name="callbacks">The callbacks to execute when the event is being
     /// processed.</param>
     public virtual void AddCallbacks(IEnumerable<Action<Event>> callbacks) {
+      if (IsProcessed) throw new InvalidOperationException("Event is already processed.");
       CallbackList.AddRange(callbacks);
     }
 
@@ -172,6 +174,7 @@ namespace SimSharp {
     /// </remarks>
     /// <param name="callback">The callback to remove.</param>
     public virtual void RemoveCallback(Action<Event> callback) {
+      if (IsProcessed) throw new InvalidOperationException("Event is already processed.");
       CallbackList.Remove(callback);
     }
 
@@ -184,10 +187,10 @@ namespace SimSharp {
     /// been processed.</exception>
     public virtual void Process() {
       if (IsProcessed) throw new InvalidOperationException("Event has already been processed.");
-      for (var i = 0; i < CallbackList.Count; i++) // in rare cases CallbackList may become larger here
-        CallbackList[i](this);
-      CallbackList = null;
       IsProcessed = true;
+      foreach (var callback in CallbackList)
+        callback(this);
+      CallbackList = null;
     }
 
     public static Condition operator &(Event event1, Event event2) {

@@ -32,27 +32,21 @@ namespace SimSharp {
     protected Condition(Environment environment, params Event[] events)
       : base(environment) {
       CallbackList.Add(CollectValues);
-      Events = new List<Event>(events.Length);
+      Events = new List<Event>(events);
       FiredEvents = new List<Event>();
 
-      foreach (var @event in events)
-        AddEvent(@event);
+      foreach (var @event in events) {
+        if (Environment != @event.Environment)
+          throw new ArgumentException("It is not allowed to mix events from different environments");
+        if (@event.IsProcessed) Check(@event);
+        else @event.AddCallback(Check);
+      }
 
       if (IsAlive && Evaluate())
         Succeed();
     }
 
-    protected virtual void AddEvent(Event @event) {
-      if (Environment != @event.Environment)
-        throw new ArgumentException("It is not allowed to mix events from different environments");
-      if (IsProcessed)
-        throw new InvalidOperationException("Event has already been processed");
-      Events.Add(@event);
-      if (@event.IsProcessed) Check(@event);
-      else @event.AddCallback(Check);
-    }
-
-    protected virtual void Check(Event @event) {
+    protected void Check(Event @event) {
       if (IsTriggered || IsProcessed) {
         if (!@event.IsOk) throw new InvalidOperationException(
 @"Errors that happen after the condition has been triggered will not be

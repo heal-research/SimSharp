@@ -184,8 +184,8 @@ namespace SimSharp {
     /// been processed.</exception>
     public virtual void Process() {
       if (IsProcessed) throw new InvalidOperationException("Event has already been processed.");
-      foreach (var callback in CallbackList)
-        callback(this);
+      for (var i = 0; i < CallbackList.Count; i++) // in rare cases CallbackList may become larger here
+        CallbackList[i](this);
       CallbackList = null;
       IsProcessed = true;
     }

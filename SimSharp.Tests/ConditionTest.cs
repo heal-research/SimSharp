@@ -146,5 +146,21 @@ namespace SimSharp.Tests {
       yield return env.Timeout(TimeSpan.FromDays(delay));
       env.ActiveProcess.Fail();
     }
+
+    [TestMethod]
+    public void TestAndConditionBlocked() {
+      var env = new Environment();
+      env.Process(TestAndConditionBlockedProcess(env));
+      env.RunD(5);
+      Assert.AreEqual(5, env.NowD);
+    }
+
+    private IEnumerable<Event> TestAndConditionBlockedProcess(Environment env) {
+      var t1 = env.TimeoutD(1);
+      var e = new Event(env);
+      yield return t1;
+      yield return t1 & e;
+      Assert.Fail("Process should not recover");
+    }
   }
 }

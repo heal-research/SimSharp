@@ -123,7 +123,7 @@ namespace SimSharp {
 
     public virtual void Schedule(TimeSpan delay, Event @event) {
       if (delay < TimeSpan.Zero)
-        throw new ArgumentException("Zero or negative delays are not allowed in Schedule(TimeSpan, Event). Use Schedule(Event, bool) for zero delays.");
+        throw new ArgumentException("Negative delays are not allowed in Schedule(TimeSpan, Event).");
       if (delay == TimeSpan.Zero) {
         Queue.Enqueue(@event);
         return;

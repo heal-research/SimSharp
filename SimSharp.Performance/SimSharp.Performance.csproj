@@ -60,9 +60,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\SimSharp\SimSharp.csproj">
       <Project>{9fe9c740-7859-4d01-ad07-7d4e15a6320b}</Project>
       <Name>SimSharp</Name>

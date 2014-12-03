@@ -33,7 +33,7 @@ namespace SimSharp {
 
     protected List<Request> RequestQueue { get; private set; }
     protected List<Release> ReleaseQueue { get; private set; }
-    protected List<Request> Users { get; private set; }
+    protected HashSet<Request> Users { get; private set; }
 
     public Resource(Environment environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must > 0.", "capacity");
@@ -41,7 +41,7 @@ namespace SimSharp {
       Capacity = capacity;
       RequestQueue = new List<Request>();
       ReleaseQueue = new List<Release>();
-      Users = new List<Request>();
+      Users = new HashSet<Request>();
     }
 
     public virtual Request Request() {

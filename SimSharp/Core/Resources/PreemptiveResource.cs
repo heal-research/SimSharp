@@ -33,7 +33,7 @@ namespace SimSharp {
 
     protected SortedList<int, List<PreemptivePriorityRequest>> RequestQueue { get; private set; }
     protected List<Release> ReleaseQueue { get; private set; }
-    protected List<Request> Users { get; private set; }
+    protected HashSet<Request> Users { get; private set; }
 
     public PreemptiveResource(Environment environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
@@ -41,7 +41,7 @@ namespace SimSharp {
       Capacity = capacity;
       RequestQueue = new SortedList<int, List<PreemptivePriorityRequest>>();
       ReleaseQueue = new List<Release>();
-      Users = new List<Request>();
+      Users = new HashSet<Request>();
     }
 
     public virtual PriorityRequest Request(int priority = 1, bool preempt = false) {

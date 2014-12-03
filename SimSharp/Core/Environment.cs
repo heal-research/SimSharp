@@ -26,6 +26,7 @@ namespace SimSharp {
   /// </summary>
   public class Environment {
     private const int InitialMaxEvents = 1024;
+    private object locker = new object();
 
     /// <summary>
     /// Describes the number of seconds that a logical step of 1 in the *D-API takes.
@@ -118,18 +119,22 @@ namespace SimSharp {
     }
 
     public virtual void Schedule(Event @event) {
-      Queue.Enqueue(@event);
+      lock (locker) {
+        Queue.Enqueue(@event);
+      }
     }
 
     public virtual void Schedule(TimeSpan delay, Event @event) {
       if (delay < TimeSpan.Zero)
         throw new ArgumentException("Negative delays are not allowed in Schedule(TimeSpan, Event).");
-      if (delay == TimeSpan.Zero) {
-        Queue.Enqueue(@event);
-        return;
+      lock (locker) {
+        if (delay == TimeSpan.Zero) {
+          Queue.Enqueue(@event);
+          return;
+        }
+        var eventTime = Now + delay;
+        DoSchedule(eventTime, @event);
       }
-      var eventTime = Now + delay;
-      DoSchedule(eventTime, @event);
     }
 
     protected virtual EventQueueNode DoSchedule(DateTime date, Event @event) {
@@ -165,30 +170,44 @@ namespace SimSharp {
     }
 
     public virtual void Run(Event stopEvent) {
+      if (stopEvent.IsProcessed) return;
+
       stopEvent.AddCallback(StopSimulation);
       try {
-        while (Queue.Count > 0 || ScheduleQ.Count > 0) {
+        var stop = Queue.Count == 0 && ScheduleQ.Count == 0;
+        while (!stop) {
           Step();
           ProcessedEvents++;
+          lock (locker) {
+            stop = Queue.Count == 0 && ScheduleQ.Count == 0;
+          }
         }
       } catch (EmptyScheduleException) { }
     }
 
     public virtual void Step() {
-      if (Queue.Count == 0) {
-        var next = ScheduleQ.Dequeue();
-        Now = next.Priority;
-        next.Event.Process();
-      } else Queue.Dequeue().Process();
+      Event evt;
+      lock (locker) {
+        if (Queue.Count == 0) {
+          var next = ScheduleQ.Dequeue();
+          Now = next.Priority;
+          evt = next.Event;
+        } else evt = Queue.Dequeue();
+      }
+      evt.Process();
     }
 
     public virtual double PeekD() {
-      if (Queue.Count == 0 && ScheduleQ.Count == 0) return double.MaxValue;
-      return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
+      lock (locker) {
+        if (Queue.Count == 0 && ScheduleQ.Count == 0) return double.MaxValue;
+        return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
+      }
     }
 
     public virtual DateTime Peek() {
-      return Queue.Count > 0 ? Now : (ScheduleQ.Count > 0 ? ScheduleQ.First.Priority : DateTime.MaxValue);
+      lock (locker) {
+        return Queue.Count > 0 ? Now : (ScheduleQ.Count > 0 ? ScheduleQ.First.Priority : DateTime.MaxValue);
+      }
     }
 
     protected virtual void StopSimulation(Event @event) {

@@ -104,5 +104,15 @@ namespace SimSharp.Tests {
       env.Run(new DateTime(2014, 3, 1));
       Assert.AreEqual(env.Now, new DateTime(2014, 3, 1));
     }
+
+    [TestMethod]
+    public void TestRunWithProcessedEvent() {
+      var env = new Environment();
+      var timeout = env.TimeoutD(1);
+      env.Run(timeout);
+      Assert.AreEqual(1, env.NowD);
+      env.Run(timeout);
+      Assert.AreEqual(1, env.NowD);
+    }
   }
 }

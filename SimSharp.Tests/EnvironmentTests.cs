@@ -116,5 +116,18 @@ namespace SimSharp.Tests {
       Assert.AreEqual(1, env.NowD);
       Assert.AreEqual("spam", val);
     }
+
+    [TestMethod]
+    public void TestRunWithUntriggeredEvent() {
+      var exceptionRaised = false;
+      try {
+        var env = new Environment();
+        env.Run(new Event(env));
+      } catch (InvalidOperationException e) {
+        Assert.AreEqual("No scheduled events left but \"until\" event was not triggered.", e.Message);
+        exceptionRaised = true;
+      }
+      Assert.IsTrue(exceptionRaised);
+    }
   }
 }

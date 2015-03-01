@@ -32,17 +32,18 @@ namespace SimSharp {
 
     protected Environment Environment { get; private set; }
 
-    protected List<ResourcePoolRequest> RequestQueue { get; private set; }
-    protected List<Release> ReleaseQueue { get; private set; }
+    protected LinkedList<ResourcePoolRequest> RequestQueue { get; private set; }
+    protected Queue<Release> ReleaseQueue { get; private set; }
     protected List<object> Resources { get; private set; }
 
     public ResourcePool(Environment environment, IEnumerable<object> resources) {
-      if (resources == null || !resources.Any()) throw new ArgumentException("There must be at least one resource", "resources");
       Environment = environment;
-      RequestQueue = new List<ResourcePoolRequest>();
-      ReleaseQueue = new List<Release>();
+      if (resources == null) throw new ArgumentNullException("resources");
       Resources = new List<object>(resources);
       Capacity = Resources.Count;
+      if (Capacity == 0) throw new ArgumentException("There must be at least one resource", "resources");
+      RequestQueue = new LinkedList<ResourcePoolRequest>();
+      ReleaseQueue = new Queue<Release>();
     }
 
     public virtual bool IsAvailable(Func<object, bool> filter) {
@@ -50,20 +51,20 @@ namespace SimSharp {
     }
 
     public virtual ResourcePoolRequest Request(Func<object, bool> filter = null) {
-      var request = new ResourcePoolRequest(Environment, TriggerRelease, ReleaseCallback, filter ?? TrueFunc);
-      RequestQueue.Add(request);
+      var request = new ResourcePoolRequest(Environment, TriggerRelease, DisposeCallback, filter ?? TrueFunc);
+      RequestQueue.AddLast(request);
       TriggerRequest();
       return request;
     }
 
     public virtual Release Release(Request request) {
       var release = new Release(Environment, request, TriggerRequest);
-      ReleaseQueue.Add(release);
+      ReleaseQueue.Enqueue(release);
       TriggerRelease();
       return release;
     }
 
-    protected virtual void ReleaseCallback(Event @event) {
+    protected virtual void DisposeCallback(Event @event) {
       var request = @event as Request;
       if (request != null) Release(request);
     }
@@ -78,27 +79,31 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      if (release.Request.IsAlive) RequestQueue.Remove((ResourcePoolRequest)release.Request);
-      if (release.Request.IsProcessed) Resources.Add(release.Request.Value);
+      Resources.Add(release.Request.Value);
       release.Succeed();
-      if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
     protected virtual void TriggerRequest(Event @event = null) {
-      var rel = @event as Release;
-      if (rel != null) ReleaseQueue.Remove(rel);
-      foreach (var requestEvent in RequestQueue.Where(x => !x.IsTriggered)) {
-        DoRequest(requestEvent);
+      var current = RequestQueue.First;
+      while (current != null) {
+        var request = current.Value;
+        DoRequest(request);
+        if (request.IsTriggered) {
+          var next = current.Next;
+          RequestQueue.Remove(current);
+          current = next;
+        }
         if (Resources.Count == 0) break;
       }
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
-      var rpr = @event as ResourcePoolRequest;
-      if (rpr != null) RequestQueue.Remove(rpr);
-      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
-        DoRelease(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+      while (ReleaseQueue.Count > 0) {
+        var release = ReleaseQueue.Peek();
+        DoRelease(release);
+        if (release.IsTriggered) {
+          ReleaseQueue.Dequeue();
+        } else break;
       }
     }
   }

@@ -192,5 +192,27 @@ namespace SimSharp.Tests {
       Assert.IsTrue(Enumerable.Range(0, 10).SequenceEqual(allOf.Value.Values.OfType<int>()));
       Assert.AreEqual(9, env.NowD);
     }
+
+    [TestMethod]
+    public void TestAllOfEmptyList() {
+      var env = new Environment();
+      var evt = new AllOf(env, Enumerable.Empty<Event>());
+      Assert.IsTrue(evt.IsTriggered);
+      Assert.IsFalse(evt.IsProcessed);
+      env.Run(evt);
+      Assert.IsTrue(evt.IsProcessed);
+      Assert.AreEqual(0, env.NowD);
+    }
+
+    [TestMethod]
+    public void TestAnyOfEmptyList() {
+      var env = new Environment();
+      var evt = new AnyOf(env, Enumerable.Empty<Event>());
+      Assert.IsTrue(evt.IsTriggered);
+      Assert.IsFalse(evt.IsProcessed);
+      env.Run(evt);
+      Assert.IsTrue(evt.IsProcessed);
+      Assert.AreEqual(0, env.NowD);
+    }
   }
 }

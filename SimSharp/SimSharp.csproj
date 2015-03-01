@@ -68,7 +68,7 @@
     <Compile Include="Core\Resources\Events\ContainerPut.cs" />
     <Compile Include="Core\Events\Condition.cs" />
     <Compile Include="Core\Events\Event.cs" />
-    <Compile Include="Core\Resources\Events\PreemptivePriorityRequest.cs" />
+    <Compile Include="Core\Resources\Events\PreemptiveRequest.cs" />
     <Compile Include="Core\Events\Process.cs" />
     <Compile Include="Core\Resources\Events\Release.cs" />
     <Compile Include="Core\Resources\Events\PriorityRequest.cs" />

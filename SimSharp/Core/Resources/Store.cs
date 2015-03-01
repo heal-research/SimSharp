@@ -22,32 +22,33 @@ using System.Linq;
 
 namespace SimSharp {
   public class Store {
+    public int Count { get { return Items.Count; } }
     public int Capacity { get; protected set; }
     protected Environment Environment { get; private set; }
 
-    protected List<StorePut> PutQueue { get; private set; }
-    protected List<StoreGet> GetQueue { get; private set; }
+    protected Queue<StorePut> PutQueue { get; private set; }
+    protected Queue<StoreGet> GetQueue { get; private set; }
     protected List<object> Items { get; private set; }
 
     public Store(Environment environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;
-      PutQueue = new List<StorePut>();
-      GetQueue = new List<StoreGet>();
+      PutQueue = new Queue<StorePut>();
+      GetQueue = new Queue<StoreGet>();
       Items = new List<object>();
     }
 
     public virtual StorePut Put(object item) {
       var put = new StorePut(Environment, TriggerGet, item);
-      PutQueue.Add(put);
+      PutQueue.Enqueue(put);
       TriggerPut();
       return put;
     }
 
     public virtual StoreGet Get() {
       var get = new StoreGet(Environment, TriggerPut);
-      GetQueue.Add(get);
+      GetQueue.Enqueue(get);
       TriggerGet();
       return get;
     }
@@ -68,20 +69,22 @@ namespace SimSharp {
     }
 
     protected virtual void TriggerPut(Event @event = null) {
-      var sg = @event as StoreGet;
-      if (sg != null) GetQueue.Remove(sg);
-      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
-        DoPut(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+      while (PutQueue.Count > 0) {
+        var put = PutQueue.Peek();
+        DoPut(put);
+        if (put.IsTriggered) {
+          PutQueue.Dequeue();
+        } else break;
       }
     }
 
     protected virtual void TriggerGet(Event @event = null) {
-      var sp = @event as StorePut;
-      if (sp != null) PutQueue.Remove(sp);
-      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
-        DoGet(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+      while (GetQueue.Count > 0) {
+        var get = GetQueue.Peek();
+        DoGet(get);
+        if (get.IsTriggered) {
+          GetQueue.Dequeue();
+        } else break;
       }
     }
   }

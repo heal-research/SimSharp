@@ -21,18 +21,15 @@ using System.Runtime.Serialization;
 
 namespace SimSharp {
   /// <summary>
-  /// An exception that is thrown the event queue is empty and the
-  /// simulation needs to stop.
+  /// An exception that is thrown to stop the simulation.
   /// </summary>
   [Serializable]
-  public class EmptyScheduleException : Exception {
-    public EmptyScheduleException() { }
-    public EmptyScheduleException(string message) : base(message) { }
-    public EmptyScheduleException(string message, Exception inner) : base(message, inner) { }
+  public class StopSimulationException : Exception {
+    public object Value { get; private set; }
 
-    protected EmptyScheduleException(
-      SerializationInfo info,
-      StreamingContext context)
-      : base(info, context) { }
+    protected StopSimulationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    public StopSimulationException(object value) {
+      Value = value;
+    }
   }
 }

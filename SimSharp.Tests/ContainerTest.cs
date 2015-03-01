@@ -55,11 +55,6 @@ namespace SimSharp.Tests {
       log.Add(Tuple.Create('g', env.Now));
     }
 
-    [TestMethod, Ignore]
-    public void TestContainerGetQueued() {
-      // // Skipped because we do not want to test internal structure of the container
-    }
-
     [TestMethod]
     public void TestInitialiContainerCapacity() {
       var env = new Environment();

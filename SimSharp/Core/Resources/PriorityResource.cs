@@ -31,35 +31,36 @@ namespace SimSharp {
 
     protected Environment Environment { get; private set; }
 
-    protected SortedList<int, List<PriorityRequest>> RequestQueue { get; private set; }
-    protected List<Release> ReleaseQueue { get; private set; }
+    protected SortedList<int, Queue<PriorityRequest>> RequestQueue { get; private set; }
+    protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<Request> Users { get; private set; }
 
     public PriorityResource(Environment environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
       Environment = environment;
       Capacity = capacity;
-      RequestQueue = new SortedList<int, List<PriorityRequest>>();
-      ReleaseQueue = new List<Release>();
+      RequestQueue = new SortedList<int, Queue<PriorityRequest>>();
+      ReleaseQueue = new Queue<Release>();
       Users = new HashSet<Request>();
     }
 
     public virtual PriorityRequest Request(int priority = 1) {
-      var request = new PriorityRequest(Environment, TriggerRelease, ReleaseCallback, priority);
-      if (RequestQueue.ContainsKey(request.Priority)) RequestQueue[request.Priority].Add(request);
-      else RequestQueue.Add(request.Priority, new List<PriorityRequest>() { request });
+      var request = new PriorityRequest(Environment, TriggerRelease, DisposeCallback, priority);
+      if (!RequestQueue.ContainsKey(priority))
+        RequestQueue.Add(priority, new Queue<PriorityRequest>());
+      RequestQueue[priority].Enqueue(request);
       TriggerRequest();
       return request;
     }
 
     public virtual Release Release(PriorityRequest request) {
       var release = new Release(Environment, request, TriggerRequest);
-      ReleaseQueue.Add(release);
+      ReleaseQueue.Enqueue(release);
       TriggerRelease();
       return release;
     }
 
-    protected void ReleaseCallback(Event @event) {
+    protected void DisposeCallback(Event @event) {
       var request = @event as PriorityRequest;
       if (request != null) Release(request);
     }
@@ -72,32 +73,35 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      if (!release.Request.IsTriggered) {
-        var prioRequest = release.Request as PriorityRequest;
-        if (prioRequest == null) throw new ArgumentException("Must remove a PriorityRequest from a PriorityResource.", "release");
-        RequestQueue[prioRequest.Priority].Remove(prioRequest);
-      }
       Users.Remove(release.Request);
       release.Succeed();
-      if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
     protected virtual void TriggerRequest(Event @event = null) {
-      var rel = @event as Release;
-      if (rel != null) ReleaseQueue.Remove(rel);
-      foreach (var requestEvent in RequestQueue.SelectMany(x => x.Value).Where(x => !x.IsTriggered)) {
-        DoRequest(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+      foreach (var entry in RequestQueue) {
+        var cascade = false;
+        var requests = entry.Value;
+        while (requests.Count > 0) {
+          var req = requests.Peek();
+          DoRequest(req);
+          if (req.IsTriggered) {
+            requests.Dequeue();
+          } else {
+            cascade = true;
+            break;
+          }
+        }
+        if (cascade) break;
       }
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
-      var prioReq = @event as PriorityRequest;
-      if (prioReq != null) RequestQueue[prioReq.Priority].Remove(prioReq);
-
-      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
-        DoRelease(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+      while (ReleaseQueue.Count > 0) {
+        var release = ReleaseQueue.Peek();
+        DoRelease(release);
+        if (release.IsTriggered) {
+          ReleaseQueue.Dequeue();
+        } else break;
       }
     }
   }

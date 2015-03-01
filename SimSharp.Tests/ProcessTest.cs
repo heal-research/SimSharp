@@ -141,7 +141,7 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Succeed(env.Now);
     }
 
-    [TestMethod, Ignore]
+    [TestMethod]
     public void TestChildException() {
       // A child catches an exception and sends it to its parent.
       // This is the same as TestExit

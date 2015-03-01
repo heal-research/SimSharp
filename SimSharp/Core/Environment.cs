@@ -156,23 +156,22 @@ namespace SimSharp {
       return Run(Now + span);
     }
 
-    public virtual object Run(DateTime? until = null) {
-      var limit = until ?? DateTime.MaxValue;
-      if (limit <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
+    public virtual object Run(DateTime until) {
+      if (until <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
       var stopEvent = new Event(this);
-      if (limit < DateTime.MaxValue) {
-        var node = DoSchedule(limit, stopEvent);
-        // stop event is always the first to execute at the given time
-        node.InsertionIndex = -1;
-        ScheduleQ.OnNodeUpdated(node);
-      }
+      var node = DoSchedule(until, stopEvent);
+      // stop event is always the first to execute at the given time
+      node.InsertionIndex = -1;
+      ScheduleQ.OnNodeUpdated(node);
       return Run(stopEvent);
     }
 
-    public virtual object Run(Event stopEvent) {
-      if (stopEvent.IsProcessed) return stopEvent.Value;
+    public virtual object Run(Event stopEvent = null) {
+      if (stopEvent != null) {
+        if (stopEvent.IsProcessed) return stopEvent.Value;
+        stopEvent.AddCallback(StopSimulation);
+      }
 
-      stopEvent.AddCallback(StopSimulation);
       try {
         var stop = Queue.Count == 0 && ScheduleQ.Count == 0;
         while (!stop) {
@@ -182,9 +181,9 @@ namespace SimSharp {
             stop = Queue.Count == 0 && ScheduleQ.Count == 0;
           }
         }
-      } catch (EmptyScheduleException) { }
-      if (!stopEvent.IsTriggered) return null;
-      if (!stopEvent.IsOk) throw new InvalidOperationException("Simulation finishes, but stopEvent faulted (IsOk was false).");
+      } catch (StopSimulationException e) { return e.Value; }
+      if (stopEvent == null) return null;
+      if (!stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
@@ -214,7 +213,7 @@ namespace SimSharp {
     }
 
     protected virtual void StopSimulation(Event @event) {
-      throw new EmptyScheduleException();
+      throw new StopSimulationException(@event.Value);
     }
 
     public void Log(string message, params object[] args) {

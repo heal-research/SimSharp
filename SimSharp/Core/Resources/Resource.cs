@@ -31,34 +31,34 @@ namespace SimSharp {
 
     protected Environment Environment { get; private set; }
 
-    protected List<Request> RequestQueue { get; private set; }
-    protected List<Release> ReleaseQueue { get; private set; }
+    protected Queue<Request> RequestQueue { get; private set; }
+    protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<Request> Users { get; private set; }
 
     public Resource(Environment environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must > 0.", "capacity");
       Environment = environment;
       Capacity = capacity;
-      RequestQueue = new List<Request>();
-      ReleaseQueue = new List<Release>();
+      RequestQueue = new Queue<Request>();
+      ReleaseQueue = new Queue<Release>();
       Users = new HashSet<Request>();
     }
 
     public virtual Request Request() {
-      var request = new Request(Environment, TriggerRelease, ReleaseCallback);
-      RequestQueue.Add(request);
+      var request = new Request(Environment, TriggerRelease, DisposeCallback);
+      RequestQueue.Enqueue(request);
       TriggerRequest();
       return request;
     }
 
     public virtual Release Release(Request request) {
       var release = new Release(Environment, request, TriggerRequest);
-      ReleaseQueue.Add(release);
+      ReleaseQueue.Enqueue(release);
       TriggerRelease();
       return release;
     }
 
-    protected virtual void ReleaseCallback(Event @event) {
+    protected virtual void DisposeCallback(Event @event) {
       var request = @event as Request;
       if (request != null) Release(request);
     }
@@ -71,25 +71,27 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      if (!release.Request.IsTriggered) RequestQueue.Remove(release.Request);
       Users.Remove(release.Request);
       release.Succeed();
-      if (!release.IsTriggered) ReleaseQueue.Remove(release);
     }
 
     protected virtual void TriggerRequest(Event @event = null) {
-      if (@event != null) ReleaseQueue.Remove((Release)@event);
-      foreach (var requestEvent in RequestQueue.Where(x => !x.IsTriggered)) {
-        DoRequest(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+      while (RequestQueue.Count > 0) {
+        var request = RequestQueue.Peek();
+        DoRequest(request);
+        if (request.IsTriggered) {
+          RequestQueue.Dequeue();
+        } else break;
       }
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
-      if (@event != null) RequestQueue.Remove((Request)@event);
-      foreach (var releaseEvent in ReleaseQueue.Where(x => !x.IsTriggered)) {
-        DoRelease(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+      while (ReleaseQueue.Count > 0) {
+        var release = ReleaseQueue.Peek();
+        DoRelease(release);
+        if (release.IsTriggered) {
+          ReleaseQueue.Dequeue();
+        } else break;
       }
     }
   }

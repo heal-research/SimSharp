@@ -22,28 +22,28 @@ using System.Linq;
 
 namespace SimSharp {
   public class FilterStore {
-
+    public int Count { get { return Items.Count; } }
     public int Capacity { get; protected set; }
     protected Environment Environment { get; private set; }
 
-    protected List<StorePut> PutQueue { get; private set; }
-    protected List<FilterStoreGet> GetQueue { get; private set; }
+    protected Queue<StorePut> PutQueue { get; private set; }
+    protected LinkedList<FilterStoreGet> GetQueue { get; private set; }
     protected List<object> Items { get; private set; }
 
     public FilterStore(Environment environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;
-      PutQueue = new List<StorePut>();
-      GetQueue = new List<FilterStoreGet>();
+      PutQueue = new Queue<StorePut>();
+      GetQueue = new LinkedList<FilterStoreGet>();
       Items = new List<object>();
     }
     public FilterStore(Environment environment, IEnumerable<object> items, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;
-      PutQueue = new List<StorePut>();
-      GetQueue = new List<FilterStoreGet>();
+      PutQueue = new Queue<StorePut>();
+      GetQueue = new LinkedList<FilterStoreGet>();
       Items = new List<object>(items);
       if (capacity < Items.Count) throw new ArgumentException("There are more initial items than there is capacity.", "items");
     }
@@ -54,7 +54,7 @@ namespace SimSharp {
 
     public virtual StorePut Put(object item) {
       var put = new StorePut(Environment, TriggerGet, item);
-      PutQueue.Add(put);
+      PutQueue.Enqueue(put);
       TriggerPut();
       return put;
     }
@@ -62,7 +62,7 @@ namespace SimSharp {
     public virtual FilterStoreGet Get(Func<object, bool> filter = null) {
       if (filter == null) filter = _ => true;
       var get = new FilterStoreGet(Environment, TriggerPut, filter);
-      GetQueue.Add(get);
+      GetQueue.AddLast(get);
       TriggerGet();
       return get;
     }
@@ -85,19 +85,25 @@ namespace SimSharp {
     }
 
     protected virtual void TriggerPut(Event @event = null) {
-      var fsg = @event as FilterStoreGet;
-      if (fsg != null) GetQueue.Remove(fsg);
-      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
-        DoPut(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+      while (PutQueue.Count > 0) {
+        var put = PutQueue.Peek();
+        DoPut(put);
+        if (put.IsTriggered) {
+          PutQueue.Dequeue();
+        } else break;
       }
     }
 
     protected virtual void TriggerGet(Event @event = null) {
-      var sp = @event as StorePut;
-      if (sp != null) PutQueue.Remove(sp);
-      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
-        DoGet(releaseEvent);
+      var current = GetQueue.First;
+      while (current != null) {
+        var get = current.Value;
+        DoGet(get);
+        if (get.IsTriggered) {
+          var next = current.Next;
+          GetQueue.Remove(current);
+          current = next;
+        } else current = current.Next;
         if (Items.Count == 0) break;
       }
     }

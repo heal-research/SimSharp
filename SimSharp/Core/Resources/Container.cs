@@ -22,12 +22,12 @@ using System.Linq;
 
 namespace SimSharp {
   public class Container {
+    public double Level { get; protected set; }
     public double Capacity { get; protected set; }
     protected Environment Environment { get; private set; }
-    public double Level { get; protected set; }
 
-    protected List<ContainerPut> PutQueue { get; private set; }
-    protected List<ContainerGet> GetQueue { get; private set; }
+    protected Queue<ContainerPut> PutQueue { get; private set; }
+    protected Queue<ContainerGet> GetQueue { get; private set; }
 
     public Container(Environment environment, double capacity = double.MaxValue, double initial = 0) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
@@ -36,14 +36,14 @@ namespace SimSharp {
       Environment = environment;
       Capacity = capacity;
       Level = initial;
-      PutQueue = new List<ContainerPut>();
-      GetQueue = new List<ContainerGet>();
+      PutQueue = new Queue<ContainerPut>();
+      GetQueue = new Queue<ContainerGet>();
     }
 
     public virtual ContainerPut Put(double amount) {
       if (amount > Capacity) throw new ArgumentException("Cannot put more than capacity", "amount");
       var put = new ContainerPut(Environment, TriggerGet, amount);
-      PutQueue.Add(put);
+      PutQueue.Enqueue(put);
       TriggerPut();
       return put;
     }
@@ -51,7 +51,7 @@ namespace SimSharp {
     public virtual ContainerGet Get(double amount) {
       if (amount > Capacity) throw new ArgumentException("Cannot get more than capacity", "amount");
       var get = new ContainerGet(Environment, TriggerPut, amount);
-      GetQueue.Add(get);
+      GetQueue.Enqueue(get);
       TriggerGet();
       return get;
     }
@@ -71,20 +71,22 @@ namespace SimSharp {
     }
 
     protected virtual void TriggerPut(Event @event = null) {
-      var cg = @event as ContainerGet;
-      if (cg != null) GetQueue.Remove(cg);
-      foreach (var requestEvent in PutQueue.Where(x => !x.IsTriggered)) {
-        DoPut(requestEvent);
-        if (!requestEvent.IsTriggered) break;
+      while (PutQueue.Count > 0) {
+        var put = PutQueue.Peek();
+        DoPut(put);
+        if (put.IsTriggered) {
+          PutQueue.Dequeue();
+        } else break;
       }
     }
 
     protected virtual void TriggerGet(Event @event = null) {
-      var cp = @event as ContainerPut;
-      if (cp != null) PutQueue.Remove(cp);
-      foreach (var releaseEvent in GetQueue.Where(x => !x.IsTriggered)) {
-        DoGet(releaseEvent);
-        if (!releaseEvent.IsTriggered) break;
+      while (GetQueue.Count > 0) {
+        var get = GetQueue.Peek();
+        DoGet(get);
+        if (get.IsTriggered) {
+          GetQueue.Dequeue();
+        } else break;
       }
     }
   }

@@ -147,16 +147,16 @@ namespace SimSharp {
       return ScheduleQ.Enqueue(date, @event);
     }
 
-    public virtual void RunD(double? until = null) {
-      if (!until.HasValue) Run();
-      else Run(Now + TimeSpan.FromSeconds(DefaultTimeStepSeconds * until.Value));
+    public virtual object RunD(double? until = null) {
+      if (!until.HasValue) return Run();
+      return Run(Now + TimeSpan.FromSeconds(DefaultTimeStepSeconds * until.Value));
     }
 
-    public virtual void Run(TimeSpan span) {
-      Run(Now + span);
+    public virtual object Run(TimeSpan span) {
+      return Run(Now + span);
     }
 
-    public virtual void Run(DateTime? until = null) {
+    public virtual object Run(DateTime? until = null) {
       var limit = until ?? DateTime.MaxValue;
       if (limit <= Now) throw new InvalidOperationException("Simulation end date must lie in the future.");
       var stopEvent = new Event(this);
@@ -166,11 +166,11 @@ namespace SimSharp {
         node.InsertionIndex = -1;
         ScheduleQ.OnNodeUpdated(node);
       }
-      Run(stopEvent);
+      return Run(stopEvent);
     }
 
-    public virtual void Run(Event stopEvent) {
-      if (stopEvent.IsProcessed) return;
+    public virtual object Run(Event stopEvent) {
+      if (stopEvent.IsProcessed) return stopEvent.Value;
 
       stopEvent.AddCallback(StopSimulation);
       try {
@@ -183,6 +183,9 @@ namespace SimSharp {
           }
         }
       } catch (EmptyScheduleException) { }
+      if (!stopEvent.IsTriggered) return null;
+      if (!stopEvent.IsOk) throw new InvalidOperationException("Simulation finishes, but stopEvent faulted (IsOk was false).");
+      return stopEvent.Value;
     }
 
     public virtual void Step() {

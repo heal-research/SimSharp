@@ -18,8 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -440,5 +442,57 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Succeed(result);
     }
 
+    [TestMethod]
+    public void TestFilterCallsBestCase() {
+      var env = new Environment();
+      var store = new FilterStore(env, new object[] { 1, 2, 3 }, 3);
+      var log = new List<string>();
+      Func<object, bool> filterLogger = o => { log.Add(string.Format("check {0}", o)); return true; };
+      env.Process(TestFilterCallsBestCaseProcess(store, filterLogger, log));
+      env.Run();
+      Assert.IsTrue(log.SequenceEqual(new[] { "check 1", "get 1", "check 2", "get 2", "check 3", "get 3" }));
+    }
+
+    private IEnumerable<Event> TestFilterCallsBestCaseProcess(FilterStore store, Func<object, bool> filter, List<string> log) {
+      var get = store.Get(filter);
+      yield return get;
+      log.Add(string.Format("get {0}", get.Value));
+      get = store.Get(filter);
+      yield return get;
+      log.Add(string.Format("get {0}", get.Value));
+      get = store.Get(filter);
+      yield return get;
+      log.Add(string.Format("get {0}", get.Value));
+    }
+
+    [TestMethod]
+    public void TestFilterCallsWorstCase() {
+      var env = new Environment();
+      var store = new FilterStore(env, 4);
+      var log = new List<string>();
+      Func<object, bool> filterLogger = o => { log.Add(string.Format("check {0}", o)); return (int)o >= 3; };
+      env.Process(TestFilterCallsWorseCaseGetProcess(store, filterLogger, log));
+      env.Process(TestFilterCallsWorstCasePutProcess(store, log));
+      env.Run();
+      Assert.IsTrue(log.SequenceEqual(new[] {
+        "put 0", "check 0",
+        "put 1", "check 0", "check 1",
+        "put 2", "check 0", "check 1", "check 2",
+        "put 3", "check 0", "check 1", "check 2", "check 3", "get 3"
+      }));
+    }
+
+    private IEnumerable<Event> TestFilterCallsWorstCasePutProcess(FilterStore store, List<string> log) {
+      for (var i = 0; i < 4; i++) {
+        log.Add(string.Format("put {0}", i));
+        yield return store.Put(i);
+      }
+    }
+
+    private IEnumerable<Event> TestFilterCallsWorseCaseGetProcess(FilterStore store, Func<object, bool> filterLogger, List<string> log) {
+      var req = store.Get(filterLogger);
+      yield return req;
+      log.Add(string.Format("get {0}", req.Value));
+    }
   }
 }

@@ -162,5 +162,35 @@ namespace SimSharp.Tests {
       yield return t1 & e;
       Assert.Fail("Process should not recover");
     }
+
+    [TestMethod]
+    public void TestOperatorAndBlocked() {
+      var env = new Environment();
+      env.Process(TestOperatorAndBlockedProcess(env));
+      env.Run();
+    }
+
+    private IEnumerable<Event> TestOperatorAndBlockedProcess(Environment env) {
+      var timeout = env.TimeoutD(1);
+      var @event = new Event(env);
+      yield return env.TimeoutD(1);
+      var condition = timeout & @event;
+      Assert.IsFalse(condition.IsTriggered);
+    }
+
+    [TestMethod]
+    public void TestAllOfGenerator() {
+      var env = new Environment();
+      env.Process(TestAllOfGeneratorProcess(env));
+      env.Run();
+    }
+
+    private IEnumerable<Event> TestAllOfGeneratorProcess(Environment env) {
+      var events = Enumerable.Range(0, 10).Select(x => new Timeout(env, env.ToTimeSpan(x), x));
+      var allOf = new AllOf(env, events);
+      yield return allOf;
+      Assert.IsTrue(Enumerable.Range(0, 10).SequenceEqual(allOf.Value.Values.OfType<int>()));
+      Assert.AreEqual(9, env.NowD);
+    }
   }
 }

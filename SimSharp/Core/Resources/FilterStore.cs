@@ -38,6 +38,15 @@ namespace SimSharp {
       GetQueue = new List<FilterStoreGet>();
       Items = new List<object>();
     }
+    public FilterStore(Environment environment, IEnumerable<object> items, int capacity = int.MaxValue) {
+      if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
+      Environment = environment;
+      Capacity = capacity;
+      PutQueue = new List<StorePut>();
+      GetQueue = new List<FilterStoreGet>();
+      Items = new List<object>(items);
+      if (capacity < Items.Count) throw new ArgumentException("There are more initial items than there is capacity.", "items");
+    }
 
     public virtual bool IsAvailable(Func<object, bool> filter) {
       return Items.Any(filter);
@@ -71,6 +80,7 @@ namespace SimSharp {
         if (!get.Filter(item)) continue;
         Items.RemoveAt(i);
         get.Succeed(item);
+        return;
       }
     }
 

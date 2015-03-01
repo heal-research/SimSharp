@@ -108,11 +108,13 @@ namespace SimSharp.Tests {
     [TestMethod]
     public void TestRunWithProcessedEvent() {
       var env = new Environment();
-      var timeout = env.TimeoutD(1);
-      env.Run(timeout);
+      var timeout = new Timeout(env, env.ToTimeSpan(1), "spam");
+      var val = env.Run(timeout);
       Assert.AreEqual(1, env.NowD);
-      env.Run(timeout);
+      Assert.AreEqual("spam", val);
+      val = env.Run(timeout);
       Assert.AreEqual(1, env.NowD);
+      Assert.AreEqual("spam", val);
     }
   }
 }

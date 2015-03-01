@@ -25,17 +25,25 @@ namespace SimSharp {
   /// Conditions are events that execute when any or all of its sub-events are executed.
   /// </summary>
   public abstract class Condition : Event {
+
+    public new OrderedDictionary Value {
+      get { return (OrderedDictionary)base.Value; }
+      set { base.Value = value; }
+    }
+
     protected List<Event> Events { get; private set; }
 
     protected List<Event> FiredEvents { get; private set; }
 
     protected Condition(Environment environment, params Event[] events)
+      : this(environment, (IEnumerable<Event>)events) { }
+    protected Condition(Environment environment, IEnumerable<Event> events)
       : base(environment) {
       CallbackList.Add(CollectValues);
       Events = new List<Event>(events);
       FiredEvents = new List<Event>();
 
-      foreach (var @event in events) {
+      foreach (var @event in Events) {
         if (Environment != @event.Environment)
           throw new ArgumentException("It is not allowed to mix events from different environments");
         if (@event.IsProcessed) Check(@event);

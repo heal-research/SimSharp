@@ -51,8 +51,7 @@ namespace SimSharp {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     public void Clear() {
-      for (int i = 1; i < _nodes.Length; i++)
-        _nodes[i] = null;
+      Array.Clear(_nodes, 1, _numNodes);
       _numNodes = 0;
     }
 

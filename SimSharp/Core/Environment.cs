@@ -216,7 +216,7 @@ namespace SimSharp {
       throw new StopSimulationException(@event.Value);
     }
 
-    public void Log(string message, params object[] args) {
+    public virtual void Log(string message, params object[] args) {
       if (Logger != null)
         Logger.WriteLine(message, args);
     }

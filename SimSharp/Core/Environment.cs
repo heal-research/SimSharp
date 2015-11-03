@@ -108,6 +108,7 @@ namespace SimSharp {
     }
 
     public virtual void Reset(int randomSeed) {
+      ProcessedEvents = 0;
       Now = StartDate;
       Random = new SystemRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);

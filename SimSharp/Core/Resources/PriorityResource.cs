@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimSharp {
   public class PriorityResource {
@@ -31,7 +30,7 @@ namespace SimSharp {
 
     protected Environment Environment { get; private set; }
 
-    protected SortedList<int, Queue<PriorityRequest>> RequestQueue { get; private set; }
+    protected SortedList<int, LinkedList<PriorityRequest>> RequestQueue { get; private set; }
     protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<Request> Users { get; private set; }
 
@@ -39,7 +38,7 @@ namespace SimSharp {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
       Environment = environment;
       Capacity = capacity;
-      RequestQueue = new SortedList<int, Queue<PriorityRequest>>();
+      RequestQueue = new SortedList<int, LinkedList<PriorityRequest>>();
       ReleaseQueue = new Queue<Release>();
       Users = new HashSet<Request>();
     }
@@ -47,8 +46,8 @@ namespace SimSharp {
     public virtual PriorityRequest Request(int priority = 1) {
       var request = new PriorityRequest(Environment, TriggerRelease, DisposeCallback, priority);
       if (!RequestQueue.ContainsKey(priority))
-        RequestQueue.Add(priority, new Queue<PriorityRequest>());
-      RequestQueue[priority].Enqueue(request);
+        RequestQueue.Add(priority, new LinkedList<PriorityRequest>());
+      RequestQueue[priority].AddLast(request);
       TriggerRequest();
       return request;
     }
@@ -73,7 +72,15 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      Users.Remove(release.Request);
+      if (!Users.Remove(release.Request)) {
+        var prioRequest = release.Request as PriorityRequest;
+        if (prioRequest != null) {
+          var current = RequestQueue[prioRequest.Priority].First;
+          while (current != null && current.Value != release.Request)
+            current = current.Next;
+          if (current != null) RequestQueue[prioRequest.Priority].Remove(current);
+        }
+      }
       release.Succeed();
     }
 
@@ -82,10 +89,10 @@ namespace SimSharp {
         var cascade = false;
         var requests = entry.Value;
         while (requests.Count > 0) {
-          var req = requests.Peek();
+          var req = requests.First.Value;
           DoRequest(req);
           if (req.IsTriggered) {
-            requests.Dequeue();
+            requests.RemoveFirst();
           } else {
             cascade = true;
             break;

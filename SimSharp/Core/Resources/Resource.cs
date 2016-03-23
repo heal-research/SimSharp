@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimSharp {
   public class Resource {
@@ -31,7 +30,7 @@ namespace SimSharp {
 
     protected Environment Environment { get; private set; }
 
-    protected Queue<Request> RequestQueue { get; private set; }
+    protected LinkedList<Request> RequestQueue { get; private set; }
     protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<Request> Users { get; private set; }
 
@@ -39,14 +38,14 @@ namespace SimSharp {
       if (capacity <= 0) throw new ArgumentException("Capacity must > 0.", "capacity");
       Environment = environment;
       Capacity = capacity;
-      RequestQueue = new Queue<Request>();
+      RequestQueue = new LinkedList<Request>();
       ReleaseQueue = new Queue<Release>();
       Users = new HashSet<Request>();
     }
 
     public virtual Request Request() {
       var request = new Request(Environment, TriggerRelease, DisposeCallback);
-      RequestQueue.Enqueue(request);
+      RequestQueue.AddLast(request);
       TriggerRequest();
       return request;
     }
@@ -60,7 +59,9 @@ namespace SimSharp {
 
     protected virtual void DisposeCallback(Event @event) {
       var request = @event as Request;
-      if (request != null) Release(request);
+      if (request != null) {
+        Release(request);
+      }
     }
 
     protected virtual void DoRequest(Request request) {
@@ -71,16 +72,21 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      Users.Remove(release.Request);
+      if (!Users.Remove(release.Request)) {
+        var current = RequestQueue.First;
+        while (current != null && current.Value != release.Request)
+          current = current.Next;
+        if (current != null) RequestQueue.Remove(current);
+      }
       release.Succeed();
     }
 
     protected virtual void TriggerRequest(Event @event = null) {
       while (RequestQueue.Count > 0) {
-        var request = RequestQueue.Peek();
+        var request = RequestQueue.First.Value;
         DoRequest(request);
         if (request.IsTriggered) {
-          RequestQueue.Dequeue();
+          RequestQueue.RemoveFirst();
         } else break;
       }
     }

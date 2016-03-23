@@ -88,7 +88,15 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      Users.Remove(release.Request);
+      if (!Users.Remove(release.Request)) {
+        var preemptRequest = release.Request as PreemptiveRequest;
+        if (preemptRequest != null) {
+          var current = RequestQueue[preemptRequest.Priority].First;
+          while (current != null && current.Value != release.Request)
+            current = current.Next;
+          if (current != null) RequestQueue[preemptRequest.Priority].Remove(current);
+        }
+      }
       release.Succeed();
     }
 

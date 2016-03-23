@@ -16,14 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SimSharp.Tests {
   [TestClass]
@@ -81,6 +79,44 @@ namespace SimSharp.Tests {
         Assert.AreEqual(1, resource.InUse);
 
         yield return env.Timeout(TimeSpan.FromSeconds(1));
+      }
+      log.Add(name, env.Now);
+    }
+
+    [TestMethod]
+    public void TestResourceWithUsingAndCondition() {
+      var start = new DateTime(2016, 3, 1);
+      var env = new Environment(start);
+      var resource = new Resource(env, capacity: 1);
+
+      Assert.AreEqual(1, resource.Capacity);
+      Assert.AreEqual(0, resource.InUse);
+
+      var log = new Dictionary<string, DateTime>();
+      env.Process(TestResourceWithUsingAndCondition(env, "a", resource, log));
+      env.Process(TestResourceWithUsingAndCondition(env, "b", resource, log));
+      env.Run();
+
+      Assert.AreEqual(0, resource.InUse);
+      Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["b"]);
+      Assert.AreEqual(start + TimeSpan.FromSeconds(3), log["a"]);
+    }
+    private IEnumerable<Event> TestResourceWithUsingAndCondition(Environment env, string name, Resource resource,
+      Dictionary<string, DateTime> log) {
+      using (var req = resource.Request()) {
+        var waitingTimeOut = env.Timeout(name == "b" ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(5));
+        yield return req | waitingTimeOut;
+        if (name == "a") {
+          Assert.AreEqual(1, resource.InUse);
+          Assert.IsTrue(req.IsProcessed);
+          Assert.IsFalse(waitingTimeOut.IsProcessed);
+
+          yield return env.Timeout(TimeSpan.FromSeconds(3));
+        } else {
+          Assert.AreEqual(1, resource.InUse);
+          Assert.IsFalse(req.IsProcessed);
+          Assert.IsTrue(waitingTimeOut.IsProcessed);
+        }
       }
       log.Add(name, env.Now);
     }

@@ -22,7 +22,7 @@ using System.Collections.Generic;
 namespace SimSharp.Samples {
   public class BankRenege {
 
-    private const int NewCustomers = 5; // Total number of customers
+    private const int NewCustomers = 10; // Total number of customers
     private static readonly TimeSpan IntervalCustomers = TimeSpan.FromMinutes(10.0); // Generate new customers roughly every x minutes
     private static readonly TimeSpan MinPatience = TimeSpan.FromMinutes(1); // Min. customer patience
     private static readonly TimeSpan MaxPatience = TimeSpan.FromMinutes(3); // Max. customer patience

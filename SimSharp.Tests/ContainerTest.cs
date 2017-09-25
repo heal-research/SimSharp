@@ -19,12 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class ContainerTest {
-    [TestMethod]
+    [Fact]
     public void TestContainer() {
       var start = new DateTime(2014, 4, 2);
       var env = new Environment(start);
@@ -36,7 +36,7 @@ namespace SimSharp.Tests {
       var expected = new List<Tuple<char, int>> {
         Tuple.Create('p', 1), Tuple.Create('g', 1), Tuple.Create('g', 2), Tuple.Create('p', 2)
       }.Select(x => Tuple.Create(x.Item1, start + TimeSpan.FromSeconds(x.Item2))).ToList();
-      CollectionAssert.AreEqual(expected, log);
+      Assert.Equal(expected, log);
     }
     private IEnumerable<Event> TestContainerPutter(Environment env, Container buf, List<Tuple<char, DateTime>> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
@@ -55,12 +55,12 @@ namespace SimSharp.Tests {
       log.Add(Tuple.Create('g', env.Now));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestInitialiContainerCapacity() {
       var env = new Environment();
       var container = new Container(env);
-      Assert.AreEqual(0, container.Level);
-      Assert.AreEqual(double.MaxValue, container.Capacity);
+      Assert.Equal(0, container.Level);
+      Assert.Equal(double.MaxValue, container.Capacity);
     }
   }
 }

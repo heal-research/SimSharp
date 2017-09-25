@@ -17,17 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
 using System;
-using System.Runtime.Serialization;
 
 namespace SimSharp {
   /// <summary>
   /// An exception that is thrown to stop the simulation.
   /// </summary>
-  [Serializable]
   public class StopSimulationException : Exception {
     public object Value { get; private set; }
-
-    protected StopSimulationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    
     public StopSimulationException(object value) {
       Value = value;
     }

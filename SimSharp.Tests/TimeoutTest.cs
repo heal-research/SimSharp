@@ -18,71 +18,71 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class TimeoutTest {
-    [TestMethod]
+    [Fact]
     public void TestDiscreteTimeSteps() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var log = new List<DateTime>();
-      env.Process(TestDiscreteTimeSteps(env, log));
+      env.Process(TestDiscreteTimeStepsProc(env, log));
       env.Run(TimeSpan.FromSeconds(3));
 
-      Assert.AreEqual(3, log.Count);
+      Assert.Equal(3, log.Count);
       for (int i = 0; i < 3; i++)
-        Assert.IsTrue(log.Contains(start + TimeSpan.FromSeconds(i)));
-      Assert.AreEqual(3, env.ProcessedEvents);
+        Assert.Contains(start + TimeSpan.FromSeconds(i), log);
+      Assert.Equal(3, env.ProcessedEvents);
     }
 
-    private IEnumerable<Event> TestDiscreteTimeSteps(Environment env, List<DateTime> log) {
+    private IEnumerable<Event> TestDiscreteTimeStepsProc(Environment env, List<DateTime> log) {
       while (true) {
         log.Add(env.Now);
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
     }
 
-    [TestMethod, ExpectedException(typeof(ArgumentException))]
+    [Fact]
     public void TestNegativeTimeout() {
       var env = new Environment();
-      env.Process(TestNegativeTimeout(env));
-      env.Run();
+      env.Process(TestNegativeTimeoutProc(env));
+      Assert.Throws<ArgumentException>(() => env.Run());
     }
 
-    private IEnumerable<Event> TestNegativeTimeout(Environment env) {
+    private IEnumerable<Event> TestNegativeTimeoutProc(Environment env) {
       yield return env.Timeout(TimeSpan.FromSeconds(-1));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestSharedTimeout() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var timeout = env.Timeout(TimeSpan.FromSeconds(1));
       var log = new Dictionary<int, DateTime>();
       for (int i = 0; i < 3; i++)
-        env.Process(TestSharedTimeout(env, timeout, i, log));
+        env.Process(TestSharedTimeoutProc(env, timeout, i, log));
       env.Run();
 
-      Assert.AreEqual(3, log.Count);
+      Assert.Equal(3, log.Count);
       foreach (var l in log.Values)
-        Assert.AreEqual(start + TimeSpan.FromSeconds(1), l);
+        Assert.Equal(start + TimeSpan.FromSeconds(1), l);
     }
 
-    private IEnumerable<Event> TestSharedTimeout(Environment env, Timeout timeout, int id, Dictionary<int, DateTime> log) {
+    private IEnumerable<Event> TestSharedTimeoutProc(Environment env, Timeout timeout, int id, Dictionary<int, DateTime> log) {
       yield return timeout;
       log.Add(id, env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestTriggeredTimeout() {
       var env = new Environment();
-      env.Process(TestTriggeredTimeout(env));
+      env.Process(TestTriggeredTimeoutProc(env));
       env.Run();
-      Assert.AreEqual(2, env.NowD);
+      Assert.Equal(2, env.NowD);
     }
-    private IEnumerable<Event> TestTriggeredTimeout(Environment env) {
+    private IEnumerable<Event> TestTriggeredTimeoutProc(Environment env) {
       var @event = env.Timeout(TimeSpan.FromSeconds(1));
       // Start the child after the timeout already happened
       yield return env.Timeout(TimeSpan.FromSeconds(2));

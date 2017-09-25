@@ -1,107 +1,27 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{9FE9C740-7859-4D01-AD07-7D4E15A6320B}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SimSharp</RootNamespace>
-    <AssemblyName>SimSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <SignAssembly>true</SignAssembly>
+    <TargetFrameworks>net4;net45;net46;netstandard2.0</TargetFrameworks>
+    <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>SimSharp.snk</AssemblyOriginatorKeyFile>
+    <DelaySign>False</DelaySign>
+    <AssemblyName>SimSharp</AssemblyName>
+    <RootNamespace>SimSharp</RootNamespace>
+    <Version>3.0.9</Version>
+    <Authors>Andreas Beham</Authors>
+    <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.0. Sim# uses an efficient event queue (adapted from https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c) that allows to compute models very fast. Simulating 10 years of the MachineShop sample (http://simpy.readthedocs.org/en/latest/examples/machine_shop.html) that uses preemptive resources requires only 2.5s on a Core i7 2.6Ghz. This model generates more than 5 million events.
+
+SimPy allows to model processes easily and with little boiler plate code. A process is described as a method that yields events. When an event is yielded, the process waits on it. Processes are themselves events and so it is convenient to spawn sub-processes that can either be waited upon or that run next to each other. There is no need to inherit from classes or understand a complex object oriented design.</Description>
+    <Product>Sim#</Product>
+    <Company>HEAL, FH Upper Austria</Company>
+    <Copyright>Andreas Beham</Copyright>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
+    <PackageReleaseNotes>3.0.9
+- Fixed bug that would not dispose of resource requests if they are released before they are processed</PackageReleaseNotes>
+    <NeutralLanguage />
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-net40|AnyCPU'">
-    <OutputPath>bin\net40\</OutputPath>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\net40\SimSharp.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release-net45|AnyCPU'">
-    <OutputPath>bin\net45\</OutputPath>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\net45\SimSharp.xml</DocumentationFile>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Analysis\ContinuousStatistics.cs" />
-    <Compile Include="Collections\EventQueue.cs" />
-    <Compile Include="Collections\EventQueueNode.cs" />
-    <Compile Include="Core\ActiveObject.cs" />
-    <Compile Include="Core\Events\AnyOf.cs" />
-    <Compile Include="Core\Events\AllOf.cs" />
-    <Compile Include="Core\Resources\Container.cs" />
-    <Compile Include="Core\Environment.cs" />
-    <Compile Include="Core\Resources\Events\ResourcePoolRequest.cs" />
-    <Compile Include="Core\Resources\Events\FilterStoreGet.cs" />
-    <Compile Include="Core\Resources\Events\StorePut.cs" />
-    <Compile Include="Core\Resources\Events\StoreGet.cs" />
-    <Compile Include="Core\Resources\Events\ContainerGet.cs" />
-    <Compile Include="Core\Resources\Events\ContainerPut.cs" />
-    <Compile Include="Core\Events\Condition.cs" />
-    <Compile Include="Core\Events\Event.cs" />
-    <Compile Include="Core\Resources\Events\PreemptiveRequest.cs" />
-    <Compile Include="Core\Events\Process.cs" />
-    <Compile Include="Core\Resources\Events\Release.cs" />
-    <Compile Include="Core\Resources\Events\PriorityRequest.cs" />
-    <Compile Include="Core\Resources\Events\Request.cs" />
-    <Compile Include="Core\Events\Timeout.cs" />
-    <Compile Include="Core\Exceptions\EmptyScheduleException.cs" />
-    <Compile Include="Core\Preempted.cs" />
-    <Compile Include="Core\Resources\FilterStore.cs" />
-    <Compile Include="Core\Resources\PreemptiveResource.cs" />
-    <Compile Include="Core\Resources\PriorityResource.cs" />
-    <Compile Include="Core\Resources\Resource.cs" />
-    <Compile Include="Core\Resources\ResourcePool.cs" />
-    <Compile Include="Core\Resources\Store.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Random\FastRandom.cs" />
-    <Compile Include="Random\IRandom.cs" />
-    <Compile Include="Random\SystemRandom.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="SimSharp.snk" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Collections\EventQueue-License.txt" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

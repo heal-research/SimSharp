@@ -16,15 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class ContinuousStatisticsTest {
 
-    [TestMethod]
+    [Fact]
     public void TestContinuousStatisticsSimple() {
       var env = new Environment();
       var times = new double[] { 0, 1, 1, 1, 1, 1 };
@@ -34,14 +34,14 @@ namespace SimSharp.Tests {
         if (v.Item1 > 0) env.RunD(v.Item1);
         stat.Update(v.Item2);
       }
-      Assert.AreEqual(-4, stat.Min);
-      Assert.AreEqual(6, stat.Max);
-      Assert.AreEqual(3, stat.Mean, 1e-12);
-      Assert.AreEqual(6, stat.Variance, 1e-12);
-      Assert.AreEqual(15, stat.Area);
+      Assert.Equal(-4, stat.Min);
+      Assert.Equal(6, stat.Max);
+      Assert.Equal(3, stat.Mean, 12);
+      Assert.Equal(6, stat.Variance, 12);
+      Assert.Equal(15, stat.Area);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestContinuousStatisticsComplex() {
       var env = new Environment();
       var times = new double[] { 0, 10, 0, 1, 1, 1, 1 };
@@ -51,14 +51,14 @@ namespace SimSharp.Tests {
         if (v.Item1 > 0) env.RunD(v.Item1);
         stat.Update(v.Item2);
       }
-      Assert.AreEqual(-4, stat.Min);
-      Assert.AreEqual(6, stat.Max);
-      Assert.AreEqual(0.642857142857, stat.Mean, 1e-12);
-      Assert.AreEqual(2.372448979592, stat.Variance, 1e-12);
-      Assert.AreEqual(9, stat.Area);
+      Assert.Equal(-4, stat.Min);
+      Assert.Equal(6, stat.Max);
+      Assert.Equal(0.642857142857, stat.Mean, 12);
+      Assert.Equal(2.372448979592, stat.Variance, 12);
+      Assert.Equal(9, stat.Area);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestContinuousStatisticsComplex2() {
       var env = new Environment();
       var times = new double[] { 1, 1, 1, 2, 0, 0, 4, 7, 4 };
@@ -68,11 +68,11 @@ namespace SimSharp.Tests {
         if (v.Item1 > 0) env.RunD(v.Item1);
         stat.Update(v.Item2);
       }
-      Assert.AreEqual(-4, stat.Min);
-      Assert.AreEqual(6, stat.Max);
-      Assert.AreEqual(0.3684210526315789, stat.Mean, 1e-12);
-      Assert.AreEqual(4.232686980609418, stat.Variance, 1e-12);
-      Assert.AreEqual(7, stat.Area);
+      Assert.Equal(-4, stat.Min);
+      Assert.Equal(6, stat.Max);
+      Assert.Equal(0.3684210526315789, stat.Mean, 12);
+      Assert.Equal(4.232686980609418, stat.Variance, 12);
+      Assert.Equal(7, stat.Area);
     }
   }
 }

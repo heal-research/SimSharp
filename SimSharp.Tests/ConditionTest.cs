@@ -19,79 +19,79 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class ConditionTest {
-    [TestMethod]
+    [Fact]
     public void TestOperatorAnd() {
       var env = new Environment(new DateTime(2014, 1, 1));
-      env.Process(TestOperatorAnd(env));
+      env.Process(TestOperatorAndProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorAnd(Environment env) {
+    private IEnumerable<Event> TestOperatorAndProc(Environment env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
 
       yield return timeout[0] & timeout[1] & timeout[2];
 
-      Assert.IsTrue(timeout.All(t => t.IsProcessed));
+      Assert.True(timeout.All(t => t.IsProcessed));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestOperatorOr() {
       var env = new Environment(new DateTime(2014, 1, 1));
-      env.Process(TestOperatorOr(env));
+      env.Process(TestOperatorOrProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorOr(Environment env) {
+    private IEnumerable<Event> TestOperatorOrProc(Environment env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
 
       yield return timeout[0] | timeout[1] | timeout[2];
 
-      Assert.IsTrue(timeout[0].IsProcessed);
-      Assert.IsFalse(timeout[1].IsProcessed);
-      Assert.IsFalse(timeout[2].IsProcessed);
+      Assert.True(timeout[0].IsProcessed);
+      Assert.False(timeout[1].IsProcessed);
+      Assert.False(timeout[2].IsProcessed);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestOperatorNestedAnd() {
       var env = new Environment(new DateTime(2014, 1, 1));
-      env.Process(TestOperatorNestedAnd(env));
+      env.Process(TestOperatorNestedAndProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorNestedAnd(Environment env) {
+    private IEnumerable<Event> TestOperatorNestedAndProc(Environment env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
 
       yield return (timeout[0] & timeout[2]) | timeout[1];
 
-      Assert.IsTrue(timeout[0].IsProcessed);
-      Assert.IsTrue(timeout[1].IsProcessed);
-      Assert.IsFalse(timeout[2].IsProcessed);
+      Assert.True(timeout[0].IsProcessed);
+      Assert.True(timeout[1].IsProcessed);
+      Assert.False(timeout[2].IsProcessed);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestOperatorNestedOr() {
       var env = new Environment(new DateTime(2014, 1, 1));
-      env.Process(TestOperatorNestedOr(env));
+      env.Process(TestOperatorNestedOrProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorNestedOr(Environment env) {
+    private IEnumerable<Event> TestOperatorNestedOrProc(Environment env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
 
       yield return (timeout[0] | timeout[1]) & timeout[2];
 
-      Assert.IsTrue(timeout[0].IsProcessed);
-      Assert.IsTrue(timeout[1].IsProcessed);
-      Assert.IsTrue(timeout[2].IsProcessed);
+      Assert.True(timeout[0].IsProcessed);
+      Assert.True(timeout[1].IsProcessed);
+      Assert.True(timeout[2].IsProcessed);
 
       timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
@@ -99,12 +99,12 @@ namespace SimSharp.Tests {
 
       yield return (timeout[0] | timeout[2]) & timeout[1];
 
-      Assert.IsTrue(timeout[0].IsProcessed);
-      Assert.IsTrue(timeout[1].IsProcessed);
-      Assert.IsFalse(timeout[2].IsProcessed);
+      Assert.True(timeout[0].IsProcessed);
+      Assert.True(timeout[1].IsProcessed);
+      Assert.False(timeout[2].IsProcessed);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestConditionWithError() {
       var env = new Environment(new DateTime(2014, 1, 1));
       env.Process(TestConditionWithError_Process(env));
@@ -115,8 +115,8 @@ namespace SimSharp.Tests {
 
       yield return proc | env.Timeout(TimeSpan.FromSeconds(1));
 
-      Assert.IsTrue(!proc.IsOk);
-      Assert.AreEqual(proc.Value, "Onoes, failed after 0 delay!");
+      Assert.True(!proc.IsOk);
+      Assert.Equal("Onoes, failed after 0 delay!", proc.Value);
       env.ActiveProcess.HandleFault();
     }
     private IEnumerable<Event> TestConditionWithError_Explode(Environment env, TimeSpan delay) {
@@ -125,17 +125,12 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Fail(string.Format("Onoes, failed after {0} delay!", delay.Ticks));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestConditionWithUncaughtError() {
       var env = new Environment(new DateTime(2014, 1, 1));
       env.Process(TestConditionWithUncaughtError_Process(env));
-      try {
-        env.Run();
-        Assert.Fail("There should have been an InvalidOperationException");
-      } catch (Exception e) {
-        Assert.IsInstanceOfType(e, typeof(InvalidOperationException));
-      }
-      Assert.AreEqual(env.Now, new DateTime(2014, 1, 3));
+      Assert.Throws<InvalidOperationException>(() => env.Run());
+      Assert.Equal(new DateTime(2014, 1, 3), env.Now);
     }
 
     private IEnumerable<Event> TestConditionWithUncaughtError_Process(Environment env) {
@@ -147,12 +142,12 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Fail();
     }
 
-    [TestMethod]
+    [Fact]
     public void TestAndConditionBlocked() {
       var env = new Environment();
       env.Process(TestAndConditionBlockedProcess(env));
       env.RunD(5);
-      Assert.AreEqual(5, env.NowD);
+      Assert.Equal(5, env.NowD);
     }
 
     private IEnumerable<Event> TestAndConditionBlockedProcess(Environment env) {
@@ -160,10 +155,10 @@ namespace SimSharp.Tests {
       var e = new Event(env);
       yield return t1;
       yield return t1 & e;
-      Assert.Fail("Process should not recover");
+      throw new NotImplementedException("Process should not recover");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestOperatorAndBlocked() {
       var env = new Environment();
       env.Process(TestOperatorAndBlockedProcess(env));
@@ -175,10 +170,10 @@ namespace SimSharp.Tests {
       var @event = new Event(env);
       yield return env.TimeoutD(1);
       var condition = timeout & @event;
-      Assert.IsFalse(condition.IsTriggered);
+      Assert.False(condition.IsTriggered);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestAllOfGenerator() {
       var env = new Environment();
       env.Process(TestAllOfGeneratorProcess(env));
@@ -189,30 +184,30 @@ namespace SimSharp.Tests {
       var events = Enumerable.Range(0, 10).Select(x => new Timeout(env, env.ToTimeSpan(x), x));
       var allOf = new AllOf(env, events);
       yield return allOf;
-      Assert.IsTrue(Enumerable.Range(0, 10).SequenceEqual(allOf.Value.Values.OfType<int>()));
-      Assert.AreEqual(9, env.NowD);
+      Assert.True(Enumerable.Range(0, 10).SequenceEqual(allOf.Value.Values.OfType<int>()));
+      Assert.Equal(9, env.NowD);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestAllOfEmptyList() {
       var env = new Environment();
       var evt = new AllOf(env, Enumerable.Empty<Event>());
-      Assert.IsTrue(evt.IsTriggered);
-      Assert.IsFalse(evt.IsProcessed);
+      Assert.True(evt.IsTriggered);
+      Assert.False(evt.IsProcessed);
       env.Run(evt);
-      Assert.IsTrue(evt.IsProcessed);
-      Assert.AreEqual(0, env.NowD);
+      Assert.True(evt.IsProcessed);
+      Assert.Equal(0, env.NowD);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestAnyOfEmptyList() {
       var env = new Environment();
       var evt = new AnyOf(env, Enumerable.Empty<Event>());
-      Assert.IsTrue(evt.IsTriggered);
-      Assert.IsFalse(evt.IsProcessed);
+      Assert.True(evt.IsTriggered);
+      Assert.False(evt.IsProcessed);
       env.Run(evt);
-      Assert.IsTrue(evt.IsProcessed);
-      Assert.AreEqual(0, env.NowD);
+      Assert.True(evt.IsProcessed);
+      Assert.Equal(0, env.NowD);
     }
   }
 }

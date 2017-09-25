@@ -16,38 +16,38 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class ResourceTest {
-    [TestMethod]
+    [Fact]
     public void TestResource() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var resource = new Resource(env, capacity: 1);
 
-      Assert.AreEqual(1, resource.Capacity);
-      Assert.AreEqual(0, resource.InUse);
+      Assert.Equal(1, resource.Capacity);
+      Assert.Equal(0, resource.InUse);
 
       var log = new Dictionary<string, DateTime>();
-      env.Process(TestResource(env, "a", resource, log));
-      env.Process(TestResource(env, "b", resource, log));
+      env.Process(TestResourceProc(env, "a", resource, log));
+      env.Process(TestResourceProc(env, "b", resource, log));
       env.Run();
 
-      Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["a"]);
-      Assert.AreEqual(start + TimeSpan.FromSeconds(2), log["b"]);
+      Assert.Equal(start + TimeSpan.FromSeconds(1), log["a"]);
+      Assert.Equal(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-    private IEnumerable<Event> TestResource(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceProc(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       var req = resource.Request();
       yield return req;
-      Assert.AreEqual(1, resource.InUse);
+      Assert.Equal(1, resource.InUse);
 
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       resource.Release(req);
@@ -55,88 +55,88 @@ namespace SimSharp.Tests {
       log.Add(name, env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceWithUsing() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var resource = new Resource(env, capacity: 1);
 
-      Assert.AreEqual(1, resource.Capacity);
-      Assert.AreEqual(0, resource.InUse);
+      Assert.Equal(1, resource.Capacity);
+      Assert.Equal(0, resource.InUse);
 
       var log = new Dictionary<string, DateTime>();
-      env.Process(TestResourceWithUsing(env, "a", resource, log));
-      env.Process(TestResourceWithUsing(env, "b", resource, log));
+      env.Process(TestResourceWithUsingProc(env, "a", resource, log));
+      env.Process(TestResourceWithUsingProc(env, "b", resource, log));
       env.Run();
 
-      Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["a"]);
-      Assert.AreEqual(start + TimeSpan.FromSeconds(2), log["b"]);
+      Assert.Equal(start + TimeSpan.FromSeconds(1), log["a"]);
+      Assert.Equal(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-    private IEnumerable<Event> TestResourceWithUsing(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceWithUsingProc(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         yield return req;
-        Assert.AreEqual(1, resource.InUse);
+        Assert.Equal(1, resource.InUse);
 
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
       log.Add(name, env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceWithUsingAndCondition() {
       var start = new DateTime(2016, 3, 1);
       var env = new Environment(start);
       var resource = new Resource(env, capacity: 1);
 
-      Assert.AreEqual(1, resource.Capacity);
-      Assert.AreEqual(0, resource.InUse);
+      Assert.Equal(1, resource.Capacity);
+      Assert.Equal(0, resource.InUse);
 
       var log = new Dictionary<string, DateTime>();
-      env.Process(TestResourceWithUsingAndCondition(env, "a", resource, log));
-      env.Process(TestResourceWithUsingAndCondition(env, "b", resource, log));
+      env.Process(TestResourceWithUsingAndConditionProc(env, "a", resource, log));
+      env.Process(TestResourceWithUsingAndConditionProc(env, "b", resource, log));
       env.Run();
 
-      Assert.AreEqual(0, resource.InUse);
-      Assert.AreEqual(start + TimeSpan.FromSeconds(1), log["b"]);
-      Assert.AreEqual(start + TimeSpan.FromSeconds(3), log["a"]);
+      Assert.Equal(0, resource.InUse);
+      Assert.Equal(start + TimeSpan.FromSeconds(1), log["b"]);
+      Assert.Equal(start + TimeSpan.FromSeconds(3), log["a"]);
     }
-    private IEnumerable<Event> TestResourceWithUsingAndCondition(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceWithUsingAndConditionProc(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         var waitingTimeOut = env.Timeout(name == "b" ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(5));
         yield return req | waitingTimeOut;
         if (name == "a") {
-          Assert.AreEqual(1, resource.InUse);
-          Assert.IsTrue(req.IsProcessed);
-          Assert.IsFalse(waitingTimeOut.IsProcessed);
+          Assert.Equal(1, resource.InUse);
+          Assert.True(req.IsProcessed);
+          Assert.False(waitingTimeOut.IsProcessed);
 
           yield return env.Timeout(TimeSpan.FromSeconds(3));
         } else {
-          Assert.AreEqual(1, resource.InUse);
-          Assert.IsFalse(req.IsProcessed);
-          Assert.IsTrue(waitingTimeOut.IsProcessed);
+          Assert.Equal(1, resource.InUse);
+          Assert.False(req.IsProcessed);
+          Assert.True(waitingTimeOut.IsProcessed);
         }
       }
       log.Add(name, env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceSlots() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var resource = new Resource(env, capacity: 3);
       var log = new Dictionary<string, DateTime>();
       for (int i = 0; i < 9; i++)
-        env.Process(TestResourceSlots(env, i.ToString(), resource, log));
+        env.Process(TestResourceSlotsProc(env, i.ToString(), resource, log));
       env.Run();
 
       var expected = new Dictionary<string, int> {
         {"0", 0}, {"1", 0}, {"2", 0}, {"3", 1}, {"4", 1}, {"5", 1}, {"6", 2}, {"7", 2}, {"8", 2}
       }.ToDictionary(x => x.Key, x => start + TimeSpan.FromSeconds(x.Value));
-      CollectionAssert.AreEqual(expected, log);
+      Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestResourceSlots(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceSlotsProc(Environment env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         yield return req;
@@ -145,17 +145,17 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceContinueAfterInterrupt() {
       var env = new Environment(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
-      env.Process(TestResourceContinueAfterInterrupt(env, res));
+      env.Process(TestResourceContinueAfterInterruptProc(env, res));
       var proc = env.Process(TestResourceContinueAfterInterruptVictim(env, res));
       env.Process(TestResourceContinueAfterInterruptInterruptor(env, proc));
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterrupt(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptProc(Environment env, Resource res) {
       using (var req = res.Request()) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(1));
@@ -165,11 +165,11 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestResourceContinueAfterInterruptVictim(Environment env, Resource res) {
       var req = res.Request();
       yield return req;
-      Assert.IsFalse(req.IsOk);
+      Assert.False(req.IsOk);
       env.ActiveProcess.HandleFault();
       yield return req;
       res.Release(req);
-      Assert.AreEqual(new DateTime(2014, 4, 1, 0, 0, 1), env.Now);
+      Assert.Equal(new DateTime(2014, 4, 1, 0, 0, 1), env.Now);
     }
 
     private IEnumerable<Event> TestResourceContinueAfterInterruptInterruptor(Environment env, Process proc) {
@@ -177,17 +177,17 @@ namespace SimSharp.Tests {
       yield break;
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceContinueAfterInterruptWaiting() {
       var env = new Environment(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
-      env.Process(TestResourceContinueAfterInterruptWaiting(env, res));
+      env.Process(TestResourceContinueAfterInterruptWaitingProc(env, res));
       var proc = env.Process(TestResourceContinueAfterInterruptWaitingVictim(env, res));
       env.Process(TestResourceContinueAfterInterruptWaitingInterruptor(env, proc));
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptWaiting(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingProc(Environment env, Resource res) {
       using (var req = res.Request()) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(1));
@@ -197,12 +197,12 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingVictim(Environment env, Resource res) {
       var req = res.Request();
       yield return req;
-      Assert.IsFalse(req.IsOk);
+      Assert.False(req.IsOk);
       env.ActiveProcess.HandleFault();
       yield return env.Timeout(TimeSpan.FromSeconds(2));
       yield return req;
       res.Release(req);
-      Assert.AreEqual(new DateTime(2014, 4, 1, 0, 0, 2), env.Now);
+      Assert.Equal(new DateTime(2014, 4, 1, 0, 0, 2), env.Now);
     }
 
     private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingInterruptor(Environment env, Process proc) {
@@ -210,7 +210,7 @@ namespace SimSharp.Tests {
       yield break;
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceReleaseAfterInterrupt() {
       var env = new Environment(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
@@ -230,11 +230,11 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestResourceReleaseAfterInterruptVictim(Environment env, Resource res) {
       var req = res.Request();
       yield return req;
-      Assert.IsFalse(req.IsOk);
-      Assert.IsTrue(env.ActiveProcess.HandleFault());
+      Assert.False(req.IsOk);
+      Assert.True(env.ActiveProcess.HandleFault());
       // Dont wait for the resource
       res.Release(req);
-      Assert.AreEqual(new DateTime(2014, 4, 1), env.Now);
+      Assert.Equal(new DateTime(2014, 4, 1), env.Now);
     }
 
     private IEnumerable<Event> TestResourceReleaseAfterInterruptInterruptor(Environment env, Process proc) {
@@ -242,60 +242,60 @@ namespace SimSharp.Tests {
       yield break;
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceWithCondition() {
       var env = new Environment();
       var res = new Resource(env, capacity: 1);
-      env.Process(TestResourceWithCondition(env, res));
+      env.Process(TestResourceWithConditionProc(env, res));
       env.Run();
     }
-    private IEnumerable<Event> TestResourceWithCondition(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceWithConditionProc(Environment env, Resource res) {
       using (var req = res.Request()) {
         var timeout = env.Timeout(TimeSpan.FromSeconds(1));
         yield return req | timeout;
-        Assert.IsTrue(req.IsOk);
-        Assert.IsFalse(timeout.IsProcessed);
+        Assert.True(req.IsOk);
+        Assert.False(timeout.IsProcessed);
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceWithPriorityQueue() {
       var env = new Environment(new DateTime(2014, 4, 1));
       var resource = new PriorityResource(env, capacity: 1);
-      env.Process(TestResourceWithPriorityQueue(env, 0, resource, 2, 0));
-      env.Process(TestResourceWithPriorityQueue(env, 2, resource, 3, 10));
-      env.Process(TestResourceWithPriorityQueue(env, 2, resource, 3, 15)); // Test equal priority
-      env.Process(TestResourceWithPriorityQueue(env, 4, resource, 1, 5));
+      env.Process(TestResourceWithPriorityQueueProc(env, 0, resource, 2, 0));
+      env.Process(TestResourceWithPriorityQueueProc(env, 2, resource, 3, 10));
+      env.Process(TestResourceWithPriorityQueueProc(env, 2, resource, 3, 15)); // Test equal priority
+      env.Process(TestResourceWithPriorityQueueProc(env, 4, resource, 1, 5));
       env.Run();
     }
-    private IEnumerable<Event> TestResourceWithPriorityQueue(Environment env, int delay, PriorityResource resource, int priority, int resTime) {
+    private IEnumerable<Event> TestResourceWithPriorityQueueProc(Environment env, int delay, PriorityResource resource, int priority, int resTime) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       var req = resource.Request(priority);
       yield return req;
-      Assert.AreEqual(new DateTime(2014, 4, 1) + TimeSpan.FromSeconds(resTime), env.Now);
+      Assert.Equal(new DateTime(2014, 4, 1) + TimeSpan.FromSeconds(resTime), env.Now);
       yield return env.Timeout(TimeSpan.FromSeconds(5));
       resource.Release(req);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestPreemtiveResource() {
       var start = new DateTime(2014, 4, 1);
       var env = new Environment(start);
       var res = new PreemptiveResource(env, capacity: 2);
       var log = new Dictionary<DateTime, int>();
       //                                id           d  p
-      env.Process(TestPreemtiveResource(0, env, res, 0, 1, log));
-      env.Process(TestPreemtiveResource(1, env, res, 0, 1, log));
-      env.Process(TestPreemtiveResource(2, env, res, 1, 0, log));
-      env.Process(TestPreemtiveResource(3, env, res, 2, 2, log));
+      env.Process(TestPreemtiveResourceProc(0, env, res, 0, 1, log));
+      env.Process(TestPreemtiveResourceProc(1, env, res, 0, 1, log));
+      env.Process(TestPreemtiveResourceProc(2, env, res, 1, 0, log));
+      env.Process(TestPreemtiveResourceProc(3, env, res, 2, 2, log));
       env.Run();
 
       var expected = new Dictionary<int, int> {
         {5, 0}, {6, 2}, {10, 3}
       }.ToDictionary(x => start + TimeSpan.FromSeconds(x.Key), x => x.Value);
-      CollectionAssert.AreEqual(expected, log);
+      Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestPreemtiveResource(int id, Environment env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
+    private IEnumerable<Event> TestPreemtiveResourceProc(int id, Environment env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
@@ -305,7 +305,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestPreemptiveResourceTimeout0() {
       var env = new Environment();
       var res = new PreemptiveResource(env, capacity: 1);
@@ -316,9 +316,9 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestPreemptiveResourceTimeoutA(Environment env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
-        Assert.IsTrue(env.ActiveProcess.HandleFault());
+        Assert.True(env.ActiveProcess.HandleFault());
         yield return env.Timeout(TimeSpan.FromSeconds(1));
-        Assert.IsFalse(env.ActiveProcess.HandleFault());
+        Assert.False(env.ActiveProcess.HandleFault());
       }
     }
     private IEnumerable<Event> TestPreemptiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
@@ -327,17 +327,17 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestMixedPreemtion() {
       var start = new DateTime(2014, 4, 2);
       var env = new Environment(start);
       var res = new PreemptiveResource(env, capacity: 2);
       var log = new List<Tuple<int, int>>();
-      env.Process(TestMixedPreemtion(0, env, res, 0, 1, true, log));
-      env.Process(TestMixedPreemtion(1, env, res, 0, 1, true, log));
-      env.Process(TestMixedPreemtion(2, env, res, 1, 0, false, log));
-      env.Process(TestMixedPreemtion(3, env, res, 1, 0, true, log));
-      env.Process(TestMixedPreemtion(4, env, res, 2, 2, true, log));
+      env.Process(TestMixedPreemtionProc(0, env, res, 0, 1, true, log));
+      env.Process(TestMixedPreemtionProc(1, env, res, 0, 1, true, log));
+      env.Process(TestMixedPreemtionProc(2, env, res, 1, 0, false, log));
+      env.Process(TestMixedPreemtionProc(3, env, res, 1, 0, true, log));
+      env.Process(TestMixedPreemtionProc(4, env, res, 2, 2, true, log));
       env.Run();
       var expected = new List<Tuple<int, int>> {
         Tuple.Create(5, 0),
@@ -345,9 +345,9 @@ namespace SimSharp.Tests {
         Tuple.Create(10, 2),
         Tuple.Create(11, 4)
       };
-      CollectionAssert.AreEqual(expected, log);
+      Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestMixedPreemtion(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, List<Tuple<int, int>> log) {
+    private IEnumerable<Event> TestMixedPreemtionProc(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, List<Tuple<int, int>> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       using (var req = res.Request(priority: prio, preempt: preempt)) {
         yield return req;
@@ -357,7 +357,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFilterStore() {
       var start = new DateTime(1970, 1, 1, 0, 0, 0);
       var sb = new StringBuilder();
@@ -369,7 +369,7 @@ namespace SimSharp.Tests {
       env.Process(FilterStoreConsumerA(env, sto));
       env.Process(FilterStoreConsumerB(env, sto));
       env.Run(TimeSpan.FromSeconds(20));
-      Assert.AreEqual(sb.ToString(),
+      Assert.Equal(
 @"4: Produce A
 4: Consume A
 6: Produce B
@@ -379,7 +379,7 @@ namespace SimSharp.Tests {
 14: Produce B
 14: Consume B
 18: Produce A
-");
+", sb.ToString());
     }
 
     private static readonly object FilterStoreObjA = new object();
@@ -412,7 +412,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFilterStoreGetAfterMismatch() {
       var env = new Environment(new DateTime(2014, 1, 1));
       var store = new FilterStore(env, capacity: 2);
@@ -420,8 +420,8 @@ namespace SimSharp.Tests {
       var proc2 = env.Process(TestFilterStoreGetAfterMismatch_Getter(env, store, 2));
       env.Process(TestFilterStoreGetAfterMismatch_Putter(env, store));
       env.Run();
-      Assert.AreEqual(proc1.Value, 1);
-      Assert.AreEqual(proc2.Value, 0);
+      Assert.Equal(1, proc1.Value);
+      Assert.Equal(0, proc2.Value);
     }
     private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Putter(Environment env, FilterStore store) {
       yield return store.Put(2);
@@ -434,7 +434,7 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Succeed(env.Now.Second);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestResourceImmediateRequests() {
       /* A process must not acquire a resource if it releases it and immediately
        * requests it again while there are already other requesting processes.
@@ -442,7 +442,7 @@ namespace SimSharp.Tests {
       var env = new Environment(new DateTime(2014, 1, 1));
       env.Process(TestResourceImmediateRequests_Parent(env));
       env.Run();
-      Assert.AreEqual(env.Now.Second, 6);
+      Assert.Equal(6, env.Now.Second);
     }
 
     private IEnumerable<Event> TestResourceImmediateRequests_Parent(Environment env) {
@@ -452,8 +452,8 @@ namespace SimSharp.Tests {
       yield return childA;
       yield return childB;
 
-      Assert.IsTrue(new[] { 0, 2, 4 }.SequenceEqual((IList<int>)childA.Value));
-      Assert.IsTrue(new[] { 1, 3, 5 }.SequenceEqual((IList<int>)childB.Value));
+      Assert.True(new[] { 0, 2, 4 }.SequenceEqual((IList<int>)childA.Value));
+      Assert.True(new[] { 1, 3, 5 }.SequenceEqual((IList<int>)childB.Value));
     }
 
     private IEnumerable<Event> TestResourceImmediateRequests_Child(Environment env, Resource res) {
@@ -468,7 +468,7 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Succeed(result);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFilterCallsBestCase() {
       var env = new Environment();
       var store = new FilterStore(env, new object[] { 1, 2, 3 }, 3);
@@ -476,7 +476,7 @@ namespace SimSharp.Tests {
       Func<object, bool> filterLogger = o => { log.Add(string.Format("check {0}", o)); return true; };
       env.Process(TestFilterCallsBestCaseProcess(store, filterLogger, log));
       env.Run();
-      Assert.IsTrue(log.SequenceEqual(new[] { "check 1", "get 1", "check 2", "get 2", "check 3", "get 3" }));
+      Assert.True(log.SequenceEqual(new[] { "check 1", "get 1", "check 2", "get 2", "check 3", "get 3" }));
     }
 
     private IEnumerable<Event> TestFilterCallsBestCaseProcess(FilterStore store, Func<object, bool> filter, List<string> log) {
@@ -491,7 +491,7 @@ namespace SimSharp.Tests {
       log.Add(string.Format("get {0}", get.Value));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestFilterCallsWorstCase() {
       var env = new Environment();
       var store = new FilterStore(env, 4);
@@ -500,7 +500,7 @@ namespace SimSharp.Tests {
       env.Process(TestFilterCallsWorseCaseGetProcess(store, filterLogger, log));
       env.Process(TestFilterCallsWorstCasePutProcess(store, log));
       env.Run();
-      Assert.IsTrue(log.SequenceEqual(new[] {
+      Assert.True(log.SequenceEqual(new[] {
         "put 0", "check 0",
         "put 1", "check 0", "check 1",
         "put 2", "check 0", "check 1", "check 2",
@@ -557,277 +557,277 @@ namespace SimSharp.Tests {
       public MyStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediateContainer() {
       var env = new Environment();
       var res = new MyContainer(env);
-      Assert.AreEqual(0, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.Equal(0, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var get = res.Get(1);
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       get = res.Get(1);
-      Assert.IsFalse(get.IsTriggered);
-      Assert.AreEqual(0, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.False(get.IsTriggered);
+      Assert.Equal(0, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       env.Run();
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Level);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Level);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediateFilterStore() {
       var env = new Environment();
       var res = new MyFilterStore(env);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var get = res.Get();
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       get = res.Get();
-      Assert.IsFalse(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.False(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       env.Run();
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediatePreemptiveResource() {
       var env = new Environment();
       var res = new MyPreemptiveResource(env, capacity: 1);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req1 = res.Request(1, true);
-      Assert.IsTrue(req1.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req1.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req2 = res.Request(1, true);
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       req1.Dispose();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req3 = res.Request(1, true);
-      Assert.IsTrue(req2.IsTriggered);
-      Assert.IsFalse(req3.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req2.IsTriggered);
+      Assert.False(req3.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediatePriorityResource() {
       var env = new Environment();
       var res = new MyPriorityResource(env, capacity: 1);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req1 = res.Request(1);
-      Assert.IsTrue(req1.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req1.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req2 = res.Request(1);
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       req1.Dispose();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req3 = res.Request(1);
-      Assert.IsTrue(req2.IsTriggered);
-      Assert.IsFalse(req3.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req2.IsTriggered);
+      Assert.False(req3.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediateResource() {
       var env = new Environment();
       var res = new MyResource(env, capacity: 1);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req1 = res.Request();
-      Assert.IsTrue(req1.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req1.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req2 = res.Request();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       req1.Dispose();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req3 = res.Request();
-      Assert.IsTrue(req2.IsTriggered);
-      Assert.IsFalse(req3.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req2.IsTriggered);
+      Assert.False(req3.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediateResourcePool() {
       var env = new Environment();
       var res = new MyResourcePool(env, new object[] { 1 });
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req1 = res.Request();
-      Assert.IsTrue(req1.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(0, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req1.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(0, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req2 = res.Request();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       req1.Dispose();
-      Assert.IsFalse(req2.IsTriggered);
-      Assert.AreEqual(0, res.InUse);
-      Assert.AreEqual(1, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.False(req2.IsTriggered);
+      Assert.Equal(0, res.InUse);
+      Assert.Equal(1, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
 
       var req3 = res.Request();
-      Assert.IsTrue(req2.IsTriggered);
-      Assert.IsFalse(req3.IsTriggered);
-      Assert.AreEqual(1, res.InUse);
-      Assert.AreEqual(0, res.Remaining);
-      Assert.AreEqual(1, res.RequestQueueLength);
-      Assert.AreEqual(0, res.ReleaseQueueLength);
+      Assert.True(req2.IsTriggered);
+      Assert.False(req3.IsTriggered);
+      Assert.Equal(1, res.InUse);
+      Assert.Equal(0, res.Remaining);
+      Assert.Equal(1, res.RequestQueueLength);
+      Assert.Equal(0, res.ReleaseQueueLength);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestImmediateStore() {
       var env = new Environment();
       var res = new MyStore(env);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       var get = res.Get();
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
 
       get = res.Get();
-      Assert.IsFalse(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.False(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       put = res.Put(1);
-      Assert.IsTrue(put.IsTriggered);
-      Assert.AreEqual(1, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(1, res.GetQueueLength);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
 
       env.Run();
-      Assert.IsTrue(get.IsTriggered);
-      Assert.AreEqual(0, res.Count);
-      Assert.AreEqual(0, res.PutQueueLength);
-      Assert.AreEqual(0, res.GetQueueLength);
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
     }
   }
 }

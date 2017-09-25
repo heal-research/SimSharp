@@ -19,10 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class EnvironmentTests {
 
     private static IEnumerable<Event> AProcess(Environment env, List<string> log) {
@@ -32,7 +32,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    [TestMethod]
+    [Fact]
     public void TestEventQueueEmpty() {
       /*The simulation should stop if there are no more events, that means, no
         more active process.*/
@@ -40,10 +40,10 @@ namespace SimSharp.Tests {
       var env = new Environment();
       env.Process(AProcess(env, log));
       env.Run(TimeSpan.FromMinutes(10));
-      Assert.IsTrue(log.SequenceEqual(new[] { "00", "01" }));
+      Assert.True(log.SequenceEqual(new[] { "00", "01" }));
     }
 
-    [TestMethod]
+    [Fact]
     public void TestRunNegativeUntil() {
       /*Test passing a negative time to run.*/
       var env = new Environment();
@@ -53,10 +53,10 @@ namespace SimSharp.Tests {
       } catch (InvalidOperationException) {
         errorThrown = true;
       }
-      Assert.IsTrue(errorThrown);
+      Assert.True(errorThrown);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestRunResume() {
       /* Stopped simulation can be resumed. */
       var env = new Environment();
@@ -67,67 +67,67 @@ namespace SimSharp.Tests {
         env.Timeout(TimeSpan.FromMinutes(20))
       };
 
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 5, 0));
-      Assert.IsFalse(events.Any(x => x.IsProcessed));
+      Assert.Equal(new DateTime(1970, 1, 1), env.Now);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 5, 0), env.Peek());
+      Assert.DoesNotContain(events, x => x.IsProcessed);
 
       env.Run(TimeSpan.FromMinutes(10));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 10, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 10, 0));
-      Assert.IsTrue(events[0].IsProcessed);
-      Assert.IsFalse(events[1].IsProcessed);
-      Assert.IsFalse(events[2].IsProcessed);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 10, 0), env.Now);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 10, 0), env.Peek());
+      Assert.True(events[0].IsProcessed);
+      Assert.False(events[1].IsProcessed);
+      Assert.False(events[2].IsProcessed);
 
       env.Run(TimeSpan.FromMinutes(5));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 15, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 15, 0));
-      Assert.IsTrue(events[0].IsProcessed);
-      Assert.IsTrue(events[1].IsProcessed);
-      Assert.IsFalse(events[2].IsProcessed);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 15, 0), env.Now);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 15, 0), env.Peek());
+      Assert.True(events[0].IsProcessed);
+      Assert.True(events[1].IsProcessed);
+      Assert.False(events[2].IsProcessed);
 
       env.Run(TimeSpan.FromMinutes(1));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 16, 0));
-      Assert.AreEqual(env.Peek(), new DateTime(1970, 1, 1, 0, 20, 0));
-      Assert.IsTrue(events[0].IsProcessed);
-      Assert.IsTrue(events[1].IsProcessed);
-      Assert.IsTrue(events[2].IsProcessed);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 16, 0), env.Now);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 20, 0), env.Peek());
+      Assert.True(events[0].IsProcessed);
+      Assert.True(events[1].IsProcessed);
+      Assert.True(events[2].IsProcessed);
 
       env.Run();
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 20, 0));
-      Assert.AreEqual(env.Peek(), DateTime.MaxValue);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 20, 0), env.Now);
+      Assert.Equal(DateTime.MaxValue, env.Peek());
     }
 
-    [TestMethod]
+    [Fact]
     public void TestRunUntilValue() {
       /* Anything that can be converted to a float is a valid until value. */
       var env = new Environment(new DateTime(2014, 1, 1));
       env.Run(new DateTime(2014, 3, 1));
-      Assert.AreEqual(env.Now, new DateTime(2014, 3, 1));
+      Assert.Equal(new DateTime(2014, 3, 1), env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestRunWithProcessedEvent() {
       var env = new Environment();
       var timeout = new Timeout(env, env.ToTimeSpan(1), "spam");
       var val = env.Run(timeout);
-      Assert.AreEqual(1, env.NowD);
-      Assert.AreEqual("spam", val);
+      Assert.Equal(1, env.NowD);
+      Assert.Equal("spam", val);
       val = env.Run(timeout);
-      Assert.AreEqual(1, env.NowD);
-      Assert.AreEqual("spam", val);
+      Assert.Equal(1, env.NowD);
+      Assert.Equal("spam", val);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestRunWithUntriggeredEvent() {
       var exceptionRaised = false;
       try {
         var env = new Environment();
         env.Run(new Event(env));
       } catch (InvalidOperationException e) {
-        Assert.AreEqual("No scheduled events left but \"until\" event was not triggered.", e.Message);
+        Assert.Equal("No scheduled events left but \"until\" event was not triggered.", e.Message);
         exceptionRaised = true;
       }
-      Assert.IsTrue(exceptionRaised);
+      Assert.True(exceptionRaised);
     }
   }
 }

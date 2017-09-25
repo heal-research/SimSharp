@@ -18,20 +18,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace SimSharp.Tests {
-  [TestClass]
+
   public class ProcessTest {
-    [TestMethod]
+    [Fact]
     public void TestStartNonProcess() {
       // Check that you cannot start a normal function.
       // This always holds due to the static-typed nature of C#
       // a process always expects an IEnumerable<Event>
-      Assert.IsTrue(true);
+      Assert.True(true);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestGetState() {
       // A process is alive until it's generator has not terminated.
       var env = new Environment();
@@ -46,12 +46,12 @@ namespace SimSharp.Tests {
 
     private IEnumerable<Event> GetStatePemB(Environment env, Process pemA) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
-      Assert.IsTrue(pemA.IsAlive);
+      Assert.True(pemA.IsAlive);
       yield return env.Timeout(TimeSpan.FromSeconds(3));
-      Assert.IsFalse(pemA.IsAlive);
+      Assert.False(pemA.IsAlive);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestTarget() {
       var start = new DateTime(1970, 1, 1, 0, 0, 0);
       var delay = TimeSpan.FromSeconds(5);
@@ -61,7 +61,7 @@ namespace SimSharp.Tests {
       while (env.Peek() < start + delay) {
         env.Step();
       }
-      Assert.AreEqual(proc.Target, @event);
+      Assert.Equal(@event, proc.Target);
       proc.Interrupt();
     }
 
@@ -69,14 +69,14 @@ namespace SimSharp.Tests {
       yield return @event;
     }
 
-    [TestMethod]
+    [Fact]
     public void TestWaitForProc() {
       // A process can wait until another process finishes.
       var executed = false;
       var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(WaitForProcWaiter(env, () => executed = true));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> WaitForProcFinisher(Environment env) {
@@ -86,18 +86,18 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> WaitForProcWaiter(Environment env, Action handle) {
       var proc = env.Process(WaitForProcFinisher(env));
       yield return proc; // Wait until "proc" finishes
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 5));
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 5), env.Now);
       handle();
     }
 
-    [TestMethod]
+    [Fact]
     public void TestExit() {
       // Processes can set a return value
       var executed = false;
       var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ExitParent(env, () => executed = true));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> ExitChild(Environment env) {
@@ -111,19 +111,19 @@ namespace SimSharp.Tests {
       var result2 = env.Process(ExitChild(env));
       yield return result2;
 
-      Assert.AreEqual(result1.Value, new DateTime(1970, 1, 1, 0, 0, 1));
-      Assert.AreEqual(result2.Value, new DateTime(1970, 1, 1, 0, 0, 2));
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 1), result1.Value);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 2), result2.Value);
       handle();
     }
 
-    [TestMethod]
+    [Fact]
     public void TestReturnValue() {
       // Processes can set a return value
       var executed = false;
       var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ReturnValueParent(env, () => executed = true));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> ReturnValueParent(Environment env, Action handle) {
@@ -131,8 +131,8 @@ namespace SimSharp.Tests {
       yield return proc1;
       var proc2 = env.Process(ReturnValueChild(env));
       yield return proc2;
-      Assert.AreEqual(proc1.Value, new DateTime(1970, 1, 1, 0, 0, 1));
-      Assert.AreEqual(proc2.Value, new DateTime(1970, 1, 1, 0, 0, 2));
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 1), proc1.Value);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 2), proc2.Value);
       handle();
     }
 
@@ -141,7 +141,7 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Succeed(env.Now);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestChildException() {
       // A child catches an exception and sends it to its parent.
       // This is the same as TestExit
@@ -149,7 +149,7 @@ namespace SimSharp.Tests {
       var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ChildExceptionParent(env, () => executed = true));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> ChildExceptionChild(Environment env) {
@@ -160,11 +160,11 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> ChildExceptionParent(Environment env, Action handle) {
       var child = env.Process(ChildExceptionChild(env));
       yield return child;
-      Assert.IsInstanceOfType(child.Value, typeof(Exception));
+      Assert.IsAssignableFrom<Exception>(child.Value);
       handle();
     }
 
-    [TestMethod]
+    [Fact]
     public void TestInterruptedJoin() {
       /* Tests that interrupts are raised while the victim is waiting for
          another process. The victim should get unregistered from the other
@@ -175,7 +175,7 @@ namespace SimSharp.Tests {
       var parent = env.Process(InterruptedJoinParent(env, () => executed = true));
       env.Process(InterruptedJoinInterruptor(env, parent));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> InterruptedJoinInterruptor(Environment env, Process process) {
@@ -191,16 +191,16 @@ namespace SimSharp.Tests {
       var child = env.Process(InterruptedJoinChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
-        Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 1));
-        Assert.IsTrue(child.IsAlive);
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 1), env.Now);
+        Assert.True(child.IsAlive);
         // We should not get resumed when child terminates.
         yield return env.Timeout(TimeSpan.FromSeconds(5));
-        Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 6));
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 6), env.Now);
         handle();
-      } else Assert.Fail("Did not receive an interrupt.");
+      } else throw new NotImplementedException("Did not receive an interrupt.");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestInterruptedJoinAndRejoin() {
       // Tests that interrupts are raised while the victim is waiting for
       // another process. The victim tries to join again.
@@ -209,7 +209,7 @@ namespace SimSharp.Tests {
       var parent = env.Process(InterruptedJoinAndRejoinParent(env, () => executed = true));
       env.Process(InterruptedJoinAndRejoinInterruptor(env, parent));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> InterruptedJoinAndRejoinInterruptor(Environment env, Process process) {
@@ -225,15 +225,15 @@ namespace SimSharp.Tests {
       var child = env.Process(InterruptedJoinAndRejoinChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
-        Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 1));
-        Assert.IsTrue(child.IsAlive);
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 1), env.Now);
+        Assert.True(child.IsAlive);
         yield return child;
-        Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 2));
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 2), env.Now);
         handle();
-      } else Assert.Fail("Did not receive an interrupt.");
+      } else throw new NotImplementedException("Did not receive an interrupt.");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestUnregisterAfterInterrupt() {
       // If a process is interrupted while waiting for another one, it
       // should be unregistered from that process.
@@ -242,7 +242,7 @@ namespace SimSharp.Tests {
       var parent = env.Process(UnregisterAfterInterruptParent(env, () => executed = true));
       env.Process(UnregisterAfterInterruptInterruptor(env, parent));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> UnregisterAfterInterruptInterruptor(Environment env, Process process) {
@@ -258,22 +258,22 @@ namespace SimSharp.Tests {
       var child = env.Process(UnregisterAfterInterruptChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
-        Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 1));
-        Assert.IsTrue(child.IsAlive);
-      } else Assert.Fail("Did not receive an interrupt.");
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 1), env.Now);
+        Assert.True(child.IsAlive);
+      } else throw new NotImplementedException("Did not receive an interrupt.");
       yield return env.Timeout(TimeSpan.FromSeconds(2));
-      Assert.AreEqual(env.Now, new DateTime(1970, 1, 1, 0, 0, 3));
-      Assert.IsFalse(child.IsAlive);
+      Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 3), env.Now);
+      Assert.False(child.IsAlive);
       handle();
     }
 
-    [TestMethod]
+    [Fact]
     public void TestErrorAndInterruptedJoin() {
       var executed = false;
       var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ErrorAndInterruptedJoinParent(env, () => executed = true));
       env.Run();
-      Assert.IsTrue(executed);
+      Assert.True(executed);
     }
 
     private IEnumerable<Event> ErrorAndInterruptedJoinChildA(Environment env, Process process) {
@@ -292,11 +292,30 @@ namespace SimSharp.Tests {
       var b = env.Process(ErrorAndInterruptedJoinChildB(env));
       yield return b;
       if (env.ActiveProcess.HandleFault())
-        Assert.AreEqual(env.ActiveProcess.Value, "InterruptA");
+        Assert.Equal("InterruptA", env.ActiveProcess.Value);
       yield return env.Timeout(TimeSpan.FromSeconds(0));
       if (env.ActiveProcess.HandleFault())
-        Assert.Fail("process should not react.");
+        throw new NotImplementedException("process should not react.");
       handle();
+    }
+
+    [Fact]
+    public void TestYieldFailedProcess() {
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var proc = env.Process(Proc(env));
+      env.Process(Proc(env, proc));
+      env.Run();
+    }
+
+    private IEnumerable<Event> Proc(Environment env) {
+      yield return env.Timeout(TimeSpan.FromMinutes(10));
+      env.ActiveProcess.Fail();
+    }
+
+    private IEnumerable<Event> Proc(Environment env, Process dep) {
+      yield return env.Timeout(TimeSpan.FromMinutes(20));
+      yield return dep;
+      yield return env.Timeout(TimeSpan.FromMinutes(5));
     }
   }
 }

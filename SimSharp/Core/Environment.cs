@@ -59,7 +59,6 @@ namespace SimSharp {
     protected IRandom Random { get; set; }
 
     protected EventQueue ScheduleQ;
-    protected Queue<Event> Queue;
     public Process ActiveProcess { get; set; }
 
     public TextWriter Logger { get; set; }
@@ -74,7 +73,6 @@ namespace SimSharp {
       Now = initialDateTime;
       Random = new SystemRandom();
       ScheduleQ = new EventQueue(InitialMaxEvents);
-      Queue = new Queue<Event>();
       Logger = Console.Out;
     }
     public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
@@ -83,7 +81,6 @@ namespace SimSharp {
       Now = initialDateTime;
       Random = new SystemRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
-      Queue = new Queue<Event>();
       Logger = Console.Out;
     }
 
@@ -95,16 +92,35 @@ namespace SimSharp {
       return TimeSpan.FromSeconds(DefaultTimeStepSeconds * span);
     }
 
-    public Process Process(IEnumerable<Event> generator) {
-      return new Process(this, generator);
+    /// <summary>
+    /// Creates a new process from an event generator. The process is automatically
+    /// scheduled to be started at the current simulation time.
+    /// </summary>
+    /// <param name="generator">The generator function that represents the process.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    /// <returns>The scheduled process that was created.</returns>
+    public Process Process(IEnumerable<Event> generator, int priority = 0) {
+      return new Process(this, generator, priority);
     }
 
-    public Timeout TimeoutD(double delay) {
-      return Timeout(TimeSpan.FromSeconds(DefaultTimeStepSeconds * delay));
+    /// <summary>
+    /// Creates and returns a new timeout.
+    /// </summary>
+    /// <param name="delay">The time after which the timeout is fired.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    /// <returns>The scheduled timeout event that was created.</returns>
+    public Timeout TimeoutD(double delay, int priority = 0) {
+      return Timeout(TimeSpan.FromSeconds(DefaultTimeStepSeconds * delay), priority);
     }
 
-    public Timeout Timeout(TimeSpan delay) {
-      return new Timeout(this, delay);
+    /// <summary>
+    /// Creates and returns a new timeout.
+    /// </summary>
+    /// <param name="delay">The time after which the timeout is fired.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    /// <returns>The scheduled timeout event that was created.</returns>
+    public Timeout Timeout(TimeSpan delay, int priority = 0) {
+      return new Timeout(this, delay, priority: priority);
     }
 
     public virtual void Reset(int randomSeed) {
@@ -112,40 +128,49 @@ namespace SimSharp {
       Now = StartDate;
       Random = new SystemRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
-      Queue = new Queue<Event>();
     }
 
     public virtual void ScheduleD(double delay, Event @event) {
       Schedule(TimeSpan.FromSeconds(DefaultTimeStepSeconds * delay), @event);
     }
 
-    public virtual void Schedule(Event @event) {
+    /// <summary>
+    /// Schedules an event to occur at the same simulation time as the call was made.
+    /// </summary>
+    /// <param name="event">The event that should be scheduled.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param></param>
+    public virtual void Schedule(Event @event, int priority = 0) {
       lock (locker) {
-        Queue.Enqueue(@event);
+        DoSchedule(Now, @event, priority);
       }
     }
 
-    public virtual void Schedule(TimeSpan delay, Event @event) {
+    /// <summary>
+    /// Schedules an event to occur after a certain (positive) delay.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="delay"/> is negative.
+    /// </exception>
+    /// <param name="delay">The (positive) delay after which the event should be fired.</param>
+    /// <param name="event">The event that should be scheduled.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public virtual void Schedule(TimeSpan delay, Event @event, int priority = 0) {
       if (delay < TimeSpan.Zero)
         throw new ArgumentException("Negative delays are not allowed in Schedule(TimeSpan, Event).");
       lock (locker) {
-        if (delay == TimeSpan.Zero) {
-          Queue.Enqueue(@event);
-          return;
-        }
         var eventTime = Now + delay;
-        DoSchedule(eventTime, @event);
+        DoSchedule(eventTime, @event, priority);
       }
     }
 
-    protected virtual EventQueueNode DoSchedule(DateTime date, Event @event) {
+    protected virtual EventQueueNode DoSchedule(DateTime date, Event @event, int priority = 0) {
       if (ScheduleQ.MaxSize == ScheduleQ.Count) {
         // the capacity has to be adjusted, there are more events in the queue than anticipated
         var oldSchedule = ScheduleQ;
         ScheduleQ = new EventQueue(ScheduleQ.MaxSize * 2);
-        foreach (var e in oldSchedule) ScheduleQ.Enqueue(e.Priority, e.Event);
+        foreach (var e in oldSchedule) ScheduleQ.Enqueue(e.PrimaryPriority, e.Event, e.SecondaryPriority);
       }
-      return ScheduleQ.Enqueue(date, @event);
+      return ScheduleQ.Enqueue(date, @event, priority);
     }
 
     public virtual object RunD(double? until = null) {
@@ -174,12 +199,12 @@ namespace SimSharp {
       }
 
       try {
-        var stop = Queue.Count == 0 && ScheduleQ.Count == 0;
+        var stop = ScheduleQ.Count == 0;
         while (!stop) {
           Step();
           ProcessedEvents++;
           lock (locker) {
-            stop = Queue.Count == 0 && ScheduleQ.Count == 0;
+            stop = ScheduleQ.Count == 0;
           }
         }
       } catch (StopSimulationException e) { return e.Value; }
@@ -191,25 +216,23 @@ namespace SimSharp {
     public virtual void Step() {
       Event evt;
       lock (locker) {
-        if (Queue.Count == 0) {
-          var next = ScheduleQ.Dequeue();
-          Now = next.Priority;
-          evt = next.Event;
-        } else evt = Queue.Dequeue();
+        var next = ScheduleQ.Dequeue();
+        Now = next.PrimaryPriority;
+        evt = next.Event;
       }
       evt.Process();
     }
 
     public virtual double PeekD() {
       lock (locker) {
-        if (Queue.Count == 0 && ScheduleQ.Count == 0) return double.MaxValue;
+        if (ScheduleQ.Count == 0) return double.MaxValue;
         return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
       }
     }
 
     public virtual DateTime Peek() {
       lock (locker) {
-        return Queue.Count > 0 ? Now : (ScheduleQ.Count > 0 ? ScheduleQ.First.Priority : DateTime.MaxValue);
+        return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
       }
     }
 

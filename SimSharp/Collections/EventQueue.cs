@@ -47,8 +47,8 @@ namespace SimSharp {
     /// <summary>
     /// Removes every node from the queue.  O(n) (So, don't do this often!)
     /// </summary>
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
     public void Clear() {
       Array.Clear(_nodes, 1, _numNodes);
@@ -58,8 +58,8 @@ namespace SimSharp {
     /// <summary>
     /// Returns (in O(1)!) whether the given node is in the queue.  O(1)
     /// </summary>
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
     public bool Contains(EventQueueNode node) {
       return (_nodes[node.QueueIndex] == node);
@@ -68,12 +68,13 @@ namespace SimSharp {
     /// <summary>
     /// Enqueue a node - .Priority must be set beforehand!  O(log n)
     /// </summary>
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
-    public EventQueueNode Enqueue(DateTime priority, Event @event) {
+    public EventQueueNode Enqueue(DateTime primaryPriority, Event @event, int secondaryPriority = 0) {
       var node = new EventQueueNode {
-        Priority = priority,
+        PrimaryPriority = primaryPriority,
+        SecondaryPriority = secondaryPriority,
         Event = @event,
         QueueIndex = ++_numNodes,
         InsertionIndex = _numNodesEverEnqueued++
@@ -83,8 +84,8 @@ namespace SimSharp {
       return node;
     }
 
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
     private void Swap(EventQueueNode node1, EventQueueNode node2) {
       //Swap the nodes
@@ -113,8 +114,8 @@ namespace SimSharp {
       }
     }
 
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
     private void CascadeDown(EventQueueNode node) {
       //aka Heapify-down
@@ -168,12 +169,15 @@ namespace SimSharp {
     /// Returns true if 'higher' has higher priority than 'lower', false otherwise.
     /// Note that calling HasHigherPriority(node, node) (ie. both arguments the same node) will return false
     /// </summary>
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
     private bool HasHigherPriority(EventQueueNode higher, EventQueueNode lower) {
-      return (higher.Priority < lower.Priority ||
-          (higher.Priority == lower.Priority && higher.InsertionIndex < lower.InsertionIndex));
+      return (higher.PrimaryPriority < lower.PrimaryPriority ||
+          (higher.PrimaryPriority == lower.PrimaryPriority
+            && (higher.SecondaryPriority < lower.SecondaryPriority ||
+            (higher.SecondaryPriority == lower.SecondaryPriority
+              && higher.InsertionIndex < lower.InsertionIndex))));
     }
 
     /// <summary>
@@ -199,11 +203,12 @@ namespace SimSharp {
     /// <b>Forgetting to call this method will result in a corrupted queue!</b>
     /// O(log n)
     /// </summary>
-#if NET_VERSION_4_5
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if AGGRESSIVE_INLINING
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
-    public void UpdatePriority(EventQueueNode node, DateTime priority) {
-      node.Priority = priority;
+    public void UpdatePriority(EventQueueNode node, DateTime primaryPriority, int secondaryPriority) {
+      node.PrimaryPriority = primaryPriority;
+      node.SecondaryPriority = secondaryPriority;
       OnNodeUpdated(node);
     }
 

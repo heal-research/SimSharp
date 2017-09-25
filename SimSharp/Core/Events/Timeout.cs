@@ -34,12 +34,13 @@ namespace SimSharp {
     /// <param name="delay">The timespan for the timeout.</param>
     /// <param name="value">The value of the timeout.</param>
     /// <param name="isOk">Whether the timeout should succeed or fail.</param>
-    public Timeout(Environment environment, TimeSpan delay, object value = null, bool isOk = true)
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public Timeout(Environment environment, TimeSpan delay, object value = null, bool isOk = true, int priority = 0)
       : base(environment) {
       IsOk = isOk;
       Value = value;
       IsTriggered = true;
-      environment.Schedule(delay, this);
+      environment.Schedule(delay, this, priority);
     }
   }
 }

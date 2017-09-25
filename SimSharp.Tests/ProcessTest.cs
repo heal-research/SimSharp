@@ -317,5 +317,24 @@ namespace SimSharp.Tests {
       yield return dep;
       yield return env.Timeout(TimeSpan.FromMinutes(5));
     }
+
+    [Fact]
+    public void TestPrioritizedProcesses() {
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var order = new List<int>();
+      for (var p = 5; p >= -5; p--) {
+        // processes are created such that lowest priority process is first
+        env.Process(PrioritizedProcess(env, p, order), p);
+      }
+      env.Run();
+      Assert.Equal(11, order.Count);
+      // processes must be executed such that highest priority process is started first
+      Assert.Equal(new[] { -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 }, order);
+    }
+
+    private IEnumerable<Event> PrioritizedProcess(Environment env, int prio, List<int> order) {
+      order.Add(prio);
+      yield break;
+    }
   }
 }

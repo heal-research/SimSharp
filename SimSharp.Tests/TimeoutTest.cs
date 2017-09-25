@@ -91,5 +91,33 @@ namespace SimSharp.Tests {
     private IEnumerable<Event> TestTriggeredTimeoutChild(Environment env, Event @event) {
       yield return @event;
     }
+
+    [Fact]
+    public void TestPrioritizedTimeouts() {
+      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var procLowest = env.Process(PrioritizedTimeoutProc(env, 0));
+      var procHighest = env.Process(PrioritizedTimeoutProc(env, -2));
+      var procMiddle = env.Process(PrioritizedTimeoutProcs(env, procLowest, procHighest));
+      procMiddle.AddCallback(_ => {
+        Assert.True(procHighest.IsProcessed);
+        Assert.True(procLowest.IsTriggered);
+        Assert.False(procLowest.IsProcessed);
+      });
+      env.Run();
+    }
+
+    private IEnumerable<Event> PrioritizedTimeoutProcs(Environment env, Process procLowest, Process procHighest) {
+      yield return env.TimeoutD(1, -1);
+      Assert.True(procLowest.IsAlive);
+      Assert.False(procLowest.IsTriggered);
+      Assert.False(procLowest.IsProcessed);
+      Assert.False(procHighest.IsAlive);
+      Assert.True(procHighest.IsTriggered);
+      Assert.False(procHighest.IsProcessed);
+    }
+
+    private IEnumerable<Event> PrioritizedTimeoutProc(Environment env, int prio) {
+      yield return env.TimeoutD(1, prio);
+    }
   }
 }

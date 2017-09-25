@@ -90,13 +90,14 @@ namespace SimSharp {
     /// The signature of this method allows it to be used as a callback.
     /// </remarks>
     /// <param name="event">The event that triggers this event.</param>
-    public virtual void Trigger(Event @event) {
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public virtual void Trigger(Event @event, int priority = 0) {
       if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = @event.IsOk;
       Value = @event.Value;
       IsTriggered = true;
-      Environment.Schedule(this);
+      Environment.Schedule(this, priority);
     }
 
     /// <summary>
@@ -109,16 +110,14 @@ namespace SimSharp {
     /// Thrown when the event has already been triggered.
     /// </exception>
     /// <param name="value">The value that the event should use.</param>
-    /// <param name="urgent">Whether the event should be scheduled urgently.
-    /// This is ususally not required and should be reserved for very special
-    /// cases.</param>
-    public virtual void Succeed(object value = null) {
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public virtual void Succeed(object value = null, int priority = 0) {
       if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = true;
       Value = value;
       IsTriggered = true;
-      Environment.Schedule(this);
+      Environment.Schedule(this, priority);
     }
 
     /// <summary>
@@ -131,16 +130,14 @@ namespace SimSharp {
     /// Thrown when the event has already been triggered.
     /// </exception>
     /// <param name="value">The value that the event should use.</param>
-    /// <param name="urgent">Whether the event should be scheduled urgently.
-    /// This is ususally not required and should be reserved for very special
-    /// cases.</param>
-    public virtual void Fail(object value = null) {
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public virtual void Fail(object value = null, int priority = 0) {
       if (IsTriggered)
         throw new InvalidOperationException("Event has already been triggered.");
       IsOk = false;
       Value = value;
       IsTriggered = true;
-      Environment.Schedule(this);
+      Environment.Schedule(this, priority);
     }
 
     /// <summary>

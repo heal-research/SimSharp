@@ -41,11 +41,19 @@ namespace SimSharp {
       protected set { target = value; }
     }
 
-    public Process(Environment environment, IEnumerable<Event> generator)
+    /// <summary>
+    /// Sets up a new process.
+    /// The process places an initialize event into the event queue which starts
+    /// the process by retrieving events from the generator.
+    /// </summary>
+    /// <param name="environment">The environment in which the process lives.</param>
+    /// <param name="generator">The generator function of the process.</param>
+    /// <param name="priority">The priority if multiple processes are started at the same time.</param>
+    public Process(Environment environment, IEnumerable<Event> generator, int priority = 0)
       : base(environment) {
       this.generator = generator.GetEnumerator();
       IsOk = true;
-      target = new Initialize(environment, this);
+      target = new Initialize(environment, this, priority);
     }
 
     /// <summary>
@@ -58,13 +66,14 @@ namespace SimSharp {
     ///  - If the process attempts to interrupt itself.
     ///  - If the process continues to yield events despite being faulted.</exception>
     /// <param name="cause">The cause of the interrupt.</param>
-    public virtual void Interrupt(object cause = null) {
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public virtual void Interrupt(object cause = null, int priority = 0) {
       if (IsTriggered) throw new InvalidOperationException("The process has terminated and cannot be interrupted.");
       if (Environment.ActiveProcess == this) throw new InvalidOperationException("A process is not allowed to interrupt itself.");
 
       var interruptEvent = new Event(Environment);
       interruptEvent.AddCallback(Resume);
-      interruptEvent.Fail(cause);
+      interruptEvent.Fail(cause, priority);
 
       if (Target != null)
         Target.RemoveCallback(Resume);
@@ -143,12 +152,12 @@ namespace SimSharp {
     }
 
     private class Initialize : Event {
-      public Initialize(Environment environment, Process process)
+      public Initialize(Environment environment, Process process, int priority)
         : base(environment) {
         CallbackList.Add(process.Resume);
         IsOk = true;
         IsTriggered = true;
-        environment.Schedule(this);
+        environment.Schedule(this, priority);
       }
     }
   }

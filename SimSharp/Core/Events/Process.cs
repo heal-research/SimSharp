@@ -89,7 +89,10 @@ namespace SimSharp {
               Environment.ActiveProcess = null;
               return;
             }
-            if (ProceedToEvent()) break;
+            if (!ProceedToEvent()) {
+              @event = target;
+              continue;
+            } else break;
           } else if (!IsTriggered) {
             Succeed(@event.Value);
             break;

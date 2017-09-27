@@ -303,8 +303,11 @@ namespace SimSharp.Tests {
     public void TestYieldFailedProcess() {
       var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
       var proc = env.Process(Proc(env));
-      env.Process(Proc(env, proc));
+      env.Process(Proc1(env, proc));
+      var p2 = env.Process(Proc2(env, proc));
+      Assert.Throws<InvalidOperationException>(() => env.Run());
       env.Run();
+      Assert.Equal(42, (int)p2.Value);
     }
 
     private IEnumerable<Event> Proc(Environment env) {
@@ -312,10 +315,19 @@ namespace SimSharp.Tests {
       env.ActiveProcess.Fail();
     }
 
-    private IEnumerable<Event> Proc(Environment env, Process dep) {
+    private IEnumerable<Event> Proc1(Environment env, Process dep) {
       yield return env.Timeout(TimeSpan.FromMinutes(20));
       yield return dep;
       yield return env.Timeout(TimeSpan.FromMinutes(5));
+      throw new NotImplementedException("process should not be able to continue");
+    }
+
+    private IEnumerable<Event> Proc2(Environment env, Process dep) {
+      yield return env.Timeout(TimeSpan.FromMinutes(20));
+      yield return dep;
+      env.ActiveProcess.HandleFault();
+      yield return env.Timeout(TimeSpan.FromMinutes(5));
+      env.ActiveProcess.Succeed(42);
     }
 
     [Fact]

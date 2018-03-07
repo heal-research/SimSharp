@@ -57,7 +57,7 @@ namespace SimSharp.Benchmarks {
         else {
           double ghz;
           if (double.TryParse(input,
-            NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowThousands,
+            NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowThousands,
             CultureInfo.CurrentCulture.NumberFormat, out ghz))
             CPU_FRQ = (long)Math.Round(ghz * 1E9);
         }

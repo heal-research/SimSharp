@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <Authors>Andreas Beham</Authors>
-    <Version>3.0.10</Version>
+    <Version>3.0.11</Version>
     <Company>HEAL, FH Upper Austria</Company>
     <Product>Sim# (Benchmarks)</Product>
     <Description />

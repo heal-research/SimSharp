@@ -7,7 +7,7 @@
     <DelaySign>False</DelaySign>
     <AssemblyName>SimSharp</AssemblyName>
     <RootNamespace>SimSharp</RootNamespace>
-    <Version>3.0.10</Version>
+    <Version>3.0.11</Version>
     <Authors>Andreas Beham</Authors>
     <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.0. Sim# uses an efficient event queue (adapted from https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c) that allows to compute models very fast. Simulating 10 years of the MachineShop sample (http://simpy.readthedocs.org/en/latest/examples/machine_shop.html) that uses preemptive resources requires only 2.5s on a Core i7 2.6Ghz. This model generates more than 5 million events.
 
@@ -17,7 +17,10 @@ SimPy allows to model processes easily and with little boiler plate code. A proc
     <Copyright>Andreas Beham</Copyright>
     <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
-    <PackageReleaseNotes>3.0.10
+    <PackageReleaseNotes>3.0.11
+ - Fixed bug that would cause an infinite loop in ResourcePool when requesting unavailable objects
+ 
+ 3.0.10
  - Added target for .NET Standard 2.0 in addition to .NET Framework 4 and .NET Framework 4.5
  - Fixed bug that would allow a process to continue if it yielded a failed process that has already been processed
 

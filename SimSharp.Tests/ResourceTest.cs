@@ -829,5 +829,28 @@ namespace SimSharp.Tests {
       Assert.Equal(0, res.PutQueueLength);
       Assert.Equal(0, res.GetQueueLength);
     }
+
+    [Fact]
+    public void TestResourcePoolUnavailable() {
+      var thread = new System.Threading.Thread(TestResourcePoolUnavailableMethod);
+      thread.Start();
+      System.Threading.Thread.Sleep(1000);
+      Assert.False(thread.IsAlive);
+    }
+
+    private void TestResourcePoolUnavailableMethod() {
+      var env = new Environment();
+      var pool = new ResourcePool(env, new object[] { 0, 1 });
+      env.Process(TestResourcePoolUnavailableProc(env, pool));
+      env.Process(TestResourcePoolUnavailableProc(env, pool));
+      env.Run();
+    }
+
+    private IEnumerable<Event> TestResourcePoolUnavailableProc(Environment env, ResourcePool pool) {
+      var req = pool.Request(o => (int)o == 0);
+      yield return req;
+      yield return env.TimeoutD(1);
+      yield return pool.Release(req);
+    }
   }
 }

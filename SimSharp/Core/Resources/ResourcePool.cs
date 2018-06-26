@@ -92,7 +92,7 @@ namespace SimSharp {
           var next = current.Next;
           RequestQueue.Remove(current);
           current = next;
-        }
+        } else current = current.Next;
         if (Resources.Count == 0) break;
       }
     }

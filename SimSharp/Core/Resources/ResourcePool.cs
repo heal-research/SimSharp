@@ -21,6 +21,13 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// A ResourcePool is a crossover between a <see cref="Resource"/> and a <see cref="Store"/>.
+  /// There is a fixed number of non-anonymous resources.
+  /// 
+  /// Requests are performed in FIFO order only when they match at least one resource in the pool.
+  /// Releases are processed in FIFO order (usually no simulation time passes for a Release).
+  /// </summary>
   public class ResourcePool {
     protected static readonly Func<object, bool> TrueFunc = _ => true;
 

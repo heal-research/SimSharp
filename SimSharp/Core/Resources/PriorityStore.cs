@@ -18,17 +18,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimSharp {
   /// <summary>
-  /// The store holds a variable number of individual items.
-  /// The items are removed from the store in the order in which they have been added.
+  /// A PriorityStore is similar to a <see cref="Store"/>.
+  /// However, items are removed from the store in order of their priority.
   /// 
-  /// Put are processed in FIFO order.
-  /// Get are processed in FIFO order.
+  /// PriorityStore holds a variable number of individual items.
+  /// Put and Get are both processed in strict FIFO order.
   /// </summary>
-  public class Store {
+  public class PriorityStore {
 
     public int Capacity { get; protected set; }
 
@@ -38,19 +37,19 @@ namespace SimSharp {
 
     protected Queue<StorePut> PutQueue { get; private set; }
     protected Queue<StoreGet> GetQueue { get; private set; }
-    protected List<object> Items { get; private set; }
+    protected SimplePriorityQueue<object, double> Items { get; private set; }
 
-    public Store(Environment environment, int capacity = int.MaxValue) {
+    public PriorityStore(Environment environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;
       PutQueue = new Queue<StorePut>();
       GetQueue = new Queue<StoreGet>();
-      Items = new List<object>();
+      Items = new SimplePriorityQueue<object, double>();
     }
 
-    public virtual StorePut Put(object item) {
-      var put = new StorePut(Environment, TriggerGet, item);
+    public virtual StorePut Put(object item, double priority = 1) {
+      var put = new StorePut(Environment, TriggerGet, new PriorityItem(priority, item));
       PutQueue.Enqueue(put);
       TriggerPut();
       return put;
@@ -65,15 +64,15 @@ namespace SimSharp {
 
     protected virtual void DoPut(StorePut put) {
       if (Items.Count < Capacity) {
-        Items.Add(put.Value);
+        var pi = (PriorityItem)put.Value;
+        Items.Enqueue(pi.Item, pi.Priority);
         put.Succeed();
       }
     }
 
     protected virtual void DoGet(StoreGet get) {
       if (Items.Count > 0) {
-        var item = Items.First();
-        Items.RemoveAt(0);
+        var item = Items.Dequeue();
         get.Succeed(item);
       }
     }
@@ -95,6 +94,16 @@ namespace SimSharp {
         if (get.IsTriggered) {
           GetQueue.Dequeue();
         } else break;
+      }
+    }
+
+    protected class PriorityItem {
+      public double Priority { get; protected set; }
+      public object Item { get; protected set; }
+
+      public PriorityItem(double priority, object item) {
+        Priority = priority;
+        Item = item;
       }
     }
   }

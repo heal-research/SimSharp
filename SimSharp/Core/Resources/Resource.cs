@@ -20,6 +20,12 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp {
+  /// <summary>
+  /// A resource holds a fixed number of anonymous entities.
+  /// 
+  /// Requests are processed in FIFO order.
+  /// Releases are processed in FIFO order (usually no simulation time passes for a Release).
+  /// </summary>
   public class Resource {
 
     public int Capacity { get; protected set; }

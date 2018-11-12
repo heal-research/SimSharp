@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace SimSharp {
   /// <summary>
   /// An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!
-  /// See https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c/wiki/Getting%20Started for more information
+  /// See https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp/wiki/Getting-Started for more information
   /// </summary>
   /// <remarks>
   /// There are modifications so that the type is not generic anymore and can only hold values of type EventQueueNode
@@ -47,9 +47,7 @@ namespace SimSharp {
     /// <summary>
     /// Removes every node from the queue.  O(n) (So, don't do this often!)
     /// </summary>
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear() {
       Array.Clear(_nodes, 1, _numNodes);
       _numNodes = 0;
@@ -58,9 +56,7 @@ namespace SimSharp {
     /// <summary>
     /// Returns (in O(1)!) whether the given node is in the queue.  O(1)
     /// </summary>
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool Contains(EventQueueNode node) {
       return (_nodes[node.QueueIndex] == node);
     }
@@ -68,9 +64,7 @@ namespace SimSharp {
     /// <summary>
     /// Enqueue a node - .Priority must be set beforehand!  O(log n)
     /// </summary>
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public EventQueueNode Enqueue(DateTime primaryPriority, Event @event, int secondaryPriority = 0) {
       var node = new EventQueueNode {
         PrimaryPriority = primaryPriority,
@@ -83,10 +77,8 @@ namespace SimSharp {
       CascadeUp(_nodes[_numNodes]);
       return node;
     }
-
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+    
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Swap(EventQueueNode node1, EventQueueNode node2) {
       //Swap the nodes
       _nodes[node1.QueueIndex] = node2;
@@ -114,9 +106,8 @@ namespace SimSharp {
       }
     }
 
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void CascadeDown(EventQueueNode node) {
       //aka Heapify-down
       EventQueueNode newParent;
@@ -169,9 +160,8 @@ namespace SimSharp {
     /// Returns true if 'higher' has higher priority than 'lower', false otherwise.
     /// Note that calling HasHigherPriority(node, node) (ie. both arguments the same node) will return false
     /// </summary>
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private bool HasHigherPriority(EventQueueNode higher, EventQueueNode lower) {
       return (higher.PrimaryPriority < lower.PrimaryPriority ||
           (higher.PrimaryPriority == lower.PrimaryPriority
@@ -203,9 +193,8 @@ namespace SimSharp {
     /// <b>Forgetting to call this method will result in a corrupted queue!</b>
     /// O(log n)
     /// </summary>
-#if AGGRESSIVE_INLINING
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void UpdatePriority(EventQueueNode node, DateTime primaryPriority, int secondaryPriority) {
       node.PrimaryPriority = primaryPriority;
       node.SecondaryPriority = secondaryPriority;

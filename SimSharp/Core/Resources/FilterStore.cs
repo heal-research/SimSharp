@@ -21,9 +21,20 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// A filter store is similar to a <see cref="Store"/>.
+  /// However, in Get it is possible to specify the property of the item wished to retrieve.
+  /// 
+  /// FilterStore holds a variable number of individual items.
+  /// Put are always performed in FIFO order. 
+  /// Get are performed in FIFO order only when they match at least one item in the store.
+  /// </summary>
   public class FilterStore {
-    public int Count { get { return Items.Count; } }
+
     public int Capacity { get; protected set; }
+
+    public int Count { get { return Items.Count; } }
+
     protected Environment Environment { get; private set; }
 
     protected Queue<StorePut> PutQueue { get; private set; }

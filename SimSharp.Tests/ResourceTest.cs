@@ -283,7 +283,7 @@ namespace SimSharp.Tests {
       var env = new Environment(start);
       var res = new PreemptiveResource(env, capacity: 2);
       var log = new Dictionary<DateTime, int>();
-      //                                id           d  p
+      //                                    id           d  p
       env.Process(TestPreemtiveResourceProc(0, env, res, 0, 1, log));
       env.Process(TestPreemtiveResourceProc(1, env, res, 0, 1, log));
       env.Process(TestPreemtiveResourceProc(2, env, res, 1, 0, log));
@@ -532,12 +532,12 @@ namespace SimSharp.Tests {
       public MyFilterStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
     class MyPreemptiveResource : PreemptiveResource {
-      public int RequestQueueLength { get { return RequestQueue.SelectMany(x => x.Value).Count(); } }
+      public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
       public MyPreemptiveResource(Environment environment, int capacity = 1) : base(environment, capacity) { }
     }
     class MyPriorityResource : PriorityResource {
-      public int RequestQueueLength { get { return RequestQueue.SelectMany(x => x.Value).Count(); } }
+      public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
       public MyPriorityResource(Environment environment, int capacity = 1) : base(environment, capacity) { }
     }
@@ -555,6 +555,12 @@ namespace SimSharp.Tests {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
       public MyStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
+    }
+    class MyPriorityStore : PriorityStore {
+      public int PutQueueLength { get { return PutQueue.Count; } }
+      public int GetQueueLength { get { return GetQueue.Count; } }
+      public object Peek { get { return Items.First; } }
+      public MyPriorityStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
 
     [Fact]
@@ -828,6 +834,54 @@ namespace SimSharp.Tests {
       Assert.Equal(0, res.Count);
       Assert.Equal(0, res.PutQueueLength);
       Assert.Equal(0, res.GetQueueLength);
+    }
+
+    [Fact]
+    public void TestImmediatePriorityStore() {
+      var env = new Environment();
+      var res = new MyPriorityStore(env);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
+
+      var put = res.Put(1, priority: 2);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
+
+      var get = res.Get();
+      Assert.True(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(1, (int)get.Value);
+
+      get = res.Get();
+      Assert.False(get.IsTriggered);
+      Assert.Equal(0, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
+
+      put = res.Put(2, priority: 2);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
+
+      put = res.Put(1, priority: 1);
+      Assert.True(put.IsTriggered);
+      Assert.Equal(2, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(1, res.GetQueueLength);
+
+      env.Run();
+      Assert.True(get.IsTriggered);
+      Assert.Equal(1, res.Count);
+      Assert.Equal(0, res.PutQueueLength);
+      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(1, (int)get.Value);
+      Assert.Equal(2, (int)res.Peek);
     }
 
     [Fact]

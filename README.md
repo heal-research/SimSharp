@@ -9,7 +9,7 @@ A .NET port of SimPy, process-based discrete event simulation framework
 ---
 
 
-Sim# aims to port the concepts used in SimPy [1] to the .NET world. Sim# is implemented in C# and is available via Nuget for .NET Framework 4/4.5 and is also .NET Standard 2.0 compliant. Sim# uses an efficient event queue (adapted from [3]) that allows to compute models very quickly. Simulating 10 years of the MachineShop sample [4], that uses preemptive resources, requires only 2.5s on a Core i7 2.6Ghz. This model generates more than 5 million events.
+Sim# aims to port the concepts used in SimPy [1] to the .NET world. Sim# is implemented in C# and is available via Nuget for .NET Framework 4.5 and is also .NET Standard 2.0 compliant. Sim# uses an efficient event queue (adapted from [3]) that allows to compute models very quickly. Simulating 10 years of the MachineShop sample [4], that uses preemptive resources, requires only 2.5s on a Core i7 2.6Ghz. This model generates more than 5 million events.
 
 SimPy allows to model processes easily and with little boiler plate code. A process is described as a method that yields events. When an event is yielded, the process waits on it. Processes are themselves events and so it is convenient to spawn sub-processes that can either be waited upon or that run next to each other. There is no need to inherit from classes or understand a complex object oriented
 design.
@@ -64,5 +64,5 @@ In that environment, calling `env.TimeoutD(1)` would be equal to calling the mor
 
 1. [Python Simpy Package](https://pypi.python.org/pypi/simpy)
 2. [Nuget package](https://www.nuget.org/packages/SimSharp/)
-3. [High speed priority queue](https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c)
+3. [High speed priority queue](https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp)
 4. [Machine Shop Example](http://simpy.readthedocs.org/en/latest/examples/machine_shop.html)

@@ -18,12 +18,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// A container holds a variable amount of a single continuous entity, e.g. water, coal, grain, etc.
+  /// 
+  /// Put and Get are in FIFO order only when they can be satisfied.
+  /// Any put or get that can be satisfied takes precedence.
+  /// Put events that attempt to add more to the Container than there is capacity for and
+  /// Get events that remove more than there is are backlogged.
+  /// </summary>
   public class Container {
-    public double Level { get; protected set; }
+
     public double Capacity { get; protected set; }
+
+    public double Level { get; protected set; }
+
     protected Environment Environment { get; private set; }
 
     protected Queue<ContainerPut> PutQueue { get; private set; }

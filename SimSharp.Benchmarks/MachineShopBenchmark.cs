@@ -20,10 +20,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SimSharp.Performance {
-  public class MachineShop {
-    public static void Main(string[] args) {
-      new MachineShop().Simulate();
+namespace SimSharp.Benchmarks {
+  public class MachineShopBenchmark {
+    public static int Run(MachineShopOptions opts) {
+      try {
+        new MachineShopBenchmark().Simulate();
+        return 0;
+      } catch {
+        return 1;
+      }
     }
 
     /*
@@ -149,17 +154,17 @@ namespace SimSharp.Performance {
       var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, repairman)).ToArray();
       env.Process(OtherJobs(env, repairman));
 
-      var startPerf = DateTime.UtcNow;
+      var perf = System.Diagnostics.Stopwatch.StartNew();
       // Execute!
       env.Run(SimTime);
-      var perf = DateTime.UtcNow - startPerf;
+      perf.Stop();
 
       // Analyis/results
       env.Log("Machine shop results after {0} days.", (env.Now - start).TotalDays);
       foreach (var machine in machines)
         env.Log("{0} made {1} parts.", machine.Name, machine.PartsMade);
       env.Log(string.Empty);
-      env.Log("Processed {0:#,###} events in {1:#.##} seconds ({2:#,###.##} events/s).", env.ProcessedEvents, perf.TotalSeconds, (env.ProcessedEvents / perf.TotalSeconds));
+      env.Log("Processed {0:#,###} events in {1:#.##} seconds ({2:#,###.##} events/s).", env.ProcessedEvents, perf.Elapsed.TotalSeconds, (env.ProcessedEvents / perf.Elapsed.TotalSeconds));
     }
   }
 }

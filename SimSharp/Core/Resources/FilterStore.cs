@@ -35,13 +35,13 @@ namespace SimSharp {
 
     public int Count { get { return Items.Count; } }
 
-    protected Environment Environment { get; private set; }
+    protected Simulation Environment { get; private set; }
 
     protected Queue<StorePut> PutQueue { get; private set; }
     protected LinkedList<FilterStoreGet> GetQueue { get; private set; }
     protected List<object> Items { get; private set; }
 
-    public FilterStore(Environment environment, int capacity = int.MaxValue) {
+    public FilterStore(Simulation environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;
@@ -49,7 +49,7 @@ namespace SimSharp {
       GetQueue = new LinkedList<FilterStoreGet>();
       Items = new List<object>();
     }
-    public FilterStore(Environment environment, IEnumerable<object> items, int capacity = int.MaxValue) {
+    public FilterStore(Simulation environment, IEnumerable<object> items, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;

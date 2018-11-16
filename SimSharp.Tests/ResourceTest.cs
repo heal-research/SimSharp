@@ -29,7 +29,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestResource() {
       var start = new DateTime(2014, 4, 1);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var resource = new Resource(env, capacity: 1);
 
       Assert.Equal(1, resource.Capacity);
@@ -43,7 +43,7 @@ namespace SimSharp.Tests {
       Assert.Equal(start + TimeSpan.FromSeconds(1), log["a"]);
       Assert.Equal(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-    private IEnumerable<Event> TestResourceProc(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceProc(Simulation env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       var req = resource.Request();
       yield return req;
@@ -58,7 +58,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestResourceWithUsing() {
       var start = new DateTime(2014, 4, 1);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var resource = new Resource(env, capacity: 1);
 
       Assert.Equal(1, resource.Capacity);
@@ -72,7 +72,7 @@ namespace SimSharp.Tests {
       Assert.Equal(start + TimeSpan.FromSeconds(1), log["a"]);
       Assert.Equal(start + TimeSpan.FromSeconds(2), log["b"]);
     }
-    private IEnumerable<Event> TestResourceWithUsingProc(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceWithUsingProc(Simulation env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         yield return req;
@@ -86,7 +86,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestResourceWithUsingAndCondition() {
       var start = new DateTime(2016, 3, 1);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var resource = new Resource(env, capacity: 1);
 
       Assert.Equal(1, resource.Capacity);
@@ -101,7 +101,7 @@ namespace SimSharp.Tests {
       Assert.Equal(start + TimeSpan.FromSeconds(1), log["b"]);
       Assert.Equal(start + TimeSpan.FromSeconds(3), log["a"]);
     }
-    private IEnumerable<Event> TestResourceWithUsingAndConditionProc(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceWithUsingAndConditionProc(Simulation env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         var waitingTimeOut = env.Timeout(name == "b" ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(5));
@@ -124,7 +124,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestResourceSlots() {
       var start = new DateTime(2014, 4, 1);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var resource = new Resource(env, capacity: 3);
       var log = new Dictionary<string, DateTime>();
       for (int i = 0; i < 9; i++)
@@ -136,7 +136,7 @@ namespace SimSharp.Tests {
       }.ToDictionary(x => x.Key, x => start + TimeSpan.FromSeconds(x.Value));
       Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestResourceSlotsProc(Environment env, string name, Resource resource,
+    private IEnumerable<Event> TestResourceSlotsProc(Simulation env, string name, Resource resource,
       Dictionary<string, DateTime> log) {
       using (var req = resource.Request()) {
         yield return req;
@@ -147,7 +147,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestResourceContinueAfterInterrupt() {
-      var env = new Environment(new DateTime(2014, 4, 1));
+      var env = new Simulation(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
       env.Process(TestResourceContinueAfterInterruptProc(env, res));
       var proc = env.Process(TestResourceContinueAfterInterruptVictim(env, res));
@@ -155,14 +155,14 @@ namespace SimSharp.Tests {
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptProc(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptProc(Simulation env, Resource res) {
       using (var req = res.Request()) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptVictim(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptVictim(Simulation env, Resource res) {
       var req = res.Request();
       yield return req;
       Assert.False(req.IsOk);
@@ -172,14 +172,14 @@ namespace SimSharp.Tests {
       Assert.Equal(new DateTime(2014, 4, 1, 0, 0, 1), env.Now);
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptInterruptor(Environment env, Process proc) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptInterruptor(Simulation env, Process proc) {
       proc.Interrupt();
       yield break;
     }
 
     [Fact]
     public void TestResourceContinueAfterInterruptWaiting() {
-      var env = new Environment(new DateTime(2014, 4, 1));
+      var env = new Simulation(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
       env.Process(TestResourceContinueAfterInterruptWaitingProc(env, res));
       var proc = env.Process(TestResourceContinueAfterInterruptWaitingVictim(env, res));
@@ -187,14 +187,14 @@ namespace SimSharp.Tests {
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingProc(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingProc(Simulation env, Resource res) {
       using (var req = res.Request()) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingVictim(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingVictim(Simulation env, Resource res) {
       var req = res.Request();
       yield return req;
       Assert.False(req.IsOk);
@@ -205,14 +205,14 @@ namespace SimSharp.Tests {
       Assert.Equal(new DateTime(2014, 4, 1, 0, 0, 2), env.Now);
     }
 
-    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingInterruptor(Environment env, Process proc) {
+    private IEnumerable<Event> TestResourceContinueAfterInterruptWaitingInterruptor(Simulation env, Process proc) {
       proc.Interrupt();
       yield break;
     }
 
     [Fact]
     public void TestResourceReleaseAfterInterrupt() {
-      var env = new Environment(new DateTime(2014, 4, 1));
+      var env = new Simulation(new DateTime(2014, 4, 1));
       var res = new Resource(env, capacity: 1);
       env.Process(TestResourceReleaseAfterInterruptBlocker(env, res));
       var victimProc = env.Process(TestResourceReleaseAfterInterruptVictim(env, res));
@@ -220,14 +220,14 @@ namespace SimSharp.Tests {
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourceReleaseAfterInterruptBlocker(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceReleaseAfterInterruptBlocker(Simulation env, Resource res) {
       using (var req = res.Request()) {
         yield return req;
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
     }
 
-    private IEnumerable<Event> TestResourceReleaseAfterInterruptVictim(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceReleaseAfterInterruptVictim(Simulation env, Resource res) {
       var req = res.Request();
       yield return req;
       Assert.False(req.IsOk);
@@ -237,19 +237,19 @@ namespace SimSharp.Tests {
       Assert.Equal(new DateTime(2014, 4, 1), env.Now);
     }
 
-    private IEnumerable<Event> TestResourceReleaseAfterInterruptInterruptor(Environment env, Process proc) {
+    private IEnumerable<Event> TestResourceReleaseAfterInterruptInterruptor(Simulation env, Process proc) {
       proc.Interrupt();
       yield break;
     }
 
     [Fact]
     public void TestResourceWithCondition() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new Resource(env, capacity: 1);
       env.Process(TestResourceWithConditionProc(env, res));
       env.Run();
     }
-    private IEnumerable<Event> TestResourceWithConditionProc(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceWithConditionProc(Simulation env, Resource res) {
       using (var req = res.Request()) {
         var timeout = env.Timeout(TimeSpan.FromSeconds(1));
         yield return req | timeout;
@@ -260,7 +260,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestResourceWithPriorityQueue() {
-      var env = new Environment(new DateTime(2014, 4, 1));
+      var env = new Simulation(new DateTime(2014, 4, 1));
       var resource = new PriorityResource(env, capacity: 1);
       env.Process(TestResourceWithPriorityQueueProc(env, 0, resource, 2, 0));
       env.Process(TestResourceWithPriorityQueueProc(env, 2, resource, 3, 10));
@@ -268,7 +268,7 @@ namespace SimSharp.Tests {
       env.Process(TestResourceWithPriorityQueueProc(env, 4, resource, 1, 5));
       env.Run();
     }
-    private IEnumerable<Event> TestResourceWithPriorityQueueProc(Environment env, int delay, PriorityResource resource, int priority, int resTime) {
+    private IEnumerable<Event> TestResourceWithPriorityQueueProc(Simulation env, int delay, PriorityResource resource, int priority, int resTime) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       var req = resource.Request(priority);
       yield return req;
@@ -280,7 +280,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestPreemtiveResource() {
       var start = new DateTime(2014, 4, 1);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var res = new PreemptiveResource(env, capacity: 2);
       var log = new Dictionary<DateTime, int>();
       //                                    id           d  p
@@ -295,7 +295,7 @@ namespace SimSharp.Tests {
       }.ToDictionary(x => start + TimeSpan.FromSeconds(x.Key), x => x.Value);
       Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestPreemtiveResourceProc(int id, Environment env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
+    private IEnumerable<Event> TestPreemtiveResourceProc(int id, Simulation env, PreemptiveResource res, int delay, int prio, Dictionary<DateTime, int> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
@@ -307,13 +307,13 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestPreemptiveResourceTimeout0() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new PreemptiveResource(env, capacity: 1);
       env.Process(TestPreemptiveResourceTimeoutA(env, res, 1));
       env.Process(TestPreemptiveResourceTimeoutB(env, res, 0));
       env.Run();
     }
-    private IEnumerable<Event> TestPreemptiveResourceTimeoutA(Environment env, PreemptiveResource res, int prio) {
+    private IEnumerable<Event> TestPreemptiveResourceTimeoutA(Simulation env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
         Assert.True(env.ActiveProcess.HandleFault());
@@ -321,7 +321,7 @@ namespace SimSharp.Tests {
         Assert.False(env.ActiveProcess.HandleFault());
       }
     }
-    private IEnumerable<Event> TestPreemptiveResourceTimeoutB(Environment env, PreemptiveResource res, int prio) {
+    private IEnumerable<Event> TestPreemptiveResourceTimeoutB(Simulation env, PreemptiveResource res, int prio) {
       using (var req = res.Request(priority: prio, preempt: true)) {
         yield return req;
       }
@@ -330,7 +330,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestMixedPreemtion() {
       var start = new DateTime(2014, 4, 2);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var res = new PreemptiveResource(env, capacity: 2);
       var log = new List<Tuple<int, int>>();
       env.Process(TestMixedPreemtionProc(0, env, res, 0, 1, true, log));
@@ -347,7 +347,7 @@ namespace SimSharp.Tests {
       };
       Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestMixedPreemtionProc(int id, Environment env, PreemptiveResource res, int delay, int prio, bool preempt, List<Tuple<int, int>> log) {
+    private IEnumerable<Event> TestMixedPreemtionProc(int id, Simulation env, PreemptiveResource res, int delay, int prio, bool preempt, List<Tuple<int, int>> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(delay));
       using (var req = res.Request(priority: prio, preempt: preempt)) {
         yield return req;
@@ -361,7 +361,7 @@ namespace SimSharp.Tests {
     public void TestFilterStore() {
       var start = new DateTime(1970, 1, 1, 0, 0, 0);
       var sb = new StringBuilder();
-      var env = new Environment(start) {
+      var env = new Simulation(start) {
         Logger = new StringWriter(sb)
       };
       var sto = new FilterStore(env, capacity: 1);
@@ -385,7 +385,7 @@ namespace SimSharp.Tests {
     private static readonly object FilterStoreObjA = new object();
     private static readonly object FilterStoreObjB = new object();
 
-    private IEnumerable<Event> FilterStoreProducer(Environment env, FilterStore sto) {
+    private IEnumerable<Event> FilterStoreProducer(Simulation env, FilterStore sto) {
       while (true) {
         yield return env.Timeout(TimeSpan.FromSeconds(4));
         yield return sto.Put(FilterStoreObjA);
@@ -396,7 +396,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    private IEnumerable<Event> FilterStoreConsumerA(Environment env, FilterStore sto) {
+    private IEnumerable<Event> FilterStoreConsumerA(Simulation env, FilterStore sto) {
       while (true) {
         yield return sto.Get(x => x == FilterStoreObjA);
         env.Log("{0}: Consume A", env.Now.Second);
@@ -404,7 +404,7 @@ namespace SimSharp.Tests {
       }
     }
 
-    private IEnumerable<Event> FilterStoreConsumerB(Environment env, FilterStore sto) {
+    private IEnumerable<Event> FilterStoreConsumerB(Simulation env, FilterStore sto) {
       while (true) {
         yield return sto.Get(x => x == FilterStoreObjB);
         env.Log("{0}: Consume B", env.Now.Second);
@@ -414,7 +414,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestFilterStoreGetAfterMismatch() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       var store = new FilterStore(env, capacity: 2);
       var proc1 = env.Process(TestFilterStoreGetAfterMismatch_Getter(env, store, 1));
       var proc2 = env.Process(TestFilterStoreGetAfterMismatch_Getter(env, store, 2));
@@ -423,13 +423,13 @@ namespace SimSharp.Tests {
       Assert.Equal(1, proc1.Value);
       Assert.Equal(0, proc2.Value);
     }
-    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Putter(Environment env, FilterStore store) {
+    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Putter(Simulation env, FilterStore store) {
       yield return store.Put(2);
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       yield return store.Put(1);
     }
 
-    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Getter(Environment env, FilterStore store, int value) {
+    private IEnumerable<Event> TestFilterStoreGetAfterMismatch_Getter(Simulation env, FilterStore store, int value) {
       yield return store.Get(x => (int)x == value);
       env.ActiveProcess.Succeed(env.Now.Second);
     }
@@ -439,13 +439,13 @@ namespace SimSharp.Tests {
       /* A process must not acquire a resource if it releases it and immediately
        * requests it again while there are already other requesting processes.
        */
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestResourceImmediateRequests_Parent(env));
       env.Run();
       Assert.Equal(6, env.Now.Second);
     }
 
-    private IEnumerable<Event> TestResourceImmediateRequests_Parent(Environment env) {
+    private IEnumerable<Event> TestResourceImmediateRequests_Parent(Simulation env) {
       var res = new Resource(env, 1);
       var childA = env.Process(TestResourceImmediateRequests_Child(env, res));
       var childB = env.Process(TestResourceImmediateRequests_Child(env, res));
@@ -456,7 +456,7 @@ namespace SimSharp.Tests {
       Assert.True(new[] { 1, 3, 5 }.SequenceEqual((IList<int>)childB.Value));
     }
 
-    private IEnumerable<Event> TestResourceImmediateRequests_Child(Environment env, Resource res) {
+    private IEnumerable<Event> TestResourceImmediateRequests_Child(Simulation env, Resource res) {
       var result = new List<int>();
       for (var i = 0; i < 3; i++) {
         using (var req = res.Request()) {
@@ -470,7 +470,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestFilterCallsBestCase() {
-      var env = new Environment();
+      var env = new Simulation();
       var store = new FilterStore(env, new object[] { 1, 2, 3 }, 3);
       var log = new List<string>();
       Func<object, bool> filterLogger = o => { log.Add(string.Format("check {0}", o)); return true; };
@@ -493,7 +493,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestFilterCallsWorstCase() {
-      var env = new Environment();
+      var env = new Simulation();
       var store = new FilterStore(env, 4);
       var log = new List<string>();
       Func<object, bool> filterLogger = o => { log.Add(string.Format("check {0}", o)); return (int)o >= 3; };
@@ -524,48 +524,48 @@ namespace SimSharp.Tests {
     class MyContainer : Container {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
-      public MyContainer(Environment environment, double capacity = Double.MaxValue, double initial = 0) : base(environment, capacity, initial) { }
+      public MyContainer(Simulation environment, double capacity = Double.MaxValue, double initial = 0) : base(environment, capacity, initial) { }
     }
     class MyFilterStore : FilterStore {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
-      public MyFilterStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
+      public MyFilterStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
     class MyPreemptiveResource : PreemptiveResource {
       public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
-      public MyPreemptiveResource(Environment environment, int capacity = 1) : base(environment, capacity) { }
+      public MyPreemptiveResource(Simulation environment, int capacity = 1) : base(environment, capacity) { }
     }
     class MyPriorityResource : PriorityResource {
       public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
-      public MyPriorityResource(Environment environment, int capacity = 1) : base(environment, capacity) { }
+      public MyPriorityResource(Simulation environment, int capacity = 1) : base(environment, capacity) { }
     }
     class MyResource : Resource {
       public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
-      public MyResource(Environment environment, int capacity = 1) : base(environment, capacity) { }
+      public MyResource(Simulation environment, int capacity = 1) : base(environment, capacity) { }
     }
     class MyResourcePool : ResourcePool {
       public int RequestQueueLength { get { return RequestQueue.Count; } }
       public int ReleaseQueueLength { get { return ReleaseQueue.Count; } }
-      public MyResourcePool(Environment environment, IEnumerable<object> items) : base(environment, items) { }
+      public MyResourcePool(Simulation environment, IEnumerable<object> items) : base(environment, items) { }
     }
     class MyStore : Store {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
-      public MyStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
+      public MyStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
     class MyPriorityStore : PriorityStore {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
       public object Peek { get { return Items.First; } }
-      public MyPriorityStore(Environment environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
+      public MyPriorityStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
 
     [Fact]
     public void TestImmediateContainer() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyContainer(env);
       Assert.Equal(0, res.Level);
       Assert.Equal(0, res.PutQueueLength);
@@ -604,7 +604,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediateFilterStore() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyFilterStore(env);
       Assert.Equal(0, res.Count);
       Assert.Equal(0, res.PutQueueLength);
@@ -643,7 +643,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediatePreemptiveResource() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyPreemptiveResource(env, capacity: 1);
       Assert.Equal(0, res.InUse);
       Assert.Equal(1, res.Remaining);
@@ -682,7 +682,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediatePriorityResource() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyPriorityResource(env, capacity: 1);
       Assert.Equal(0, res.InUse);
       Assert.Equal(1, res.Remaining);
@@ -721,7 +721,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediateResource() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyResource(env, capacity: 1);
       Assert.Equal(0, res.InUse);
       Assert.Equal(1, res.Remaining);
@@ -760,7 +760,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediateResourcePool() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyResourcePool(env, new object[] { 1 });
       Assert.Equal(0, res.InUse);
       Assert.Equal(1, res.Remaining);
@@ -799,7 +799,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediateStore() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyStore(env);
       Assert.Equal(0, res.Count);
       Assert.Equal(0, res.PutQueueLength);
@@ -838,7 +838,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestImmediatePriorityStore() {
-      var env = new Environment();
+      var env = new Simulation();
       var res = new MyPriorityStore(env);
       Assert.Equal(0, res.Count);
       Assert.Equal(0, res.PutQueueLength);
@@ -893,14 +893,14 @@ namespace SimSharp.Tests {
     }
 
     private void TestResourcePoolUnavailableMethod() {
-      var env = new Environment();
+      var env = new Simulation();
       var pool = new ResourcePool(env, new object[] { 0, 1 });
       env.Process(TestResourcePoolUnavailableProc(env, pool));
       env.Process(TestResourcePoolUnavailableProc(env, pool));
       env.Run();
     }
 
-    private IEnumerable<Event> TestResourcePoolUnavailableProc(Environment env, ResourcePool pool) {
+    private IEnumerable<Event> TestResourcePoolUnavailableProc(Simulation env, ResourcePool pool) {
       var req = pool.Request(o => (int)o == 0);
       yield return req;
       yield return env.TimeoutD(1);

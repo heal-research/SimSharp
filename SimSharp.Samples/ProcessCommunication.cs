@@ -32,7 +32,7 @@ namespace SimSharp.Samples {
      *  together using :class:`~simpy.resources.store.Store` for one-to-one,
      *  asynchronous processes.
      */
-    private IEnumerable<Event> MessageGenerator(string name, Environment env, Store outPipe) {
+    private IEnumerable<Event> MessageGenerator(string name, Simulation env, Store outPipe) {
       // A process which randomly generates messages.
       while (true) {
         // wait for next transmission
@@ -51,7 +51,7 @@ namespace SimSharp.Samples {
     }
 
 
-    private IEnumerable<Event> MessageConsumer(string name, Environment env, Store inPipe) {
+    private IEnumerable<Event> MessageConsumer(string name, Simulation env, Store inPipe) {
       // A process which consumes messages.
       while (true) {
         // Get event for message pipe
@@ -76,7 +76,7 @@ namespace SimSharp.Samples {
 
     public void Simulate(int rseed = 42) {
       // Setup and start the simulation
-      var env = new Environment(rseed, TimeSpan.FromSeconds(1));
+      var env = new Simulation(rseed, TimeSpan.FromSeconds(1));
       env.Log("== Process communication ==");
 
       var pipe = new Store(env);

@@ -33,13 +33,13 @@ namespace SimSharp {
 
     public int Count { get { return Items.Count; } }
 
-    protected Environment Environment { get; private set; }
+    protected Simulation Environment { get; private set; }
 
     protected Queue<StorePut> PutQueue { get; private set; }
     protected Queue<StoreGet> GetQueue { get; private set; }
     protected SimplePriorityQueue<object, double> Items { get; private set; }
 
-    public PriorityStore(Environment environment, int capacity = int.MaxValue) {
+    public PriorityStore(Simulation environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       Environment = environment;
       Capacity = capacity;

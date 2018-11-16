@@ -42,13 +42,13 @@ namespace SimSharp {
 
     public int Remaining { get { return Capacity - InUse; } }
 
-    protected Environment Environment { get; private set; }
+    protected Simulation Environment { get; private set; }
 
     protected SimplePriorityQueue<PreemptiveRequest> RequestQueue { get; private set; }
     protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<PreemptiveRequest> Users { get; private set; }
 
-    public PreemptiveResource(Environment environment, int capacity = 1) {
+    public PreemptiveResource(Simulation environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
       Environment = environment;
       Capacity = capacity;

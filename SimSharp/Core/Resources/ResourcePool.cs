@@ -37,13 +37,13 @@ namespace SimSharp {
 
     public int Remaining { get { return Resources.Count; } }
 
-    protected Environment Environment { get; private set; }
+    protected Simulation Environment { get; private set; }
 
     protected LinkedList<ResourcePoolRequest> RequestQueue { get; private set; }
     protected Queue<Release> ReleaseQueue { get; private set; }
     protected List<object> Resources { get; private set; }
 
-    public ResourcePool(Environment environment, IEnumerable<object> resources) {
+    public ResourcePool(Simulation environment, IEnumerable<object> resources) {
       Environment = environment;
       if (resources == null) throw new ArgumentNullException("resources");
       Resources = new List<object>(resources);

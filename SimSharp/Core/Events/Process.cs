@@ -49,7 +49,7 @@ namespace SimSharp {
     /// <param name="environment">The environment in which the process lives.</param>
     /// <param name="generator">The generator function of the process.</param>
     /// <param name="priority">The priority if multiple processes are started at the same time.</param>
-    public Process(Environment environment, IEnumerable<Event> generator, int priority = 0)
+    public Process(Simulation environment, IEnumerable<Event> generator, int priority = 0)
       : base(environment) {
       this.generator = generator.GetEnumerator();
       IsOk = true;
@@ -155,7 +155,7 @@ namespace SimSharp {
     }
 
     private class Initialize : Event {
-      public Initialize(Environment environment, Process process, int priority)
+      public Initialize(Simulation environment, Process process, int priority)
         : base(environment) {
         CallbackList.Add(process.Resume);
         IsOk = true;

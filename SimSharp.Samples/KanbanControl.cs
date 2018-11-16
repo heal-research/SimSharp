@@ -21,7 +21,7 @@ using System.Collections.Generic;
 
 namespace SimSharp.Samples {
   public class KanbanControl {
-    private Environment env;
+    private Simulation env;
     private Resource kanban;
     private Resource server;
     private ContinuousStatistics stockStat;
@@ -55,7 +55,7 @@ namespace SimSharp.Samples {
 
     public void Simulate() {
       completedOrders = 0;
-      env = new Environment();
+      env = new Simulation();
       env.Log("== Kanban controlled production system ==");
       kanban = new Resource(env, capacity: 15);
       server = new Resource(env, capacity: 1);

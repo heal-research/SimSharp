@@ -60,7 +60,7 @@ namespace SimSharp.Samples {
     private static readonly object Jack = new object();
     private static readonly object John = new object();
 
-    private class Machine : ActiveObject<Environment> {
+    private class Machine : ActiveObject<Simulation> {
       /*
        * A machine produces parts and my get broken every now and then.
        * If it breaks, it requests a *repairman* and continues the production
@@ -72,7 +72,7 @@ namespace SimSharp.Samples {
       public bool Broken { get; private set; }
       public Process Process { get; private set; }
 
-      public Machine(Environment env, string name, MachineBrands brand, ResourcePool repairman)
+      public Machine(Simulation env, string name, MachineBrands brand, ResourcePool repairman)
         : base(env) {
         Brand = brand;
         Name = name;
@@ -134,7 +134,7 @@ namespace SimSharp.Samples {
       // Setup and start the simulation
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
-      var env = new Environment(start, rseed);
+      var env = new Simulation(start, rseed);
       env.Log("== Machine shop specialist ==");
       var repairman = new ResourcePool(env, new[] { Jack, John });
       var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, (MachineBrands)(x % Enum.GetValues(typeof(MachineBrands)).Length), repairman)).ToArray();

@@ -20,7 +20,7 @@ using System;
 
 namespace SimSharp {
   public sealed class ContinuousStatistics {
-    private readonly Environment env;
+    private readonly Simulation env;
 
     public int Count { get; private set; }
     public double TotalTimeD { get; private set; }
@@ -40,7 +40,7 @@ namespace SimSharp {
     private bool firstSample;
 
 
-    public ContinuousStatistics(Environment env) {
+    public ContinuousStatistics(Simulation env) {
       this.env = env;
       lastUpdateTime = env.NowD;
     }

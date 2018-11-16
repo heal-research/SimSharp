@@ -21,7 +21,7 @@ using System.Collections.Generic;
 
 namespace SimSharp.Samples {
   public class MM1Queueing {
-    private Environment env;
+    private Simulation env;
     private Resource server;
     private ContinuousStatistics statistics;
     private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
@@ -50,7 +50,7 @@ namespace SimSharp.Samples {
 
     public void Simulate() {
       queueSize = 0;
-      env = new Environment();
+      env = new Simulation();
       server = new Resource(env, capacity: 1);
       statistics = new ContinuousStatistics(env);
       env.Log("== m/m/1 queuing system ==");

@@ -34,17 +34,17 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestGetState() {
       // A process is alive until it's generator has not terminated.
-      var env = new Environment();
+      var env = new Simulation();
       var procA = env.Process(GetStatePemA(env));
       env.Process(GetStatePemB(env, procA));
       env.Run();
     }
 
-    private IEnumerable<Event> GetStatePemA(Environment env) {
+    private IEnumerable<Event> GetStatePemA(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(3));
     }
 
-    private IEnumerable<Event> GetStatePemB(Environment env, Process pemA) {
+    private IEnumerable<Event> GetStatePemB(Simulation env, Process pemA) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       Assert.True(pemA.IsAlive);
       yield return env.Timeout(TimeSpan.FromSeconds(3));
@@ -55,7 +55,7 @@ namespace SimSharp.Tests {
     public void TestTarget() {
       var start = new DateTime(1970, 1, 1, 0, 0, 0);
       var delay = TimeSpan.FromSeconds(5);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var @event = env.Timeout(delay);
       var proc = env.Process(TargetPem(env, @event));
       while (env.Peek() < start + delay) {
@@ -65,7 +65,7 @@ namespace SimSharp.Tests {
       proc.Interrupt();
     }
 
-    private IEnumerable<Event> TargetPem(Environment env, Event @event) {
+    private IEnumerable<Event> TargetPem(Simulation env, Event @event) {
       yield return @event;
     }
 
@@ -73,17 +73,17 @@ namespace SimSharp.Tests {
     public void TestWaitForProc() {
       // A process can wait until another process finishes.
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(WaitForProcWaiter(env, () => executed = true));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> WaitForProcFinisher(Environment env) {
+    private IEnumerable<Event> WaitForProcFinisher(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(5));
     }
 
-    private IEnumerable<Event> WaitForProcWaiter(Environment env, Action handle) {
+    private IEnumerable<Event> WaitForProcWaiter(Simulation env, Action handle) {
       var proc = env.Process(WaitForProcFinisher(env));
       yield return proc; // Wait until "proc" finishes
       Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 5), env.Now);
@@ -94,18 +94,18 @@ namespace SimSharp.Tests {
     public void TestExit() {
       // Processes can set a return value
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ExitParent(env, () => executed = true));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> ExitChild(Environment env) {
+    private IEnumerable<Event> ExitChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       env.ActiveProcess.Succeed(env.Now);
     }
 
-    private IEnumerable<Event> ExitParent(Environment env, Action handle) {
+    private IEnumerable<Event> ExitParent(Simulation env, Action handle) {
       var result1 = env.Process(ExitChild(env));
       yield return result1;
       var result2 = env.Process(ExitChild(env));
@@ -120,13 +120,13 @@ namespace SimSharp.Tests {
     public void TestReturnValue() {
       // Processes can set a return value
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ReturnValueParent(env, () => executed = true));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> ReturnValueParent(Environment env, Action handle) {
+    private IEnumerable<Event> ReturnValueParent(Simulation env, Action handle) {
       var proc1 = env.Process(ReturnValueChild(env));
       yield return proc1;
       var proc2 = env.Process(ReturnValueChild(env));
@@ -136,7 +136,7 @@ namespace SimSharp.Tests {
       handle();
     }
 
-    private IEnumerable<Event> ReturnValueChild(Environment env) {
+    private IEnumerable<Event> ReturnValueChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       env.ActiveProcess.Succeed(env.Now);
     }
@@ -146,18 +146,18 @@ namespace SimSharp.Tests {
       // A child catches an exception and sends it to its parent.
       // This is the same as TestExit
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ChildExceptionParent(env, () => executed = true));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> ChildExceptionChild(Environment env) {
+    private IEnumerable<Event> ChildExceptionChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       env.ActiveProcess.Succeed(new Exception("Onoes!"));
     }
 
-    private IEnumerable<Event> ChildExceptionParent(Environment env, Action handle) {
+    private IEnumerable<Event> ChildExceptionParent(Simulation env, Action handle) {
       var child = env.Process(ChildExceptionChild(env));
       yield return child;
       Assert.IsAssignableFrom<Exception>(child.Value);
@@ -171,23 +171,23 @@ namespace SimSharp.Tests {
          process.
        */
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       var parent = env.Process(InterruptedJoinParent(env, () => executed = true));
       env.Process(InterruptedJoinInterruptor(env, parent));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> InterruptedJoinInterruptor(Environment env, Process process) {
+    private IEnumerable<Event> InterruptedJoinInterruptor(Simulation env, Process process) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       process.Interrupt();
     }
 
-    private IEnumerable<Event> InterruptedJoinChild(Environment env) {
+    private IEnumerable<Event> InterruptedJoinChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(2));
     }
 
-    private IEnumerable<Event> InterruptedJoinParent(Environment env, Action handle) {
+    private IEnumerable<Event> InterruptedJoinParent(Simulation env, Action handle) {
       var child = env.Process(InterruptedJoinChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
@@ -205,23 +205,23 @@ namespace SimSharp.Tests {
       // Tests that interrupts are raised while the victim is waiting for
       // another process. The victim tries to join again.
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       var parent = env.Process(InterruptedJoinAndRejoinParent(env, () => executed = true));
       env.Process(InterruptedJoinAndRejoinInterruptor(env, parent));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> InterruptedJoinAndRejoinInterruptor(Environment env, Process process) {
+    private IEnumerable<Event> InterruptedJoinAndRejoinInterruptor(Simulation env, Process process) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       process.Interrupt();
     }
 
-    private IEnumerable<Event> InterruptedJoinAndRejoinChild(Environment env) {
+    private IEnumerable<Event> InterruptedJoinAndRejoinChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(2));
     }
 
-    private IEnumerable<Event> InterruptedJoinAndRejoinParent(Environment env, Action handle) {
+    private IEnumerable<Event> InterruptedJoinAndRejoinParent(Simulation env, Action handle) {
       var child = env.Process(InterruptedJoinAndRejoinChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
@@ -238,23 +238,23 @@ namespace SimSharp.Tests {
       // If a process is interrupted while waiting for another one, it
       // should be unregistered from that process.
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       var parent = env.Process(UnregisterAfterInterruptParent(env, () => executed = true));
       env.Process(UnregisterAfterInterruptInterruptor(env, parent));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> UnregisterAfterInterruptInterruptor(Environment env, Process process) {
+    private IEnumerable<Event> UnregisterAfterInterruptInterruptor(Simulation env, Process process) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       process.Interrupt();
     }
 
-    private IEnumerable<Event> UnregisterAfterInterruptChild(Environment env) {
+    private IEnumerable<Event> UnregisterAfterInterruptChild(Simulation env) {
       yield return env.Timeout(TimeSpan.FromSeconds(2));
     }
 
-    private IEnumerable<Event> UnregisterAfterInterruptParent(Environment env, Action handle) {
+    private IEnumerable<Event> UnregisterAfterInterruptParent(Simulation env, Action handle) {
       var child = env.Process(UnregisterAfterInterruptChild(env));
       yield return child;
       if (env.ActiveProcess.HandleFault()) {
@@ -270,24 +270,24 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestErrorAndInterruptedJoin() {
       var executed = false;
-      var env = new Environment(new DateTime(1970, 1, 1, 0, 0, 0));
+      var env = new Simulation(new DateTime(1970, 1, 1, 0, 0, 0));
       env.Process(ErrorAndInterruptedJoinParent(env, () => executed = true));
       env.Run();
       Assert.True(executed);
     }
 
-    private IEnumerable<Event> ErrorAndInterruptedJoinChildA(Environment env, Process process) {
+    private IEnumerable<Event> ErrorAndInterruptedJoinChildA(Simulation env, Process process) {
       process.Interrupt("InterruptA");
       env.ActiveProcess.Succeed();
       yield return env.Timeout(TimeSpan.FromSeconds(1));
     }
 
-    private IEnumerable<Event> ErrorAndInterruptedJoinChildB(Environment env) {
+    private IEnumerable<Event> ErrorAndInterruptedJoinChildB(Simulation env) {
       env.ActiveProcess.Fail("spam");
       yield return env.Timeout(TimeSpan.FromSeconds(1));
     }
 
-    private IEnumerable<Event> ErrorAndInterruptedJoinParent(Environment env, Action handle) {
+    private IEnumerable<Event> ErrorAndInterruptedJoinParent(Simulation env, Action handle) {
       env.Process(ErrorAndInterruptedJoinChildA(env, env.ActiveProcess));
       var b = env.Process(ErrorAndInterruptedJoinChildB(env));
       yield return b;
@@ -301,7 +301,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestYieldFailedProcess() {
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       var proc = env.Process(Proc(env));
       env.Process(Proc1(env, proc));
       var p2 = env.Process(Proc2(env, proc));
@@ -310,19 +310,19 @@ namespace SimSharp.Tests {
       Assert.Equal(42, (int)p2.Value);
     }
 
-    private IEnumerable<Event> Proc(Environment env) {
+    private IEnumerable<Event> Proc(Simulation env) {
       yield return env.Timeout(TimeSpan.FromMinutes(10));
       env.ActiveProcess.Fail();
     }
 
-    private IEnumerable<Event> Proc1(Environment env, Process dep) {
+    private IEnumerable<Event> Proc1(Simulation env, Process dep) {
       yield return env.Timeout(TimeSpan.FromMinutes(20));
       yield return dep;
       yield return env.Timeout(TimeSpan.FromMinutes(5));
       throw new NotImplementedException("process should not be able to continue");
     }
 
-    private IEnumerable<Event> Proc2(Environment env, Process dep) {
+    private IEnumerable<Event> Proc2(Simulation env, Process dep) {
       yield return env.Timeout(TimeSpan.FromMinutes(20));
       yield return dep;
       env.ActiveProcess.HandleFault();
@@ -332,7 +332,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestPrioritizedProcesses() {
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       var order = new List<int>();
       for (var p = 5; p >= -5; p--) {
         // processes are created such that lowest priority process is first
@@ -344,7 +344,7 @@ namespace SimSharp.Tests {
       Assert.Equal(new[] { -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 }, order);
     }
 
-    private IEnumerable<Event> PrioritizedProcess(Environment env, int prio, List<int> order) {
+    private IEnumerable<Event> PrioritizedProcess(Simulation env, int prio, List<int> order) {
       order.Add(prio);
       yield break;
     }

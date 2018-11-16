@@ -35,7 +35,7 @@ namespace SimSharp {
   /// the event becomes processed.
   /// </summary>
   public class Event {
-    protected internal Environment Environment { get; private set; }
+    protected internal Simulation Environment { get; private set; }
     protected List<Action<Event>> CallbackList { get; set; }
 
     /// <summary>
@@ -72,7 +72,7 @@ namespace SimSharp {
     /// </summary>
     public bool IsTriggered { get; protected set; }
 
-    public Event(Environment environment) {
+    public Event(Simulation environment) {
       Environment = environment;
       CallbackList = new List<Action<Event>>();
     }

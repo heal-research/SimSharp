@@ -50,7 +50,7 @@ namespace SimSharp.Samples {
     private static readonly TimeSpan MaxTInter = TimeSpan.FromMinutes(300); // Create a car every max seconds
     private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(30); // Simulation time in seconds
 
-    private IEnumerable<Event> Car(string name, Environment env, Resource gasStation, Container fuelPump) {
+    private IEnumerable<Event> Car(string name, Simulation env, Resource gasStation, Container fuelPump) {
       /*
        * A car arrives at the gas station for refueling.
        * 
@@ -77,7 +77,7 @@ namespace SimSharp.Samples {
     }
 
 
-    private IEnumerable<Event> GasStationControl(Environment env, Container fuelPump) {
+    private IEnumerable<Event> GasStationControl(Simulation env, Container fuelPump) {
       /*
        * Periodically check the level of the *fuel_pump* and call the tank
        * truck if the level falls below a threshold.
@@ -94,7 +94,7 @@ namespace SimSharp.Samples {
       }
     }
 
-    private IEnumerable<Event> TankTruck(Environment env, Container fuelPump) {
+    private IEnumerable<Event> TankTruck(Simulation env, Container fuelPump) {
       // Arrives at the gas station after a certain delay and refuels it.
       yield return env.Timeout(TankTruckTime);
       env.Log("Tank truck arriving at time {0}", env.Now);
@@ -103,7 +103,7 @@ namespace SimSharp.Samples {
       yield return fuelPump.Put(amount);
     }
 
-    private IEnumerable<Event> CarGenerator(Environment env, Resource gasStation, Container fuelPump) {
+    private IEnumerable<Event> CarGenerator(Simulation env, Resource gasStation, Container fuelPump) {
       // Generate new cars that arrive at the gas station.
       var i = 0;
       while (true) {
@@ -116,7 +116,7 @@ namespace SimSharp.Samples {
     public void Simulate(int rseed = RandomSeed) {
       // Setup and start the simulation
       // Create environment and start processes
-      var env = new Environment(rseed);
+      var env = new Simulation(rseed);
       env.Log("== Gas Station refuelling ==");
       var gasStation = new Resource(env, 2);
       var fuelPump = new Container(env, GasStationSize, GasStationSize);

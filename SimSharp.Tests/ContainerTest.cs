@@ -27,7 +27,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestContainer() {
       var start = new DateTime(2014, 4, 2);
-      var env = new Environment(start);
+      var env = new Simulation(start);
       var buf = new Container(env, initial: 0, capacity: 2);
       var log = new List<Tuple<char, DateTime>>();
       env.Process(TestContainerPutter(env, buf, log));
@@ -38,7 +38,7 @@ namespace SimSharp.Tests {
       }.Select(x => Tuple.Create(x.Item1, start + TimeSpan.FromSeconds(x.Item2))).ToList();
       Assert.Equal(expected, log);
     }
-    private IEnumerable<Event> TestContainerPutter(Environment env, Container buf, List<Tuple<char, DateTime>> log) {
+    private IEnumerable<Event> TestContainerPutter(Simulation env, Container buf, List<Tuple<char, DateTime>> log) {
       yield return env.Timeout(TimeSpan.FromSeconds(1));
       while (true) {
         yield return buf.Put(2);
@@ -46,7 +46,7 @@ namespace SimSharp.Tests {
         yield return env.Timeout(TimeSpan.FromSeconds(1));
       }
     }
-    private IEnumerable<Event> TestContainerGetter(Environment env, Container buf, List<Tuple<char, DateTime>> log) {
+    private IEnumerable<Event> TestContainerGetter(Simulation env, Container buf, List<Tuple<char, DateTime>> log) {
       yield return buf.Get(1);
       log.Add(Tuple.Create('g', env.Now));
 
@@ -57,7 +57,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestInitialiContainerCapacity() {
-      var env = new Environment();
+      var env = new Simulation();
       var container = new Container(env);
       Assert.Equal(0, container.Level);
       Assert.Equal(double.MaxValue, container.Capacity);

@@ -22,7 +22,7 @@ namespace SimSharp {
   public class ResourcePoolRequest : Request {
     public Func<object, bool> Filter { get; private set; }
 
-    public ResourcePoolRequest(Environment environment, Action<Event> callback, Action<Event> disposeCallback, Func<object, bool> filter)
+    public ResourcePoolRequest(Simulation environment, Action<Event> callback, Action<Event> disposeCallback, Func<object, bool> filter)
       : base(environment, callback, disposeCallback) {
       Filter = filter;
     }

@@ -22,7 +22,7 @@ namespace SimSharp {
   public class FilterStoreGet : StoreGet {
     public Func<object, bool> Filter { get; private set; }
 
-    public FilterStoreGet(Environment environment, Action<Event> callback, Func<object, bool> filter)
+    public FilterStoreGet(Simulation environment, Action<Event> callback, Func<object, bool> filter)
       : base(environment, callback) {
       Filter = filter;
     }

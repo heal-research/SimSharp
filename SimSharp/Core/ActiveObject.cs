@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #endregion
 
 namespace SimSharp {
-  public abstract class ActiveObject<T> where T : Environment {
+  public abstract class ActiveObject<T> where T : Simulation {
     protected T Environment { get; private set; }
 
     protected ActiveObject(T environment) {

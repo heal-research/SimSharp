@@ -21,7 +21,7 @@ TimeSpan ARRIVAL_TIME = TimeSpan.FromSeconds(...);
 TimeSpan PROCESSING_TIME = TimeSpan.FromSeconds(...);
 TimeSpan SIMULATION_TIME = TimeSpan.FromHours(...);
 
-IEnumerable<Event> MM1Q(Environment env) {
+IEnumerable<Event> MM1Q(Simulation env) {
   var server = new Resource(env, capacity: 1);
   while (true) {
     yield return env.TimeoutExponential(ARRIVAL_TIME);
@@ -29,7 +29,7 @@ IEnumerable<Event> MM1Q(Environment env) {
   }
 }
 
-IEnumerable<Event> Item(Environment env, Resource server) {
+IEnumerable<Event> Item(Simulation env, Resource server) {
   using (var s = server.Request()) {
     yield return s;
     yield return env.TimeoutExponential(PROCESSING_TIME);
@@ -38,7 +38,7 @@ IEnumerable<Event> Item(Environment env, Resource server) {
 }
 
 void RunSimulation() {
-  var env = new Environment(randomSeed: 42);
+  var env = new Simulation(randomSeed: 42);
   env.Process(MM1Q(env));
   env.Run(SIMULATION_TIME);
 }
@@ -55,7 +55,7 @@ after each yield in which an interruption can occur and before continuing to yie
 Also in Sim# it was decided to base the unit for current time and delays on `DateTime` and `TimeSpan` in the simulation clock. There is however an API, called D-API (short for double-API) that allows you to use doubles as in SimPy, e.g. `env.Now` returns a `DateTime`, `env.NowD` returns a `double`, `env.Timeout(delay`) expects a `TimeSpan` as delay, `env.TimeoutD(delay)` expects a `double`, etc.. It is possible to initialize the Environment with a default timestep in case both APIs are used:
 
   ```csharp
-var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
 ```
 
 In that environment, calling `env.TimeoutD(1)` would be equal to calling the more elaborate normal API `env.Timeout(TimeSpan.FromMinutes(1))`.

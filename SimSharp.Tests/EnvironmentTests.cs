@@ -25,7 +25,7 @@ namespace SimSharp.Tests {
 
   public class EnvironmentTests {
 
-    private static IEnumerable<Event> AProcess(Environment env, List<string> log) {
+    private static IEnumerable<Event> AProcess(Simulation env, List<string> log) {
       while (env.Now < new DateTime(1970, 1, 1, 0, 2, 0)) {
         log.Add(env.Now.ToString("mm"));
         yield return env.Timeout(TimeSpan.FromMinutes(1));
@@ -37,7 +37,7 @@ namespace SimSharp.Tests {
       /*The simulation should stop if there are no more events, that means, no
         more active process.*/
       var log = new List<string>();
-      var env = new Environment();
+      var env = new Simulation();
       env.Process(AProcess(env, log));
       env.Run(TimeSpan.FromMinutes(10));
       Assert.True(log.SequenceEqual(new[] { "00", "01" }));
@@ -46,7 +46,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunNegativeUntil() {
       /*Test passing a negative time to run.*/
-      var env = new Environment();
+      var env = new Simulation();
       var errorThrown = false;
       try {
         env.Run(new DateTime(1969, 12, 30));
@@ -59,7 +59,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunResume() {
       /* Stopped simulation can be resumed. */
-      var env = new Environment();
+      var env = new Simulation();
       var events = new List<Event>() {
         env.Timeout(TimeSpan.FromMinutes(5)),
         env.Timeout(TimeSpan.FromMinutes(10)),
@@ -100,14 +100,14 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunUntilValue() {
       /* Anything that can be converted to a float is a valid until value. */
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Run(new DateTime(2014, 3, 1));
       Assert.Equal(new DateTime(2014, 3, 1), env.Now);
     }
 
     [Fact]
     public void TestRunWithProcessedEvent() {
-      var env = new Environment();
+      var env = new Simulation();
       var timeout = new Timeout(env, env.ToTimeSpan(1), "spam");
       var val = env.Run(timeout);
       Assert.Equal(1, env.NowD);
@@ -121,7 +121,7 @@ namespace SimSharp.Tests {
     public void TestRunWithUntriggeredEvent() {
       var exceptionRaised = false;
       try {
-        var env = new Environment();
+        var env = new Simulation();
         env.Run(new Event(env));
       } catch (InvalidOperationException e) {
         Assert.Equal("No scheduled events left but \"until\" event was not triggered.", e.Message);

@@ -660,7 +660,6 @@ namespace SimSharp {
     /// Enqueue the item with the given priority, without calling lock(_queue) or AddToNodeCache(node)
     /// </summary>
     /// <param name="item"></param>
-    /// <param name="priority"></param>
     /// <returns></returns>
     private SimpleNode EnqueueNoLockOrCache(TItem item) {
       SimpleNode node = new SimpleNode(item, _comparer);

@@ -35,7 +35,7 @@ namespace SimSharp {
     /// <param name="value">The value of the timeout.</param>
     /// <param name="isOk">Whether the timeout should succeed or fail.</param>
     /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
-    public Timeout(Environment environment, TimeSpan delay, object value = null, bool isOk = true, int priority = 0)
+    public Timeout(Simulation environment, TimeSpan delay, object value = null, bool isOk = true, int priority = 0)
       : base(environment) {
       IsOk = isOk;
       Value = value;

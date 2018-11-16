@@ -39,7 +39,7 @@ namespace SimSharp.Samples {
       }
     }
 
-    private IEnumerable<Event> Cast(Environment env, Resource crane, string name, IEnumerable<Slab> castQueue) {
+    private IEnumerable<Event> Cast(Simulation env, Resource crane, string name, IEnumerable<Slab> castQueue) {
       foreach (var slab in castQueue) {
         yield return env.TimeoutD(slab.CastTime);
         env.Log("Caster {0} finished at {1}", name, env.Now);
@@ -49,14 +49,14 @@ namespace SimSharp.Samples {
       }
     }
 
-    private IEnumerable<Event> Transport(Environment env, Resource crane, Request token, string caster) {
+    private IEnumerable<Event> Transport(Simulation env, Resource crane, Request token, string caster) {
       env.Log("Crane transporting from caster {0} at {1}", caster, env.Now);
       yield return env.TimeoutD(4);
       crane.Release(token);
     }
 
     public void Simulate() {
-      var env = new Environment(TimeSpan.FromMinutes(1));
+      var env = new Simulation(TimeSpan.FromMinutes(1));
       env.Log("== Steel Factory ==");
       var crane = new Resource(env, 1);
       env.Process(Cast(env, crane, "CC1", new[] { new Slab(4), new Slab(4), new Slab(8), new Slab(3), new Slab(2) }));

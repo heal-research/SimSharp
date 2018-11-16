@@ -21,10 +21,20 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace SimSharp {
+
   /// <summary>
   /// Environments hold the event queues, schedule and process events.
   /// </summary>
-  public class Environment {
+  [Obsolete("Use class Simulation instead. Due to name clashes with System.Environment the class SimSharp.Environment is being outphased.")]
+  public class Environment : Simulation {
+    public Environment() : base() { }
+    public Environment(TimeSpan? defaultStep) : base(defaultStep) { }
+    public Environment(int randomSeed, TimeSpan? defaultStep = null) : base(randomSeed, defaultStep) { }
+    public Environment(DateTime initialDateTime, TimeSpan? defaultStep = null) : base(initialDateTime, defaultStep) { }
+    public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : base(initialDateTime, randomSeed, defaultStep) { }
+  }
+
+  public class Simulation {
     private const int InitialMaxEvents = 1024;
     private object locker = new object();
 
@@ -64,10 +74,10 @@ namespace SimSharp {
     public TextWriter Logger { get; set; }
     public int ProcessedEvents { get; protected set; }
 
-    public Environment() : this(new DateTime(1970, 1, 1)) { }
-    public Environment(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
-    public Environment(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
-    public Environment(DateTime initialDateTime, TimeSpan? defaultStep = null) {
+    public Simulation() : this(new DateTime(1970, 1, 1)) { }
+    public Simulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
+    public Simulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public Simulation(DateTime initialDateTime, TimeSpan? defaultStep = null) {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
@@ -75,7 +85,7 @@ namespace SimSharp {
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Logger = Console.Out;
     }
-    public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
+    public Simulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
@@ -138,7 +148,7 @@ namespace SimSharp {
     /// Schedules an event to occur at the same simulation time as the call was made.
     /// </summary>
     /// <param name="event">The event that should be scheduled.</param>
-    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param></param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
     public virtual void Schedule(Event @event, int priority = 0) {
       lock (locker) {
         DoSchedule(Now, @event, priority);

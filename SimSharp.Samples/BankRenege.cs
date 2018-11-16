@@ -27,7 +27,7 @@ namespace SimSharp.Samples {
     private static readonly TimeSpan MinPatience = TimeSpan.FromMinutes(1); // Min. customer patience
     private static readonly TimeSpan MaxPatience = TimeSpan.FromMinutes(3); // Max. customer patience
 
-    private IEnumerable<Event> Source(Environment env, Resource counter) {
+    private IEnumerable<Event> Source(Simulation env, Resource counter) {
       for (int i = 0; i < NewCustomers; i++) {
         var c = Customer(env, "Customer " + i, counter, TimeSpan.FromMinutes(12.0));
         env.Process(c);
@@ -35,7 +35,7 @@ namespace SimSharp.Samples {
       }
     }
 
-    private IEnumerable<Event> Customer(Environment env, string name, Resource counter, TimeSpan meanTimeInBank) {
+    private IEnumerable<Event> Customer(Simulation env, string name, Resource counter, TimeSpan meanTimeInBank) {
       var arrive = env.Now;
 
       env.Log("{0} {1}: Here I am", arrive, name);
@@ -64,7 +64,7 @@ namespace SimSharp.Samples {
       // Setup and start the simulation
       var start = new DateTime(2014, 2, 1);
       // Create an environment and start the setup process
-      var env = new Environment(start, 41);
+      var env = new Simulation(start, 41);
       env.Log("== Bank renege ==");
       var counter = new Resource(env, capacity: 1);
       env.Process(Source(env, counter));

@@ -26,7 +26,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestContinuousStatisticsSimple() {
-      var env = new Environment();
+      var env = new Simulation();
       var times = new double[] { 0, 1, 1, 1, 1, 1 };
       var values = new double[] { 6, 2, 3, 5, -1, -4 };
       var stat = new ContinuousStatistics(env);
@@ -43,7 +43,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestContinuousStatisticsComplex() {
-      var env = new Environment();
+      var env = new Simulation();
       var times = new double[] { 0, 10, 0, 1, 1, 1, 1 };
       var values = new double[] { 0, 6, 2, 3, 5, -1, -4 };
       var stat = new ContinuousStatistics(env);
@@ -60,7 +60,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestContinuousStatisticsComplex2() {
-      var env = new Environment();
+      var env = new Simulation();
       var times = new double[] { 1, 1, 1, 2, 0, 0, 4, 7, 4 };
       var values = new double[] { 3, -2, 5, 6, -4, 1, 0, -2, 3 };
       var stat = new ContinuousStatistics(env);

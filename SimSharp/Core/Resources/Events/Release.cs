@@ -22,7 +22,7 @@ namespace SimSharp {
   public sealed class Release : Event {
     public Request Request { get; private set; }
 
-    public Release(Environment environment, Request request, Action<Event> callback)
+    public Release(Simulation environment, Request request, Action<Event> callback)
       : base(environment) {
       Request = request;
       CallbackList.Add(callback);

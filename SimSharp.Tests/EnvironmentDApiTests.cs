@@ -26,7 +26,7 @@ namespace SimSharp.Tests {
 
   public class EnvironmentDApiTests {
 
-    private static IEnumerable<Event> AProcess(Environment env, List<string> log) {
+    private static IEnumerable<Event> AProcess(Simulation env, List<string> log) {
       while (env.NowD < 2) {
         log.Add(env.NowD.ToString("00", CultureInfo.InvariantCulture.NumberFormat));
         yield return env.TimeoutD(1);
@@ -38,7 +38,7 @@ namespace SimSharp.Tests {
       /*The simulation should stop if there are no more events, that means, no
         more active process.*/
       var log = new List<string>();
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       env.Process(AProcess(env, log));
       env.RunD(10);
       Assert.True(log.SequenceEqual(new[] { "00", "01" }));
@@ -47,7 +47,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunNegativeUntilDApi() {
       /*Test passing a negative time to run.*/
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       var errorThrown = false;
       try {
         env.RunD(-1);
@@ -60,7 +60,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunResumeDApi() {
       /* Stopped simulation can be resumed. */
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       var events = new List<Event>() {
         env.TimeoutD(5),
         env.TimeoutD(10),
@@ -101,7 +101,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestRunUntilValueDApi() {
       /* Anything that can be converted to a float is a valid until value. */
-      var env = new Environment(defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
       env.RunD(100);
       Assert.Equal(100, env.NowD);
     }

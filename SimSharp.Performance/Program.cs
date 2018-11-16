@@ -50,7 +50,7 @@ namespace SimSharp.Performance {
     private const int NumMachines = 10; // Number of machines in the machine shop
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(3650); // Simulation time in minutes
 
-    private class Machine : ActiveObject<Environment> {
+    private class Machine : ActiveObject<Simulation> {
       /*
        * A machine produces parts and my get broken every now and then.
        * If it breaks, it requests a *repairman* and continues the production
@@ -63,7 +63,7 @@ namespace SimSharp.Performance {
       public bool Broken { get; private set; }
       public Process Process { get; private set; }
 
-      public Machine(Environment env, string name, PreemptiveResource repairman)
+      public Machine(Simulation env, string name, PreemptiveResource repairman)
         : base(env) {
         Name = name;
         PartsMade = 0;
@@ -119,7 +119,7 @@ namespace SimSharp.Performance {
       }
     }
 
-    private IEnumerable<Event> OtherJobs(Environment env, PreemptiveResource repairman) {
+    private IEnumerable<Event> OtherJobs(Simulation env, PreemptiveResource repairman) {
       // The repairman's other (unimportant) job.
       while (true) {
         // Start a new job
@@ -143,7 +143,7 @@ namespace SimSharp.Performance {
       // Setup and start the simulation
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
-      var env = new Environment(start, rseed);
+      var env = new Simulation(start, rseed);
       env.Log("== Machine shop ==");
       var repairman = new PreemptiveResource(env, 1);
       var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, repairman)).ToArray();

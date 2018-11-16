@@ -26,11 +26,11 @@ namespace SimSharp.Tests {
   public class ConditionTest {
     [Fact]
     public void TestOperatorAnd() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestOperatorAndProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorAndProc(Environment env) {
+    private IEnumerable<Event> TestOperatorAndProc(Simulation env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
@@ -42,11 +42,11 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestOperatorOr() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestOperatorOrProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorOrProc(Environment env) {
+    private IEnumerable<Event> TestOperatorOrProc(Simulation env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
@@ -60,11 +60,11 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestOperatorNestedAnd() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestOperatorNestedAndProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorNestedAndProc(Environment env) {
+    private IEnumerable<Event> TestOperatorNestedAndProc(Simulation env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
@@ -78,11 +78,11 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestOperatorNestedOr() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestOperatorNestedOrProc(env));
       env.Run();
     }
-    private IEnumerable<Event> TestOperatorNestedOrProc(Environment env) {
+    private IEnumerable<Event> TestOperatorNestedOrProc(Simulation env) {
       var timeout = new List<Event>();
       for (int i = 0; i < 3; i++)
         timeout.Add(env.Timeout(TimeSpan.FromSeconds(i)));
@@ -106,11 +106,11 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestConditionWithError() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestConditionWithError_Process(env));
       env.Run();
     }
-    private IEnumerable<Event> TestConditionWithError_Process(Environment env) {
+    private IEnumerable<Event> TestConditionWithError_Process(Simulation env) {
       var proc = env.Process(TestConditionWithError_Explode(env, TimeSpan.FromSeconds(0)));
 
       yield return proc | env.Timeout(TimeSpan.FromSeconds(1));
@@ -119,7 +119,7 @@ namespace SimSharp.Tests {
       Assert.Equal("Onoes, failed after 0 delay!", proc.Value);
       env.ActiveProcess.HandleFault();
     }
-    private IEnumerable<Event> TestConditionWithError_Explode(Environment env, TimeSpan delay) {
+    private IEnumerable<Event> TestConditionWithError_Explode(Simulation env, TimeSpan delay) {
       var timeout = env.Timeout(delay);
       yield return timeout;
       env.ActiveProcess.Fail(string.Format("Onoes, failed after {0} delay!", delay.Ticks));
@@ -127,30 +127,30 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestConditionWithUncaughtError() {
-      var env = new Environment(new DateTime(2014, 1, 1));
+      var env = new Simulation(new DateTime(2014, 1, 1));
       env.Process(TestConditionWithUncaughtError_Process(env));
       Assert.Throws<InvalidOperationException>(() => env.Run());
       Assert.Equal(new DateTime(2014, 1, 3), env.Now);
     }
 
-    private IEnumerable<Event> TestConditionWithUncaughtError_Process(Environment env) {
+    private IEnumerable<Event> TestConditionWithUncaughtError_Process(Simulation env) {
       yield return env.Timeout(TimeSpan.FromDays(1)) | env.Process(TestConditionWithUncaughtError_Explode(env, 2));
     }
 
-    private IEnumerable<Event> TestConditionWithUncaughtError_Explode(Environment env, int delay) {
+    private IEnumerable<Event> TestConditionWithUncaughtError_Explode(Simulation env, int delay) {
       yield return env.Timeout(TimeSpan.FromDays(delay));
       env.ActiveProcess.Fail();
     }
 
     [Fact]
     public void TestAndConditionBlocked() {
-      var env = new Environment();
+      var env = new Simulation();
       env.Process(TestAndConditionBlockedProcess(env));
       env.RunD(5);
       Assert.Equal(5, env.NowD);
     }
 
-    private IEnumerable<Event> TestAndConditionBlockedProcess(Environment env) {
+    private IEnumerable<Event> TestAndConditionBlockedProcess(Simulation env) {
       var t1 = env.TimeoutD(1);
       var e = new Event(env);
       yield return t1;
@@ -160,12 +160,12 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestOperatorAndBlocked() {
-      var env = new Environment();
+      var env = new Simulation();
       env.Process(TestOperatorAndBlockedProcess(env));
       env.Run();
     }
 
-    private IEnumerable<Event> TestOperatorAndBlockedProcess(Environment env) {
+    private IEnumerable<Event> TestOperatorAndBlockedProcess(Simulation env) {
       var timeout = env.TimeoutD(1);
       var @event = new Event(env);
       yield return env.TimeoutD(1);
@@ -175,12 +175,12 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestAllOfGenerator() {
-      var env = new Environment();
+      var env = new Simulation();
       env.Process(TestAllOfGeneratorProcess(env));
       env.Run();
     }
 
-    private IEnumerable<Event> TestAllOfGeneratorProcess(Environment env) {
+    private IEnumerable<Event> TestAllOfGeneratorProcess(Simulation env) {
       var events = Enumerable.Range(0, 10).Select(x => new Timeout(env, env.ToTimeSpan(x), x));
       var allOf = new AllOf(env, events);
       yield return allOf;
@@ -190,7 +190,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestAllOfEmptyList() {
-      var env = new Environment();
+      var env = new Simulation();
       var evt = new AllOf(env, Enumerable.Empty<Event>());
       Assert.True(evt.IsTriggered);
       Assert.False(evt.IsProcessed);
@@ -201,7 +201,7 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestAnyOfEmptyList() {
-      var env = new Environment();
+      var env = new Simulation();
       var evt = new AnyOf(env, Enumerable.Empty<Event>());
       Assert.True(evt.IsTriggered);
       Assert.False(evt.IsProcessed);

@@ -27,7 +27,7 @@ namespace SimSharp.Samples {
     private static readonly TimeSpan PackerProcTimeMu = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan PackerProcTimeSigma = TimeSpan.FromSeconds(2);
 
-    static IEnumerable<Event> Machine(Environment env, Resource packer) {
+    static IEnumerable<Event> Machine(Simulation env, Resource packer) {
       while (true) {
         yield return env.TimeoutNormalPositive(MachineProcTimeMu, MachineProcTimeSigma);
         var token = packer.Request();
@@ -37,13 +37,13 @@ namespace SimSharp.Samples {
       }
     }
 
-    static IEnumerable<Event> Pack(Environment env, Resource packer, Request token) {
+    static IEnumerable<Event> Pack(Simulation env, Resource packer, Request token) {
       yield return env.TimeoutNormalPositive(PackerProcTimeMu, PackerProcTimeSigma);
       packer.Release(token);
     }
 
     public void Simulate() {
-      var env = new Environment(randomSeed: 41);
+      var env = new Simulation(randomSeed: 41);
       var packer = new Resource(env, 1);
       env.Process(Machine(env, packer));
       env.Process(Machine(env, packer));

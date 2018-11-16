@@ -24,7 +24,7 @@ namespace SimSharp {
     public DateTime Time { get; private set; }
     public Process Process { get; private set; }
 
-    public Request(Environment environment, Action<Event> callback, Action<Event> disposeCallback)
+    public Request(Simulation environment, Action<Event> callback, Action<Event> disposeCallback)
       : base(environment) {
       CallbackList.Add(callback);
       this.disposeCallback = disposeCallback;

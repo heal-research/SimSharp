@@ -34,12 +34,12 @@ namespace SimSharp {
 
     public double Level { get; protected set; }
 
-    protected Environment Environment { get; private set; }
+    protected Simulation Environment { get; private set; }
 
     protected Queue<ContainerPut> PutQueue { get; private set; }
     protected Queue<ContainerGet> GetQueue { get; private set; }
 
-    public Container(Environment environment, double capacity = double.MaxValue, double initial = 0) {
+    public Container(Simulation environment, double capacity = double.MaxValue, double initial = 0) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       if (initial < 0) throw new ArgumentException("Initial must be >= 0", "initial");
       if (initial > capacity) throw new ArgumentException("Initial must be <= capacity", "initial");

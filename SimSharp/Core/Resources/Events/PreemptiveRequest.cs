@@ -23,7 +23,7 @@ namespace SimSharp {
     public double Priority { get; private set; }
     public bool Preempt { get; private set; }
 
-    public PreemptiveRequest(Environment environment, Action<Event> callback, Action<Event> disposeCallback, double priority = 1, bool preempt = false)
+    public PreemptiveRequest(Simulation environment, Action<Event> callback, Action<Event> disposeCallback, double priority = 1, bool preempt = false)
       : base(environment, callback, disposeCallback) {
       Priority = priority;
       Preempt = preempt;

@@ -35,9 +35,9 @@ namespace SimSharp {
 
     protected List<Event> FiredEvents { get; private set; }
 
-    protected Condition(Environment environment, params Event[] events)
+    protected Condition(Simulation environment, params Event[] events)
       : this(environment, (IEnumerable<Event>)events) { }
-    protected Condition(Environment environment, IEnumerable<Event> events)
+    protected Condition(Simulation environment, IEnumerable<Event> events)
       : base(environment) {
       CallbackList.Add(CollectValues);
       Events = new List<Event>(events);

@@ -23,7 +23,7 @@ namespace SimSharp {
     public DateTime Time { get; private set; }
     public Process Process { get; private set; }
 
-    public StoreGet(Environment environment, Action<Event> callback)
+    public StoreGet(Simulation environment, Action<Event> callback)
       : base(environment) {
       CallbackList.Add(callback);
       Time = environment.Now;

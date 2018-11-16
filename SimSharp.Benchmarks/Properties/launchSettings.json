@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "SimSharp.Benchmarks": {
-      "commandName": "Project",
-      "commandLineArgs": "machineshop"
-    }
-  }
-}

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "MachineShop": {
+      "commandName": "Project",
+      "commandLineArgs": "machineshop"
+    },
+    "Synthetic": {
+      "commandName": "Project",
+      "commandLineArgs": "synthetic --repetitions 3 --time 60 --cpufreq 2.9"
+    }
+  }
+}

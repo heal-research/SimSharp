@@ -51,4 +51,8 @@ SimPy allows to model processes easily and with little boiler plate code. A proc
       <ResolvedFileToPublish Include="@(FinalDocFile)" RelativePath="@(FinalDocFile->'%(Filename)%(Extension)')" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
 </Project>

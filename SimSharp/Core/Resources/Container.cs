@@ -38,6 +38,9 @@ namespace SimSharp {
 
     protected Queue<ContainerPut> PutQueue { get; private set; }
     protected Queue<ContainerGet> GetQueue { get; private set; }
+    protected SimplePriorityQueue<Event, double> WhenAtLeastQueue { get; private set; }
+    protected SimplePriorityQueue<Event, double> WhenAtMostQueue { get; private set; }
+    protected List<Event> WhenChangeQueue { get; private set; }
 
     public Container(Simulation environment, double capacity = double.MaxValue, double initial = 0) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
@@ -48,6 +51,9 @@ namespace SimSharp {
       Level = initial;
       PutQueue = new Queue<ContainerPut>();
       GetQueue = new Queue<ContainerGet>();
+      WhenAtLeastQueue = new SimplePriorityQueue<Event, double>();
+      WhenAtMostQueue = new SimplePriorityQueue<Event, double>(new ReverseComparer<double>());
+      WhenChangeQueue = new List<Event>();
     }
 
     public virtual ContainerPut Put(double amount) {
@@ -64,6 +70,34 @@ namespace SimSharp {
       GetQueue.Enqueue(get);
       TriggerGet();
       return get;
+    }
+
+    public virtual Event WhenAtLeast(double level) {
+      var whenAtLeast = new Event(Environment);
+      WhenAtLeastQueue.Enqueue(whenAtLeast, level);
+      TriggerWhenAtLeast();
+      return whenAtLeast;
+    }
+
+    public virtual Event WhenFull() {
+      return WhenAtLeast(Capacity);
+    }
+
+    public virtual Event WhenAtMost(double level) {
+      var whenAtMost = new Event(Environment);
+      WhenAtMostQueue.Enqueue(whenAtMost, level);
+      TriggerWhenAtMost();
+      return whenAtMost;
+    }
+
+    public virtual Event WhenEmpty() {
+      return WhenAtMost(0);
+    }
+
+    public virtual Event WhenChange() {
+      var whenChange = new Event(Environment);
+      WhenChangeQueue.Add(whenChange);
+      return whenChange;
     }
 
     protected virtual void DoPut(ContainerPut put) {
@@ -86,6 +120,8 @@ namespace SimSharp {
         DoPut(put);
         if (put.IsTriggered) {
           PutQueue.Dequeue();
+          TriggerWhenAtLeast();
+          TriggerWhenChange();
         } else break;
       }
     }
@@ -96,8 +132,31 @@ namespace SimSharp {
         DoGet(get);
         if (get.IsTriggered) {
           GetQueue.Dequeue();
+          TriggerWhenAtMost();
+          TriggerWhenChange();
         } else break;
       }
+    }
+
+    protected virtual void TriggerWhenAtLeast() {
+      while (WhenAtLeastQueue.Count > 0 && Level >= WhenAtLeastQueue.Peek) {
+        var whenAtLeast = WhenAtLeastQueue.Dequeue();
+        whenAtLeast.Succeed();
+      }
+    }
+
+    protected virtual void TriggerWhenAtMost() {
+      while (WhenAtMostQueue.Count > 0 && Level <= WhenAtMostQueue.Peek) {
+        var whenAtMost = WhenAtMostQueue.Dequeue();
+        whenAtMost.Succeed();
+      }
+    }
+
+    protected virtual void TriggerWhenChange() {
+      if (WhenChangeQueue.Count == 0) return;
+      foreach (var evt in WhenChangeQueue)
+        evt.Succeed();
+      WhenChangeQueue.Clear();
     }
   }
 }

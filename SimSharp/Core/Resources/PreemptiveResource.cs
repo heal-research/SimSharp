@@ -47,6 +47,10 @@ namespace SimSharp {
     protected SimplePriorityQueue<PreemptiveRequest> RequestQueue { get; private set; }
     protected Queue<Release> ReleaseQueue { get; private set; }
     protected HashSet<PreemptiveRequest> Users { get; private set; }
+    protected List<Event> WhenAnyQueue { get; private set; }
+    protected List<Event> WhenFullQueue { get; private set; }
+    protected List<Event> WhenEmptyQueue { get; private set; }
+    protected List<Event> WhenChangeQueue { get; private set; }
 
     public PreemptiveResource(Simulation environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
@@ -55,6 +59,10 @@ namespace SimSharp {
       RequestQueue = new SimplePriorityQueue<PreemptiveRequest>();
       ReleaseQueue = new Queue<Release>();
       Users = new HashSet<PreemptiveRequest>();
+      WhenAnyQueue = new List<Event>();
+      WhenFullQueue = new List<Event>();
+      WhenEmptyQueue = new List<Event>();
+      WhenChangeQueue = new List<Event>();
     }
 
     public virtual PreemptiveRequest Request(double priority = 1, bool preempt = false) {
@@ -69,6 +77,33 @@ namespace SimSharp {
       ReleaseQueue.Enqueue(release);
       TriggerRelease();
       return release;
+    }
+
+    public virtual Event WhenAny() {
+      var whenAny = new Event(Environment);
+      WhenAnyQueue.Add(whenAny);
+      TriggerWhenAny();
+      return whenAny;
+    }
+
+    public virtual Event WhenFull() {
+      var whenFull = new Event(Environment);
+      WhenFullQueue.Add(whenFull);
+      TriggerWhenFull();
+      return whenFull;
+    }
+
+    public virtual Event WhenEmpty() {
+      var whenEmpty = new Event(Environment);
+      WhenEmptyQueue.Add(whenEmpty);
+      TriggerWhenEmpty();
+      return whenEmpty;
+    }
+
+    public virtual Event WhenChange() {
+      var whenChange = new Event(Environment);
+      WhenChangeQueue.Add(whenChange);
+      return whenChange;
     }
 
     protected void DisposeCallback(Event @event) {
@@ -106,6 +141,8 @@ namespace SimSharp {
         DoRequest(request);
         if (request.IsTriggered) {
           RequestQueue.Dequeue();
+          TriggerWhenEmpty();
+          TriggerWhenChange();
         } else break;
       }
     }
@@ -116,8 +153,45 @@ namespace SimSharp {
         DoRelease(release);
         if (release.IsTriggered) {
           ReleaseQueue.Dequeue();
+          TriggerWhenAny();
+          TriggerWhenFull();
+          TriggerWhenChange();
         } else break;
       }
+    }
+
+    protected virtual void TriggerWhenAny() {
+      if (Remaining > 0) {
+        if (WhenAnyQueue.Count == 0) return;
+        foreach (var evt in WhenAnyQueue)
+          evt.Succeed();
+        WhenAnyQueue.Clear();
+      }
+    }
+
+    protected virtual void TriggerWhenFull() {
+      if (InUse == 0) {
+        if (WhenFullQueue.Count == 0) return;
+        foreach (var evt in WhenFullQueue)
+          evt.Succeed();
+        WhenFullQueue.Clear();
+      }
+    }
+
+    protected virtual void TriggerWhenEmpty() {
+      if (Remaining == 0) {
+        if (WhenEmptyQueue.Count == 0) return;
+        foreach (var evt in WhenEmptyQueue)
+          evt.Succeed();
+        WhenEmptyQueue.Clear();
+      }
+    }
+
+    protected virtual void TriggerWhenChange() {
+      if (WhenChangeQueue.Count == 0) return;
+      foreach (var evt in WhenChangeQueue)
+        evt.Succeed();
+      WhenChangeQueue.Clear();
     }
   }
 }

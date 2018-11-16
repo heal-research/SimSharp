@@ -906,5 +906,431 @@ namespace SimSharp.Tests {
       yield return env.TimeoutD(1);
       yield return pool.Release(req);
     }
+
+    [Fact]
+    public void TestWhenStarEventsStore() {
+      var env = new Simulation();
+      var store = new Store(env, 3);
+      var proca = env.Process(TestWhenStarEventsStoreProcA(env, store));
+      var procb = env.Process(TestWhenStarEventsStoreProcB(env, store));
+      env.Run();
+      Assert.Equal(7, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsStoreProcA(Simulation env, Store store) {
+      yield return env.TimeoutD(1);
+      yield return store.Put(1);
+      yield return env.TimeoutD(1);
+      yield return store.Put(2);
+      yield return env.TimeoutD(1);
+      yield return store.Put(3);
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Put(1);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsStoreProcB(Simulation env, Store store) {
+      yield return store.WhenEmpty();// whenempty triggers immediately if empty
+      Assert.Equal(0, env.NowD);
+      yield return store.WhenAny(); // whenany waits until first item is aded
+      Assert.Equal(1, env.NowD);
+      yield return store.WhenNew();
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenAny(); // whenany completes immediately if any items are present
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenFull();
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenFull(); // whenfull triggers immediately
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenChange(); // get triggers change
+      Assert.Equal(4, env.NowD);
+      yield return store.WhenEmpty();
+      Assert.Equal(6, env.NowD);
+      yield return store.WhenChange(); // put triggers change
+      Assert.Equal(7, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsFilterStore() {
+      var env = new Simulation();
+      var store = new FilterStore(env, capacity: 3);
+      var proca = env.Process(TestWhenStarEventsFilterStoreProcA(env, store));
+      var procb = env.Process(TestWhenStarEventsFilterStoreProcB(env, store));
+      env.Run();
+      Assert.Equal(7, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsFilterStoreProcA(Simulation env, FilterStore store) {
+      yield return env.TimeoutD(1);
+      yield return store.Put(1);
+      yield return env.TimeoutD(1);
+      yield return store.Put(2);
+      yield return env.TimeoutD(1);
+      yield return store.Put(3);
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Get();
+      yield return env.TimeoutD(1);
+      yield return store.Put(1);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsFilterStoreProcB(Simulation env, FilterStore store) {
+      yield return store.WhenEmpty(); // whenempty triggers immediately if empty
+      Assert.Equal(0, env.NowD);
+      yield return store.WhenAny(); // whenany waits until first item is aded
+      Assert.Equal(1, env.NowD);
+      yield return store.WhenNew();
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenAny(); // whenany completes immediately if any items are present
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenFull();
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenFull(); // whenfull triggers immediately
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenChange(); // get triggers change
+      Assert.Equal(4, env.NowD);
+      yield return store.WhenEmpty();
+      Assert.Equal(6, env.NowD);
+      yield return store.WhenChange(); // put triggers change
+      Assert.Equal(7, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsPriorityStore() {
+      var env = new Simulation();
+      var store = new PriorityStore(env, 3);
+      var proca = env.Process(TestWhenStarEventsPriorityStoreProcA(env, store));
+      var procb = env.Process(TestWhenStarEventsPriorityStoreProcB(env, store));
+      env.Run();
+      Assert.Equal(7, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPriorityStoreProcA(Simulation env, PriorityStore store) {
+      yield return env.TimeoutD(1);
+      yield return store.Put(1, 3);
+      yield return env.TimeoutD(1);
+      yield return store.Put(2, 2);
+      yield return env.TimeoutD(1);
+      yield return store.Put(3, 1);
+      yield return env.TimeoutD(1);
+      var get = store.Get();
+      yield return get;
+      Assert.Equal(3, get.Value);
+      yield return env.TimeoutD(1);
+      get = store.Get();
+      yield return get;
+      Assert.Equal(2, get.Value);
+      yield return env.TimeoutD(1);
+      get = store.Get();
+      yield return get;
+      Assert.Equal(1, get.Value);
+      yield return env.TimeoutD(1);
+      yield return store.Put(1);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPriorityStoreProcB(Simulation env, PriorityStore store) {
+      yield return store.WhenEmpty(); // whenempty triggers immediately
+      Assert.Equal(0, env.NowD);
+      yield return store.WhenAny(); // whenany waits until first item is aded
+      Assert.Equal(1, env.NowD);
+      yield return store.WhenNew();
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenAny(); // whenany completes immediately if any items are present
+      Assert.Equal(2, env.NowD);
+      yield return store.WhenFull();
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenFull(); // whenfull triggers immediately
+      Assert.Equal(3, env.NowD);
+      yield return store.WhenChange(); // get triggers change
+      Assert.Equal(4, env.NowD);
+      yield return store.WhenEmpty();
+      Assert.Equal(6, env.NowD);
+      yield return store.WhenChange(); // put triggers change
+      Assert.Equal(7, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsContainer() {
+      var env = new Simulation();
+      var container = new Container(env, 6);
+      var proca = env.Process(TestWhenStarEventsContainerProcA(env, container));
+      var procb = env.Process(TestWhenStarEventsContainerProcB(env, container));
+      env.Run();
+      Assert.Equal(8, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsContainerProcA(Simulation env, Container container) {
+      yield return env.TimeoutD(1);
+      yield return container.Put(1); // t = 1, lvl = 1
+      yield return env.TimeoutD(1);
+      yield return container.Put(2); // t = 2, lvl = 3
+      yield return env.TimeoutD(1);
+      yield return container.Put(3); // t = 3, lvl = 6
+      yield return env.TimeoutD(1);
+      yield return container.Get(1); // t = 4, lvl = 5
+      yield return env.TimeoutD(1);
+      yield return container.Get(1); // t = 5, lvl = 4
+      yield return env.TimeoutD(1);
+      yield return container.Get(1); // t = 6, lvl = 3
+      yield return env.TimeoutD(1);
+      yield return container.Get(3); // t = 7, lvl = 0
+      yield return env.TimeoutD(1);
+      yield return container.Put(1); // t = 8, lvl = 1
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsContainerProcB(Simulation env, Container container) {
+      yield return container.WhenAtLeast(3); // whenatleast waits until the level rise above limit
+      Assert.Equal(2, env.NowD);
+      yield return container.WhenAtLeast(3); // whenatleast triggers immediately if limit is above already
+      Assert.Equal(2, env.NowD);
+      yield return container.WhenAtLeast(2); // whenatleast triggers immediately if limit is above already
+      Assert.Equal(2, env.NowD);
+      yield return container.WhenFull();
+      Assert.Equal(3, env.NowD);
+      yield return container.WhenChange(); // when the next change happens  (in this case get)
+      Assert.Equal(4, env.NowD);
+      yield return container.WhenAtMost(3); // whenatmost waits until the level has sunk below limit
+      Assert.Equal(6, env.NowD);
+      yield return container.WhenAtMost(3); // whenatmost triggers immediately if limit is below already
+      Assert.Equal(6, env.NowD);
+      yield return container.WhenAtMost(4); // whenatmost triggers immediately if limit is below already
+      Assert.Equal(6, env.NowD);
+      yield return container.WhenEmpty();
+      Assert.Equal(7, env.NowD);
+      yield return container.WhenChange(); // when the next change happens  (in this case put)
+      Assert.Equal(8, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsResourcePool() {
+      var env = new Simulation();
+      var pool = new ResourcePool(env, new object[] { 1, 2, 3 });
+      var proca = env.Process(TestWhenStarEventsResourcePoolProcA(env, pool));
+      var procb = env.Process(TestWhenStarEventsResourcePoolProcB(env, pool));
+      env.Run();
+      Assert.Equal(8, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsResourcePoolProcA(Simulation env, ResourcePool pool) {
+      yield return env.TimeoutD(1);
+      var req1 = pool.Request();
+      yield return req1;               // t = 1, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req2 = pool.Request();
+      yield return req2;               // t = 2, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      var req3 = pool.Request();
+      yield return req3;               // t = 3, InUse = 3, Remaining = 0
+      yield return env.TimeoutD(1);
+      yield return pool.Release(req1); // t = 4, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return pool.Release(req2); // t = 5, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req4 = pool.Request();
+      yield return req4;               // t = 6, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return pool.Release(req3); // t = 7, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      yield return pool.Release(req4); // t = 8, InUse = 0, Remaining = 3
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsResourcePoolProcB(Simulation env, ResourcePool pool) {
+      yield return pool.WhenAny(); // succeed immediatly
+      Assert.Equal(0, env.NowD);
+      yield return pool.WhenFull(); // succeed immediately
+      Assert.Equal(0, env.NowD);
+      yield return pool.WhenChange(); // change = request
+      Assert.Equal(1, env.NowD);
+      yield return pool.WhenEmpty();
+      Assert.Equal(3, env.NowD);
+      yield return pool.WhenEmpty(); // succeed immediately
+      Assert.Equal(3, env.NowD);
+      yield return pool.WhenAny();
+      Assert.Equal(4, env.NowD);
+      yield return pool.WhenChange(); // change = release
+      Assert.Equal(5, env.NowD);
+      yield return pool.WhenFull();
+      Assert.Equal(8, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsResource() {
+      var env = new Simulation();
+      var res = new Resource(env, 3);
+      var proca = env.Process(TestWhenStarEventsResourceProcA(env, res));
+      var procb = env.Process(TestWhenStarEventsResourceProcB(env, res));
+      env.Run();
+      Assert.Equal(8, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsResourceProcA(Simulation env, Resource res) {
+      yield return env.TimeoutD(1);
+      var req1 = res.Request();
+      yield return req1;              // t = 1, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req2 = res.Request();
+      yield return req2;              // t = 2, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      var req3 = res.Request();
+      yield return req3;              // t = 3, InUse = 3, Remaining = 0
+      yield return env.TimeoutD(1);
+      yield return res.Release(req1); // t = 4, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req2); // t = 5, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req4 = res.Request();
+      yield return req4;              // t = 6, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req3); // t = 7, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      yield return res.Release(req4); // t = 8, InUse = 0, Remaining = 3
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsResourceProcB(Simulation env, Resource res) {
+      yield return res.WhenAny(); // succeed immediatly
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenFull(); // succeed immediately
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenChange(); // change = request
+      Assert.Equal(1, env.NowD);
+      yield return res.WhenEmpty();
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenEmpty(); // succeed immediately
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenAny();
+      Assert.Equal(4, env.NowD);
+      yield return res.WhenChange(); // change = release
+      Assert.Equal(5, env.NowD);
+      yield return res.WhenFull();
+      Assert.Equal(8, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsPriorityResource() {
+      var env = new Simulation();
+      var res = new PriorityResource(env, 3);
+      var proca = env.Process(TestWhenStarEventsPriorityResourceProcA(env, res));
+      var procb = env.Process(TestWhenStarEventsPriorityResourceProcB(env, res));
+      env.Run();
+      Assert.Equal(8, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPriorityResourceProcA(Simulation env, PriorityResource res) {
+      yield return env.TimeoutD(1);
+      var req1 = res.Request();
+      yield return req1;              // t = 1, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req2 = res.Request();
+      yield return req2;              // t = 2, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      var req3 = res.Request();
+      yield return req3;              // t = 3, InUse = 3, Remaining = 0
+      yield return env.TimeoutD(1);
+      yield return res.Release(req1); // t = 4, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req2); // t = 5, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req4 = res.Request();
+      yield return req4;              // t = 6, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req3); // t = 7, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      yield return res.Release(req4); // t = 8, InUse = 0, Remaining = 3
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPriorityResourceProcB(Simulation env, PriorityResource res) {
+      yield return res.WhenAny(); // succeed immediatly
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenFull(); // succeed immediately
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenChange(); // change = request
+      Assert.Equal(1, env.NowD);
+      yield return res.WhenEmpty();
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenEmpty(); // succeed immediately
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenAny();
+      Assert.Equal(4, env.NowD);
+      yield return res.WhenChange(); // change = release
+      Assert.Equal(5, env.NowD);
+      yield return res.WhenFull();
+      Assert.Equal(8, env.NowD);
+    }
+
+    [Fact]
+    public void TestWhenStarEventsPreemptiveResource() {
+      var env = new Simulation();
+      var res = new PreemptiveResource(env, 3);
+      var proca = env.Process(TestWhenStarEventsPreemptiveResourceProcA(env, res));
+      var procb = env.Process(TestWhenStarEventsPreemptiveResourceProcB(env, res));
+      env.Run();
+      Assert.Equal(8, env.NowD);
+      Assert.True(proca.IsProcessed);
+      Assert.True(procb.IsProcessed);
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPreemptiveResourceProcA(Simulation env, PreemptiveResource res) {
+      yield return env.TimeoutD(1);
+      var req1 = res.Request();
+      yield return req1;              // t = 1, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req2 = res.Request();
+      yield return req2;              // t = 2, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      var req3 = res.Request();
+      yield return req3;              // t = 3, InUse = 3, Remaining = 0
+      yield return env.TimeoutD(1);
+      yield return res.Release(req1); // t = 4, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req2); // t = 5, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      var req4 = res.Request();
+      yield return req4;              // t = 6, InUse = 2, Remaining = 1
+      yield return env.TimeoutD(1);
+      yield return res.Release(req3); // t = 7, InUse = 1, Remaining = 2
+      yield return env.TimeoutD(1);
+      yield return res.Release(req4); // t = 8, InUse = 0, Remaining = 3
+    }
+
+    private IEnumerable<Event> TestWhenStarEventsPreemptiveResourceProcB(Simulation env, PreemptiveResource res) {
+      yield return res.WhenAny(); // succeed immediatly
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenFull(); // succeed immediately
+      Assert.Equal(0, env.NowD);
+      yield return res.WhenChange(); // change = request
+      Assert.Equal(1, env.NowD);
+      yield return res.WhenEmpty();
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenEmpty(); // succeed immediately
+      Assert.Equal(3, env.NowD);
+      yield return res.WhenAny();
+      Assert.Equal(4, env.NowD);
+      yield return res.WhenChange(); // change = release
+      Assert.Equal(5, env.NowD);
+      yield return res.WhenFull();
+      Assert.Equal(8, env.NowD);
+    }
   }
 }

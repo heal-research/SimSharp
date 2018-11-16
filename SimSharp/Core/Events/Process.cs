@@ -127,7 +127,7 @@ namespace SimSharp {
       }
       Environment.ActiveProcess = null;
     }
-
+    
     protected virtual bool ProceedToEvent() {
       target = generator.Current;
       Value = target.Value;

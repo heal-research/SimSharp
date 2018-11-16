@@ -154,6 +154,22 @@ namespace SimSharp {
     }
 
     /// <summary>
+    /// Returns the top priority of the queue.
+    /// Throws an exception when the queue is empty.
+    /// O(1)
+    /// </summary>
+    public TPriority Peek {
+      get {
+        lock (_queue) {
+          if (_queue.Count <= 0) {
+            throw new InvalidOperationException("Cannot call .Peek on an empty queue");
+          }
+          return _queue.First.Priority;
+        }
+      }
+    }
+
+    /// <summary>
     /// Removes every node from the queue.
     /// O(n)
     /// </summary>

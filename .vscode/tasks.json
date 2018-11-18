@@ -24,7 +24,7 @@
             "group": "test",
             "args": [
                 "test",
-                "${workspaceFolder}/SimSharp.Tests/SimSharp.Tests.csproj"
+                "${workspaceFolder}/Tests/Tests.csproj"
             ],
             "problemMatcher": "$msCompile",
             "presentation": {

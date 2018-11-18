@@ -5,14 +5,28 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": "Benchmarks",
+            "name": "Benchmark MachineShop",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SimSharp.Benchmarks/bin/Debug/netcoreapp2.0/SimSharp.Benchmarks.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/SimSharp.Benchmarks",
+            "program": "${workspaceFolder}/Benchmark/bin/Debug/netcoreapp2.0/Benchmark.dll",
+            "args": ["machineshop"],
+            "cwd": "${workspaceFolder}/Benchmark",
+            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Benchmark Synthetic",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/Benchmark/bin/Debug/netcoreapp2.0/Benchmark.dll",
+            "args": ["synthetic", "--repetitions", "3", "--time", "60", "--cpufreq", "2.9"],
+            "cwd": "${workspaceFolder}/Benchmark",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "externalTerminal",
             "stopAtEntry": false,
@@ -24,9 +38,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SimSharp.Samples/bin/Debug/netcoreapp2.0/SimSharp.Samples.dll",
+            "program": "${workspaceFolder}/Samples/bin/Debug/netcoreapp2.0/Samples.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/SimSharp.Samples",
+            "cwd": "${workspaceFolder}/Samples",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "externalTerminal",
             "stopAtEntry": false,

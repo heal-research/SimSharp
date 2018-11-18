@@ -25,8 +25,8 @@ namespace SimSharp {
   /// <summary>
   /// Environments hold the event queues, schedule and process events.
   /// </summary>
-  [Obsolete("Use class Simulation instead. Due to name clashes with System.Environment the class SimSharp.Environment is being outphased.")]
-  public class Environment : Simulation {
+  [Obsolete("Use class Simulation or ThreadSafeSimulation instead. Due to name clashes with System.Environment the class SimSharp.Environment is being outphased.")]
+  public class Environment : ThreadSafeSimulation {
     public Environment() : base() { }
     public Environment(TimeSpan? defaultStep) : base(defaultStep) { }
     public Environment(int randomSeed, TimeSpan? defaultStep = null) : base(randomSeed, defaultStep) { }
@@ -34,9 +34,17 @@ namespace SimSharp {
     public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : base(initialDateTime, randomSeed, defaultStep) { }
   }
 
+  /// <summary>
+  /// Simulation hold the event queues, schedule and process events.
+  /// </summary>
+  /// <remarks>
+  /// This class is not thread-safe against manipulation of the event queue. If you supply a termination
+  /// event that is set outside the simulation, please use the <see cref="ThreadSafeSimulation"/> environment.
+  /// 
+  /// For most purposes <see cref="Simulation"/> is however the better and faster choice.
+  /// </remarks>
   public class Simulation {
     private const int InitialMaxEvents = 1024;
-    private object locker = new object();
 
     /// <summary>
     /// Describes the number of seconds that a logical step of 1 in the *D-API takes.
@@ -76,20 +84,22 @@ namespace SimSharp {
 
     public Simulation() : this(new DateTime(1970, 1, 1)) { }
     public Simulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
-    public Simulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
-    public Simulation(DateTime initialDateTime, TimeSpan? defaultStep = null) {
+    public Simulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new SystemRandom(), initialDateTime, defaultStep) { }
+    public Simulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
-      Random = new SystemRandom();
+      Random = random;
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Logger = Console.Out;
     }
-    public Simulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
+    public Simulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public Simulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new SystemRandom(), initialDateTime, randomSeed, defaultStep) { }
+    public Simulation(IRandom random, DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
-      Random = new SystemRandom(randomSeed);
+      Random = random;
       ScheduleQ = new EventQueue(InitialMaxEvents);
       Logger = Console.Out;
     }
@@ -150,9 +160,7 @@ namespace SimSharp {
     /// <param name="event">The event that should be scheduled.</param>
     /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
     public virtual void Schedule(Event @event, int priority = 0) {
-      lock (locker) {
-        DoSchedule(Now, @event, priority);
-      }
+      DoSchedule(Now, @event, priority);
     }
 
     /// <summary>
@@ -167,10 +175,8 @@ namespace SimSharp {
     public virtual void Schedule(TimeSpan delay, Event @event, int priority = 0) {
       if (delay < TimeSpan.Zero)
         throw new ArgumentException("Negative delays are not allowed in Schedule(TimeSpan, Event).");
-      lock (locker) {
-        var eventTime = Now + delay;
-        DoSchedule(eventTime, @event, priority);
-      }
+      var eventTime = Now + delay;
+      DoSchedule(eventTime, @event, priority);
     }
 
     protected virtual EventQueueNode DoSchedule(DateTime date, Event @event, int priority = 0) {
@@ -202,20 +208,33 @@ namespace SimSharp {
       return Run(stopEvent);
     }
 
+    protected bool _stopRequested = false;
+    /// <summary>
+    /// Run until a certain event is processed.
+    /// </summary>
+    /// <remarks>
+    /// This simulation environment is not thread-safe, thus triggering this event outside the environment
+    /// leads to potential race conditions. Please use the <see cref="ThreadSafeSimulation"/> environment in case you
+    /// require this functionality. Note that the performance of <see cref="ThreadSafeSimulation"/> is lower due to locking.
+    /// 
+    /// For real-time based termination, you can also call <see cref="StopAsync"/> which sets a flag indicating the simulation
+    /// to stop before processing the next event.
+    /// </remarks>
+    /// <param name="stopEvent">The event that stops the simulation.</param>
+    /// <returns></returns>
     public virtual object Run(Event stopEvent = null) {
+      _stopRequested = false;
       if (stopEvent != null) {
         if (stopEvent.IsProcessed) return stopEvent.Value;
         stopEvent.AddCallback(StopSimulation);
       }
 
       try {
-        var stop = ScheduleQ.Count == 0;
+        var stop = ScheduleQ.Count == 0 || _stopRequested;
         while (!stop) {
           Step();
           ProcessedEvents++;
-          lock (locker) {
-            stop = ScheduleQ.Count == 0;
-          }
+          stop = ScheduleQ.Count == 0 || _stopRequested;
         }
       } catch (StopSimulationException e) { return e.Value; }
       if (stopEvent == null) return null;
@@ -223,27 +242,43 @@ namespace SimSharp {
       return stopEvent.Value;
     }
 
+    public virtual void StopAsync() {
+      _stopRequested = true;
+    }
+
+    /// <summary>
+    /// Performs a single step of the simulation, i.e. process a single event
+    /// </summary>
+    /// <remarks>
+    /// This method is not thread-safe
+    /// </remarks>
     public virtual void Step() {
       Event evt;
-      lock (locker) {
-        var next = ScheduleQ.Dequeue();
-        Now = next.PrimaryPriority;
-        evt = next.Event;
-      }
+      var next = ScheduleQ.Dequeue();
+      Now = next.PrimaryPriority;
+      evt = next.Event;
       evt.Process();
     }
 
+    /// <summary>
+    /// Peeks at the time of the next event in terms of the defined step
+    /// </summary>
+    /// <remarks>
+    /// This method is not thread-safe
+    /// </remarks>
     public virtual double PeekD() {
-      lock (locker) {
-        if (ScheduleQ.Count == 0) return double.MaxValue;
-        return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
-      }
+      if (ScheduleQ.Count == 0) return double.MaxValue;
+      return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
     }
 
+    /// <summary>
+    /// Peeks at the time of the next event
+    /// </summary>
+    /// <remarks>
+    /// This method is not thread-safe
+    /// </remarks>
     public virtual DateTime Peek() {
-      lock (locker) {
-        return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
-      }
+      return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
     }
 
     protected virtual void StopSimulation(Event @event) {
@@ -426,5 +461,143 @@ namespace SimSharp {
       return new Timeout(this, RandLogNormal(mu, sigma));
     }
     #endregion
+  }
+
+  /// <summary>
+  /// Provides a simulation environment that is thread-safe against manipulations of the event queue.
+  /// Its performance is somewhat lower than the non-thread-safe environment (cf. <see cref="Simulation"/>)
+  /// due to the locking involved.
+  /// </summary>
+  /// <remarks>
+  /// Please carefully consider if you must really schedule the stop event in a separate thread. You can also
+  /// call <see cref="Simulation.StopAsync"/> to request termination at the next possible synchronization point.
+  /// 
+  /// The simulation will still run in only one thread and execute all events sequentially.
+  /// </remarks>
+  public class ThreadSafeSimulation : Simulation {
+    protected object _locker;
+
+    public ThreadSafeSimulation() : this(new DateTime(1970, 1, 1)) { }
+    public ThreadSafeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
+    public ThreadSafeSimulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new SystemRandom(), initialDateTime, defaultStep) { }
+    public ThreadSafeSimulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) : base(random, initialDateTime, defaultStep) {
+      _locker = new object();
+    }
+    public ThreadSafeSimulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public ThreadSafeSimulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new SystemRandom(), initialDateTime, randomSeed, defaultStep) { }
+    public ThreadSafeSimulation(IRandom random, DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null)
+      : base(random, initialDateTime, randomSeed, defaultStep) {
+      _locker = new object();
+    }
+
+
+    /// <summary>
+    /// Schedules an event to occur at the same simulation time as the call was made.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    /// <param name="event">The event that should be scheduled.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public override void Schedule(Event @event, int priority = 0) {
+      lock (_locker) {
+        DoSchedule(Now, @event, priority);
+      }
+    }
+
+    /// <summary>
+    /// Schedules an event to occur after a certain (positive) delay.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="delay"/> is negative.
+    /// </exception>
+    /// <param name="delay">The (positive) delay after which the event should be fired.</param>
+    /// <param name="event">The event that should be scheduled.</param>
+    /// <param name="priority">The priority to rank events at the same time (smaller value = higher priority).</param>
+    public override void Schedule(TimeSpan delay, Event @event, int priority = 0) {
+      if (delay < TimeSpan.Zero)
+        throw new ArgumentException("Negative delays are not allowed in Schedule(TimeSpan, Event).");
+      lock (_locker) {
+        var eventTime = Now + delay;
+        DoSchedule(eventTime, @event, priority);
+      }
+    }
+
+    /// <summary>
+    /// Run until a certain event is processed.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    /// <param name="stopEvent">The event that stops the simulation.</param>
+    /// <returns></returns>
+    public override object Run(Event stopEvent = null) {
+      _stopRequested = false;
+      if (stopEvent != null) {
+        if (stopEvent.IsProcessed) return stopEvent.Value;
+        stopEvent.AddCallback(StopSimulation);
+      }
+
+      try {
+        var stop = false;
+        lock (_locker) {
+          stop = ScheduleQ.Count == 0 || _stopRequested;
+        }
+        while (!stop) {
+          Step();
+          ProcessedEvents++;
+          lock (_locker) {
+            stop = ScheduleQ.Count == 0 || _stopRequested;
+          }
+        }
+      } catch (StopSimulationException e) { return e.Value; }
+      if (stopEvent == null) return null;
+      if (!stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      return stopEvent.Value;
+    }
+
+    /// <summary>
+    /// Performs a single step of the simulation, i.e. process a single event
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    public override void Step() {
+      Event evt;
+      lock (_locker) {
+        var next = ScheduleQ.Dequeue();
+        Now = next.PrimaryPriority;
+        evt = next.Event;
+      }
+      evt.Process();
+    }
+
+    /// <summary>
+    /// Peeks at the time of the next event in terms of the defined step
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    public override double PeekD() {
+      lock (_locker) {
+        if (ScheduleQ.Count == 0) return double.MaxValue;
+        return (Peek() - StartDate).TotalSeconds / DefaultTimeStepSeconds;
+      }
+    }
+
+    /// <summary>
+    /// Peeks at the time of the next event
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe against manipulations of the event queue
+    /// </remarks>
+    public override DateTime Peek() {
+      lock (_locker) {
+        return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
+      }
+    }
   }
 }

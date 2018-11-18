@@ -6,18 +6,22 @@ using System.Timers;
 namespace SimSharp.Benchmarks {
   public class SyntheticBenchmark {
     private static long perf;
-    private static Event terminate;
+    private static Simulation env;
     private static void Timeout(object sender, ElapsedEventArgs e) {
-      terminate.Succeed();
+      env.StopAsync();
     }
 
     public static int Run(SyntheticOptions opts) {
+      if (!Stopwatch.IsHighResolution) {
+        Console.WriteLine("The Stopwatch class on this machine is not based on a high resolution counter.");
+        return 1;
+      }
       var time = opts.Time;
       var repetitions = opts.Repetitions;
       var CPU_FRQ = (long)Math.Round(opts.CpuFreq * 1E9);
 
       Console.WriteLine();
-      Console.WriteLine("== Starting Benchmark: {0} repetitions for {1:##,###}ms each. CPU clock frequency is {2:##,###}Hz ==", repetitions, (int)(time * 1000), CPU_FRQ);
+      Console.WriteLine("== Starting Benchmark: {0} repetitions for {1:##,###}ms each. CPU clock frequency is set to {2:##,###}Hz ==", repetitions, (int)(time * 1000), CPU_FRQ);
       Console.WriteLine();
       var frqMod = CPU_FRQ / (double)Stopwatch.Frequency;
 
@@ -25,8 +29,7 @@ namespace SimSharp.Benchmarks {
       var sumPerf = 0.0;
       foreach (var n in new[] { 1, 10, 100, 1000, 10000 }) {
         for (var r = 0; r < repetitions; r++) {
-          var env = new Simulation();
-          terminate = new Event(env);
+          env = new Simulation();
           var clk = new Timer((int)(time * 1000));
           clk.Elapsed += Timeout;
           clk.Start();
@@ -43,8 +46,7 @@ namespace SimSharp.Benchmarks {
       sumTime = 0.0;
       sumPerf = 0.0;
       for (var r = 0; r < repetitions; r++) {
-        var env = new Simulation();
-        terminate = new Event(env);
+        env = new Simulation();
         var clk = new Timer((int)(time * 1000));
         clk.Elapsed += Timeout;
         clk.Start();
@@ -60,8 +62,7 @@ namespace SimSharp.Benchmarks {
       sumTime = 0.0;
       sumPerf = 0.0;
       for (var r = 0; r < repetitions; r++) {
-        var env = new Simulation();
-        terminate = new Event(env);
+        env = new Simulation();
         var clk = new Timer((int)(time * 1000));
         clk.Elapsed += Timeout;
         clk.Start();
@@ -92,7 +93,7 @@ namespace SimSharp.Benchmarks {
         env.Process(Benchmark1Proc(env, n));
       }
       var watch = Stopwatch.StartNew();
-      env.Run(terminate);
+      env.Run();
       watch.Stop();
       return watch.ElapsedTicks;
     }
@@ -113,7 +114,7 @@ namespace SimSharp.Benchmarks {
       perf = 0;
       env.Process(Benchmark2Source(env));
       var watch = Stopwatch.StartNew();
-      env.Run(terminate);
+      env.Run();
       watch.Stop();
       return watch.ElapsedTicks;
     }
@@ -139,7 +140,7 @@ namespace SimSharp.Benchmarks {
       env.Process(Benchmark3Proc(env, res));
       env.Process(Benchmark3Proc(env, res));
       var watch = Stopwatch.StartNew();
-      env.Run(terminate);
+      env.Run();
       watch.Stop();
       return watch.ElapsedTicks;
     }

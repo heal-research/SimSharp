@@ -25,7 +25,7 @@ namespace SimSharp.Benchmarks {
       var sumPerf = 0.0;
       foreach (var n in new[] { 1, 10, 100, 1000, 10000 }) {
         for (var r = 0; r < repetitions; r++) {
-          var env = new SimSharp.Environment();
+          var env = new Simulation();
           terminate = new Event(env);
           var clk = new Timer((int)(time * 1000));
           clk.Elapsed += Timeout;
@@ -43,7 +43,7 @@ namespace SimSharp.Benchmarks {
       sumTime = 0.0;
       sumPerf = 0.0;
       for (var r = 0; r < repetitions; r++) {
-        var env = new SimSharp.Environment();
+        var env = new Simulation();
         terminate = new Event(env);
         var clk = new Timer((int)(time * 1000));
         clk.Elapsed += Timeout;
@@ -60,7 +60,7 @@ namespace SimSharp.Benchmarks {
       sumTime = 0.0;
       sumPerf = 0.0;
       for (var r = 0; r < repetitions; r++) {
-        var env = new SimSharp.Environment();
+        var env = new Simulation();
         terminate = new Event(env);
         var clk = new Timer((int)(time * 1000));
         clk.Elapsed += Timeout;
@@ -86,7 +86,7 @@ namespace SimSharp.Benchmarks {
     /// stress tests the performance of operations on the event queue.
     /// </summary>
     /// <param name="n">The number of concurrent processes.</param>
-    static long Benchmark1(Environment env, int n) {
+    static long Benchmark1(Simulation env, int n) {
       perf = 0;
       for (var i = 0; i < n; i++) {
         env.Process(Benchmark1Proc(env, n));
@@ -97,7 +97,7 @@ namespace SimSharp.Benchmarks {
       return watch.ElapsedTicks;
     }
 
-    static IEnumerable<Event> Benchmark1Proc(Environment env, int n) {
+    static IEnumerable<Event> Benchmark1Proc(Simulation env, int n) {
       while (true) {
         yield return env.TimeoutUniform(TimeSpan.Zero, TimeSpan.FromSeconds(2 * n));
         perf++;
@@ -109,7 +109,7 @@ namespace SimSharp.Benchmarks {
     /// of entities. In SimPy and also Sim# the equivalence of an entity is a
     /// process. This stress tests the performance of creating processes.
     /// </summary>
-    static long Benchmark2(Environment env) {
+    static long Benchmark2(Simulation env) {
       perf = 0;
       env.Process(Benchmark2Source(env));
       var watch = Stopwatch.StartNew();
@@ -118,14 +118,14 @@ namespace SimSharp.Benchmarks {
       return watch.ElapsedTicks;
     }
 
-    static IEnumerable<Event> Benchmark2Source(Environment env) {
+    static IEnumerable<Event> Benchmark2Source(Simulation env) {
       while (true) {
         yield return env.Process(Benchmark2Sink(env));
         perf++;
       }
     }
 
-    static IEnumerable<Event> Benchmark2Sink(Environment env) {
+    static IEnumerable<Event> Benchmark2Sink(Simulation env) {
       yield break;
     }
 
@@ -133,7 +133,7 @@ namespace SimSharp.Benchmarks {
     /// This method will benchmark Sim#'s performance with respect to
     /// seizing and releasing resources, a common task in DES models.
     /// </summary>
-    static long Benchmark3(Environment env) {
+    static long Benchmark3(Simulation env) {
       perf = 0;
       var res = new Resource(env, capacity: 1);
       env.Process(Benchmark3Proc(env, res));
@@ -144,7 +144,7 @@ namespace SimSharp.Benchmarks {
       return watch.ElapsedTicks;
     }
 
-    static IEnumerable<Event> Benchmark3Proc(Environment env, Resource resource) {
+    static IEnumerable<Event> Benchmark3Proc(Simulation env, Resource resource) {
       while (true) {
         var req = resource.Request();
         yield return req;

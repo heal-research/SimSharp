@@ -27,6 +27,7 @@ THE SOFTWARE.
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimSharp {
   /// <summary>
@@ -132,9 +133,7 @@ namespace SimSharp {
     /// </summary>
     public int Count {
       get {
-        lock (_queue) {
-          return _queue.Count;
-        }
+        return _queue.Count;
       }
     }
 
@@ -146,13 +145,11 @@ namespace SimSharp {
     /// </summary>
     public TItem First {
       get {
-        lock (_queue) {
-          if (_queue.Count <= 0) {
-            throw new InvalidOperationException("Cannot call .First on an empty queue");
-          }
-
-          return _queue.First.Data;
+        if (_queue.Count <= 0) {
+          throw new InvalidOperationException("Cannot call .First on an empty queue");
         }
+
+        return _queue.First.Data;
       }
     }
 
@@ -161,11 +158,9 @@ namespace SimSharp {
     /// O(n)
     /// </summary>
     public void Clear() {
-      lock (_queue) {
-        _queue.Clear();
-        _itemToNodesCache.Clear();
-        _nullNodesCache.Clear();
-      }
+      _queue.Clear();
+      _itemToNodesCache.Clear();
+      _nullNodesCache.Clear();
     }
 
     /// <summary>
@@ -173,12 +168,10 @@ namespace SimSharp {
     /// O(1)
     /// </summary>
     public bool Contains(TItem item) {
-      lock (_queue) {
-        if (item == null) {
-          return _nullNodesCache.Count > 0;
-        }
-        return _itemToNodesCache.ContainsKey(item);
+      if (item == null) {
+        return _nullNodesCache.Count > 0;
       }
+      return _itemToNodesCache.ContainsKey(item);
     }
 
     /// <summary>
@@ -187,24 +180,22 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public TItem Dequeue() {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          throw new InvalidOperationException("Cannot call Dequeue() on an empty queue");
-        }
-
-        SimpleNode node = _queue.Dequeue();
-        RemoveFromNodeCache(node);
-        return node.Data;
+      if (_queue.Count <= 0) {
+        throw new InvalidOperationException("Cannot call Dequeue() on an empty queue");
       }
+
+      SimpleNode node = _queue.Dequeue();
+      RemoveFromNodeCache(node);
+      return node.Data;
     }
 
     /// <summary>
-    /// Enqueue the item with the given priority, without calling lock(_queue) or AddToNodeCache(node)
+    /// Enqueue the item with the given priority, without calling AddToNodeCache(node)
     /// </summary>
     /// <param name="item"></param>
     /// <param name="priority"></param>
     /// <returns></returns>
-    private SimpleNode EnqueueNoLockOrCache(TItem item, TPriority priority) {
+    private SimpleNode EnqueueNoCache(TItem item, TPriority priority) {
       SimpleNode node = new SimpleNode(item);
       if (_queue.Count == _queue.MaxSize) {
         _queue.Resize(_queue.MaxSize * 2 + 1);
@@ -220,17 +211,15 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void Enqueue(TItem item, TPriority priority) {
-      lock (_queue) {
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          nodes = _nullNodesCache;
-        } else if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-          nodes = new List<SimpleNode>();
-          _itemToNodesCache[item] = nodes;
-        }
-        SimpleNode node = EnqueueNoLockOrCache(item, priority);
-        nodes.Add(node);
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        nodes = _nullNodesCache;
+      } else if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+        nodes = new List<SimpleNode>();
+        _itemToNodesCache[item] = nodes;
       }
+      SimpleNode node = EnqueueNoCache(item, priority);
+      nodes.Add(node);
     }
 
     /// <summary>
@@ -240,23 +229,21 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool EnqueueWithoutDuplicates(TItem item, TPriority priority) {
-      lock (_queue) {
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count > 0) {
-            return false;
-          }
-          nodes = _nullNodesCache;
-        } else if (_itemToNodesCache.ContainsKey(item)) {
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count > 0) {
           return false;
-        } else {
-          nodes = new List<SimpleNode>();
-          _itemToNodesCache[item] = nodes;
         }
-        SimpleNode node = EnqueueNoLockOrCache(item, priority);
-        nodes.Add(node);
-        return true;
+        nodes = _nullNodesCache;
+      } else if (_itemToNodesCache.ContainsKey(item)) {
+        return false;
+      } else {
+        nodes = new List<SimpleNode>();
+        _itemToNodesCache[item] = nodes;
       }
+      SimpleNode node = EnqueueNoCache(item, priority);
+      nodes.Add(node);
+      return true;
     }
 
     /// <summary>
@@ -266,27 +253,25 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void Remove(TItem item) {
-      lock (_queue) {
-        SimpleNode removeMe;
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count == 0) {
-            throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
-          }
-          removeMe = _nullNodesCache[0];
-          nodes = _nullNodesCache;
-        } else {
-          if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-            throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
-          }
-          removeMe = nodes[0];
-          if (nodes.Count == 1) {
-            _itemToNodesCache.Remove(item);
-          }
+      SimpleNode removeMe;
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count == 0) {
+          throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
         }
-        _queue.Remove(removeMe);
-        nodes.Remove(removeMe);
+        removeMe = _nullNodesCache[0];
+        nodes = _nullNodesCache;
+      } else {
+        if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+          throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
+        }
+        removeMe = nodes[0];
+        if (nodes.Count == 1) {
+          _itemToNodesCache.Remove(item);
+        }
       }
+      _queue.Remove(removeMe);
+      nodes.Remove(removeMe);
     }
 
     /// <summary>
@@ -298,13 +283,11 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void UpdatePriority(TItem item, TPriority priority) {
-      lock (_queue) {
-        SimpleNode updateMe = GetExistingNode(item);
-        if (updateMe == null) {
-          throw new InvalidOperationException("Cannot call UpdatePriority() on a node which is not enqueued: " + item);
-        }
-        _queue.UpdatePriority(updateMe, priority);
+      SimpleNode updateMe = GetExistingNode(item);
+      if (updateMe == null) {
+        throw new InvalidOperationException("Cannot call UpdatePriority() on a node which is not enqueued: " + item);
       }
+      _queue.UpdatePriority(updateMe, priority);
     }
 
     /// <summary>
@@ -316,13 +299,11 @@ namespace SimSharp {
     /// O(1)
     /// </summary>
     public TPriority GetPriority(TItem item) {
-      lock (_queue) {
-        SimpleNode findMe = GetExistingNode(item);
-        if (findMe == null) {
-          throw new InvalidOperationException("Cannot call GetPriority() on a node which is not enqueued: " + item);
-        }
-        return findMe.Priority;
+      SimpleNode findMe = GetExistingNode(item);
+      if (findMe == null) {
+        throw new InvalidOperationException("Cannot call GetPriority() on a node which is not enqueued: " + item);
       }
+      return findMe.Priority;
     }
 
     #region Try* methods for multithreading
@@ -331,15 +312,13 @@ namespace SimSharp {
     /// Returns true if successful, false otherwise
     /// O(1)
     public bool TryFirst(out TItem first) {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          first = default(TItem);
-          return false;
-        }
-
-        first = _queue.First.Data;
-        return true;
+      if (_queue.Count <= 0) {
+        first = default(TItem);
+        return false;
       }
+
+      first = _queue.First.Data;
+      return true;
     }
 
     /// <summary>
@@ -349,17 +328,15 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryDequeue(out TItem first) {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          first = default(TItem);
-          return false;
-        }
-
-        SimpleNode node = _queue.Dequeue();
-        first = node.Data;
-        RemoveFromNodeCache(node);
-        return true;
+      if (_queue.Count <= 0) {
+        first = default(TItem);
+        return false;
       }
+
+      SimpleNode node = _queue.Dequeue();
+      first = node.Data;
+      RemoveFromNodeCache(node);
+      return true;
     }
 
     /// <summary>
@@ -370,28 +347,26 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryRemove(TItem item) {
-      lock (_queue) {
-        SimpleNode removeMe;
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count == 0) {
-            return false;
-          }
-          removeMe = _nullNodesCache[0];
-          nodes = _nullNodesCache;
-        } else {
-          if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-            return false;
-          }
-          removeMe = nodes[0];
-          if (nodes.Count == 1) {
-            _itemToNodesCache.Remove(item);
-          }
+      SimpleNode removeMe;
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count == 0) {
+          return false;
         }
-        _queue.Remove(removeMe);
-        nodes.Remove(removeMe);
-        return true;
+        removeMe = _nullNodesCache[0];
+        nodes = _nullNodesCache;
+      } else {
+        if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+          return false;
+        }
+        removeMe = nodes[0];
+        if (nodes.Count == 1) {
+          _itemToNodesCache.Remove(item);
+        }
       }
+      _queue.Remove(removeMe);
+      nodes.Remove(removeMe);
+      return true;
     }
 
     /// <summary>
@@ -404,14 +379,12 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryUpdatePriority(TItem item, TPriority priority) {
-      lock (_queue) {
-        SimpleNode updateMe = GetExistingNode(item);
-        if (updateMe == null) {
-          return false;
-        }
-        _queue.UpdatePriority(updateMe, priority);
-        return true;
+      SimpleNode updateMe = GetExistingNode(item);
+      if (updateMe == null) {
+        return false;
       }
+      _queue.UpdatePriority(updateMe, priority);
+      return true;
     }
 
     /// <summary>
@@ -424,28 +397,18 @@ namespace SimSharp {
     /// O(1)
     /// </summary>
     public bool TryGetPriority(TItem item, out TPriority priority) {
-      lock (_queue) {
-        SimpleNode findMe = GetExistingNode(item);
-        if (findMe == null) {
-          priority = default(TPriority);
-          return false;
-        }
-        priority = findMe.Priority;
-        return true;
+      SimpleNode findMe = GetExistingNode(item);
+      if (findMe == null) {
+        priority = default(TPriority);
+        return false;
       }
+      priority = findMe.Priority;
+      return true;
     }
     #endregion
 
     public IEnumerator<TItem> GetEnumerator() {
-      List<TItem> queueData = new List<TItem>();
-      lock (_queue) {
-        //Copy to a separate list because we don't want to 'yield return' inside a lock
-        foreach (var node in _queue) {
-          queueData.Add(node.Data);
-        }
-      }
-
-      return queueData.GetEnumerator();
+      return _queue.Select(x => x.Data).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
@@ -453,26 +416,24 @@ namespace SimSharp {
     }
 
     public bool IsValidQueue() {
-      lock (_queue) {
-        // Check all items in cache are in the queue
-        foreach (IList<SimpleNode> nodes in _itemToNodesCache.Values) {
-          foreach (SimpleNode node in nodes) {
-            if (!_queue.Contains(node)) {
-              return false;
-            }
-          }
-        }
-
-        // Check all items in queue are in cache
-        foreach (SimpleNode node in _queue) {
-          if (GetExistingNode(node.Data) == null) {
+      // Check all items in cache are in the queue
+      foreach (IList<SimpleNode> nodes in _itemToNodesCache.Values) {
+        foreach (SimpleNode node in nodes) {
+          if (!_queue.Contains(node)) {
             return false;
           }
         }
-
-        // Check queue structure itself
-        return _queue.IsValidQueue();
       }
+
+      // Check all items in queue are in cache
+      foreach (SimpleNode node in _queue) {
+        if (GetExistingNode(node.Data) == null) {
+          return false;
+        }
+      }
+
+      // Check queue structure itself
+      return _queue.IsValidQueue();
     }
   }
 
@@ -590,9 +551,7 @@ namespace SimSharp {
     /// </summary>
     public int Count {
       get {
-        lock (_queue) {
-          return _queue.Count;
-        }
+        return _queue.Count;
       }
     }
 
@@ -604,13 +563,11 @@ namespace SimSharp {
     /// </summary>
     public TItem First {
       get {
-        lock (_queue) {
-          if (_queue.Count <= 0) {
-            throw new InvalidOperationException("Cannot call .First on an empty queue");
-          }
-
-          return _queue.First.Data;
+        if (_queue.Count <= 0) {
+          throw new InvalidOperationException("Cannot call .First on an empty queue");
         }
+
+        return _queue.First.Data;
       }
     }
 
@@ -619,11 +576,9 @@ namespace SimSharp {
     /// O(n)
     /// </summary>
     public void Clear() {
-      lock (_queue) {
-        _queue.Clear();
-        _itemToNodesCache.Clear();
-        _nullNodesCache.Clear();
-      }
+      _queue.Clear();
+      _itemToNodesCache.Clear();
+      _nullNodesCache.Clear();
     }
 
     /// <summary>
@@ -631,12 +586,10 @@ namespace SimSharp {
     /// O(1)
     /// </summary>
     public bool Contains(TItem item) {
-      lock (_queue) {
-        if (item == null) {
-          return _nullNodesCache.Count > 0;
-        }
-        return _itemToNodesCache.ContainsKey(item);
+      if (item == null) {
+        return _nullNodesCache.Count > 0;
       }
+      return _itemToNodesCache.ContainsKey(item);
     }
 
     /// <summary>
@@ -645,23 +598,21 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public TItem Dequeue() {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          throw new InvalidOperationException("Cannot call Dequeue() on an empty queue");
-        }
-
-        SimpleNode node = _queue.Dequeue();
-        RemoveFromNodeCache(node);
-        return node.Data;
+      if (_queue.Count <= 0) {
+        throw new InvalidOperationException("Cannot call Dequeue() on an empty queue");
       }
+
+      SimpleNode node = _queue.Dequeue();
+      RemoveFromNodeCache(node);
+      return node.Data;
     }
 
     /// <summary>
-    /// Enqueue the item with the given priority, without calling lock(_queue) or AddToNodeCache(node)
+    /// Enqueue the item with the given priority, without calling AddToNodeCache(node)
     /// </summary>
     /// <param name="item"></param>
     /// <returns></returns>
-    private SimpleNode EnqueueNoLockOrCache(TItem item) {
+    private SimpleNode EnqueueNoCache(TItem item) {
       SimpleNode node = new SimpleNode(item, _comparer);
       if (_queue.Count == _queue.MaxSize) {
         _queue.Resize(_queue.MaxSize * 2 + 1);
@@ -677,17 +628,15 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void Enqueue(TItem item) {
-      lock (_queue) {
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          nodes = _nullNodesCache;
-        } else if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-          nodes = new List<SimpleNode>();
-          _itemToNodesCache[item] = nodes;
-        }
-        SimpleNode node = EnqueueNoLockOrCache(item);
-        nodes.Add(node);
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        nodes = _nullNodesCache;
+      } else if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+        nodes = new List<SimpleNode>();
+        _itemToNodesCache[item] = nodes;
       }
+      SimpleNode node = EnqueueNoCache(item);
+      nodes.Add(node);
     }
 
     /// <summary>
@@ -697,23 +646,21 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool EnqueueWithoutDuplicates(TItem item) {
-      lock (_queue) {
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count > 0) {
-            return false;
-          }
-          nodes = _nullNodesCache;
-        } else if (_itemToNodesCache.ContainsKey(item)) {
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count > 0) {
           return false;
-        } else {
-          nodes = new List<SimpleNode>();
-          _itemToNodesCache[item] = nodes;
         }
-        SimpleNode node = EnqueueNoLockOrCache(item);
-        nodes.Add(node);
-        return true;
+        nodes = _nullNodesCache;
+      } else if (_itemToNodesCache.ContainsKey(item)) {
+        return false;
+      } else {
+        nodes = new List<SimpleNode>();
+        _itemToNodesCache[item] = nodes;
       }
+      SimpleNode node = EnqueueNoCache(item);
+      nodes.Add(node);
+      return true;
     }
 
     /// <summary>
@@ -723,27 +670,25 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void Remove(TItem item) {
-      lock (_queue) {
-        SimpleNode removeMe;
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count == 0) {
-            throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
-          }
-          removeMe = _nullNodesCache[0];
-          nodes = _nullNodesCache;
-        } else {
-          if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-            throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
-          }
-          removeMe = nodes[0];
-          if (nodes.Count == 1) {
-            _itemToNodesCache.Remove(item);
-          }
+      SimpleNode removeMe;
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count == 0) {
+          throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
         }
-        _queue.Remove(removeMe);
-        nodes.Remove(removeMe);
+        removeMe = _nullNodesCache[0];
+        nodes = _nullNodesCache;
+      } else {
+        if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+          throw new InvalidOperationException("Cannot call Remove() on a node which is not enqueued: " + item);
+        }
+        removeMe = nodes[0];
+        if (nodes.Count == 1) {
+          _itemToNodesCache.Remove(item);
+        }
       }
+      _queue.Remove(removeMe);
+      nodes.Remove(removeMe);
     }
 
     /// <summary>
@@ -755,13 +700,11 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public void UpdatePriority(TItem item) {
-      lock (_queue) {
-        SimpleNode updateMe = GetExistingNode(item);
-        if (updateMe == null) {
-          throw new InvalidOperationException("Cannot call UpdatePriority() on a node which is not enqueued: " + item);
-        }
-        _queue.UpdatePriority(updateMe);
+      SimpleNode updateMe = GetExistingNode(item);
+      if (updateMe == null) {
+        throw new InvalidOperationException("Cannot call UpdatePriority() on a node which is not enqueued: " + item);
       }
+      _queue.UpdatePriority(updateMe);
     }
 
     #region Try* methods for multithreading
@@ -770,15 +713,13 @@ namespace SimSharp {
     /// Returns true if successful, false otherwise
     /// O(1)
     public bool TryFirst(out TItem first) {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          first = default(TItem);
-          return false;
-        }
-
-        first = _queue.First.Data;
-        return true;
+      if (_queue.Count <= 0) {
+        first = default(TItem);
+        return false;
       }
+
+      first = _queue.First.Data;
+      return true;
     }
 
     /// <summary>
@@ -788,17 +729,15 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryDequeue(out TItem first) {
-      lock (_queue) {
-        if (_queue.Count <= 0) {
-          first = default(TItem);
-          return false;
-        }
-
-        SimpleNode node = _queue.Dequeue();
-        first = node.Data;
-        RemoveFromNodeCache(node);
-        return true;
+      if (_queue.Count <= 0) {
+        first = default(TItem);
+        return false;
       }
+
+      SimpleNode node = _queue.Dequeue();
+      first = node.Data;
+      RemoveFromNodeCache(node);
+      return true;
     }
 
     /// <summary>
@@ -809,28 +748,26 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryRemove(TItem item) {
-      lock (_queue) {
-        SimpleNode removeMe;
-        IList<SimpleNode> nodes;
-        if (item == null) {
-          if (_nullNodesCache.Count == 0) {
-            return false;
-          }
-          removeMe = _nullNodesCache[0];
-          nodes = _nullNodesCache;
-        } else {
-          if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
-            return false;
-          }
-          removeMe = nodes[0];
-          if (nodes.Count == 1) {
-            _itemToNodesCache.Remove(item);
-          }
+      SimpleNode removeMe;
+      IList<SimpleNode> nodes;
+      if (item == null) {
+        if (_nullNodesCache.Count == 0) {
+          return false;
         }
-        _queue.Remove(removeMe);
-        nodes.Remove(removeMe);
-        return true;
+        removeMe = _nullNodesCache[0];
+        nodes = _nullNodesCache;
+      } else {
+        if (!_itemToNodesCache.TryGetValue(item, out nodes)) {
+          return false;
+        }
+        removeMe = nodes[0];
+        if (nodes.Count == 1) {
+          _itemToNodesCache.Remove(item);
+        }
       }
+      _queue.Remove(removeMe);
+      nodes.Remove(removeMe);
+      return true;
     }
 
     /// <summary>
@@ -843,27 +780,17 @@ namespace SimSharp {
     /// O(log n)
     /// </summary>
     public bool TryUpdatePriority(TItem item) {
-      lock (_queue) {
-        SimpleNode updateMe = GetExistingNode(item);
-        if (updateMe == null) {
-          return false;
-        }
-        _queue.UpdatePriority(updateMe);
-        return true;
+      SimpleNode updateMe = GetExistingNode(item);
+      if (updateMe == null) {
+        return false;
       }
+      _queue.UpdatePriority(updateMe);
+      return true;
     }
     #endregion
 
     public IEnumerator<TItem> GetEnumerator() {
-      List<TItem> queueData = new List<TItem>();
-      lock (_queue) {
-        //Copy to a separate list because we don't want to 'yield return' inside a lock
-        foreach (var node in _queue) {
-          queueData.Add(node.Data);
-        }
-      }
-
-      return queueData.GetEnumerator();
+      return _queue.Select(x => x.Data).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
@@ -871,26 +798,24 @@ namespace SimSharp {
     }
 
     public bool IsValidQueue() {
-      lock (_queue) {
-        // Check all items in cache are in the queue
-        foreach (IList<SimpleNode> nodes in _itemToNodesCache.Values) {
-          foreach (SimpleNode node in nodes) {
-            if (!_queue.Contains(node)) {
-              return false;
-            }
-          }
-        }
-
-        // Check all items in queue are in cache
-        foreach (SimpleNode node in _queue) {
-          if (GetExistingNode(node.Data) == null) {
+      // Check all items in cache are in the queue
+      foreach (IList<SimpleNode> nodes in _itemToNodesCache.Values) {
+        foreach (SimpleNode node in nodes) {
+          if (!_queue.Contains(node)) {
             return false;
           }
         }
-
-        // Check queue structure itself
-        return _queue.IsValidQueue();
       }
+
+      // Check all items in queue are in cache
+      foreach (SimpleNode node in _queue) {
+        if (GetExistingNode(node.Data) == null) {
+          return false;
+        }
+      }
+
+      // Check queue structure itself
+      return _queue.IsValidQueue();
     }
   }
 }

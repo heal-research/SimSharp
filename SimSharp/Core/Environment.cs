@@ -348,15 +348,24 @@ namespace SimSharp {
       return TimeSpan.FromSeconds(RandExponential(mean.TotalSeconds));
     }
 
+    private bool useSpareNormal = false;
+    private double spareNormal = double.NaN;
     public double RandNormal(double mu, double sigma) {
-      double z, zz, u1, u2;
-      do {
-        u1 = Random.NextDouble();
-        u2 = 1 - Random.NextDouble();
-        z = NormalMagicConst * (u1 - 0.5) / u2;
-        zz = z * z / 4.0;
-      } while (zz > -Math.Log(u2));
-      return mu + z * sigma;
+      if (useSpareNormal) {
+        useSpareNormal = false;
+        return spareNormal * sigma + mu;
+      } else {
+        double u, v, s;
+        do {
+          u = Random.NextDouble() * 2 - 1;
+          v = Random.NextDouble() * 2 - 1;
+          s = u * u + v * v;
+        } while (s >= 1 || s == 0);
+        double mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
+        spareNormal = v * mul;
+        useSpareNormal = true;
+        return mu + sigma * u * mul;
+      }
     }
 
     public TimeSpan RandNormal(TimeSpan mu, TimeSpan sigma) {

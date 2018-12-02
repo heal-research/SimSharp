@@ -291,8 +291,6 @@ namespace SimSharp {
     }
 
     #region Random number distributions
-    protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
-
     public double RandUniform(double a, double b) {
       return a + (b - a) * Random.NextDouble();
     }
@@ -350,6 +348,18 @@ namespace SimSharp {
 
     private bool useSpareNormal = false;
     private double spareNormal = double.NaN;
+    /// <summary>
+    /// Uses the Marsaglia polar method to generate a random variable
+    /// from two uniform random distributed values.
+    /// </summary>
+    /// <remarks>
+    /// A spare random variable is generated from the second uniformly
+    /// distributed value. Thus, the two calls to the uniform random number
+    /// generator will be made only every second call.
+    /// </remarks>
+    /// <param name="mu">The mean of the normal distribution.</param>
+    /// <param name="sigma">The standard deviation of the normal distribution.</param>
+    /// <returns>A number that is normal distributed.</returns>
     public double RandNormal(double mu, double sigma) {
       if (useSpareNormal) {
         useSpareNormal = false;
@@ -361,13 +371,25 @@ namespace SimSharp {
           v = Random.NextDouble() * 2 - 1;
           s = u * u + v * v;
         } while (s >= 1 || s == 0);
-        double mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
+        var mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
         spareNormal = v * mul;
         useSpareNormal = true;
         return mu + sigma * u * mul;
       }
     }
 
+    /// <summary>
+    /// Uses the Marsaglia polar method to generate a random variable
+    /// from two uniform random distributed values.
+    /// </summary>
+    /// <remarks>
+    /// A spare random variable is generated from the second uniformly
+    /// distributed value. Thus, the two calls to the uniform random number
+    /// generator will be made only every second call.
+    /// </remarks>
+    /// <param name="mu">The mean of the normal distribution.</param>
+    /// <param name="sigma">The standard deviation of the normal distribution.</param>
+    /// <returns>A number that is normal distributed.</returns>
     public TimeSpan RandNormal(TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandNormal(mu.TotalSeconds, sigma.TotalSeconds));
     }
@@ -396,12 +418,56 @@ namespace SimSharp {
       return TimeSpan.FromSeconds(RandNormalNegative(mu.TotalSeconds, sigma.TotalSeconds));
     }
 
+    /// <summary>
+    /// Returns values from a log-normal distribution with the mean
+    /// exp(mu + sigma^2 / 2)
+    /// and the standard deviation
+    /// sqrt([exp(sigma^2)-1] * exp(2 * mu + sigma^2))
+    /// </summary>
+    /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
+    /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
+    /// <returns>A log-normal distributed random value.</returns>
     public double RandLogNormal(double mu, double sigma) {
       return Math.Exp(RandNormal(mu, sigma));
     }
 
+    /// <summary>
+    /// Returns values from a log-normal distribution with
+    /// the mean <paramref name="mean"/> and standard deviation <paramref name="stdev"/>.
+    /// </summary>
+    /// <param name="mean">The distribution mean.</param>
+    /// <param name="stdev">The distribution standard deviation.</param>
+    /// <returns>A log-normal distributed random value.</returns>
+    public double RandLogNormal2(double mean, double stdev) {
+      if (stdev == 0) return mean;
+      var alpha = Math.Sqrt(mean * stdev) / mean;
+      var sigma = Math.Sqrt(Math.Log(1 + (alpha * alpha)));
+      var mu = Math.Log(mean) - 0.5 * sigma * sigma;
+      return Math.Exp(RandNormal(mu, sigma));
+    }
+
+    /// <summary>
+    /// Returns a timespan value from a log-normal distribution with the mean
+    /// exp(mu + sigma^2 / 2)
+    /// and the standard deviation
+    /// sqrt([exp(sigma^2)-1] * exp(2 * mu + sigma^2))
+    /// </summary>
+    /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
+    /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
+    /// <returns>A log-normal distributed random timespan.</returns>
     public TimeSpan RandLogNormal(TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandLogNormal(mu.TotalSeconds, sigma.TotalSeconds));
+    }
+
+    /// <summary>
+    /// Returns a timespan value from a log-normal distribution with
+    /// the mean <paramref name="mean"/> and standard deviation <paramref name="stdev"/>.
+    /// </summary>
+    /// <param name="mean">The distribution mean.</param>
+    /// <param name="stdev">The distribution standard deviation.</param>
+    /// <returns>A log-normal distributed random timespan.</returns>
+    public TimeSpan RandLogNormal2(TimeSpan mean, TimeSpan stdev) {
+      return TimeSpan.FromSeconds(RandLogNormal2(mean.TotalSeconds, stdev.TotalSeconds));
     }
 
     public double RandCauchy(double x0, double gamma) {
@@ -416,8 +482,8 @@ namespace SimSharp {
       return alpha * Math.Pow(-Math.Log(1 - Random.NextDouble()), 1 / beta);
     }
 
-    public TimeSpan RandWeibull(TimeSpan mu, TimeSpan sigma) {
-      return TimeSpan.FromSeconds(RandWeibull(mu.TotalSeconds, sigma.TotalSeconds));
+    public TimeSpan RandWeibull(TimeSpan alpha, TimeSpan beta) {
+      return TimeSpan.FromSeconds(RandWeibull(alpha.TotalSeconds, beta.TotalSeconds));
     }
     #endregion
 
@@ -466,8 +532,16 @@ namespace SimSharp {
       return new Timeout(this, ToTimeSpan(RandLogNormal(mu, sigma)));
     }
 
+    public Timeout TimeoutLogNormal2D(double mean, double stdev) {
+      return new Timeout(this, ToTimeSpan(RandLogNormal2(mean, stdev)));
+    }
+
     public Timeout TimeoutLogNormal(TimeSpan mu, TimeSpan sigma) {
       return new Timeout(this, RandLogNormal(mu, sigma));
+    }
+
+    public Timeout TimeoutLogNormal2(TimeSpan mean, TimeSpan stdev) {
+      return new Timeout(this, RandLogNormal2(mean, stdev));
     }
     #endregion
   }

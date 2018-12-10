@@ -369,17 +369,17 @@ namespace SimSharp.Tests {
       env.Process(FilterStoreConsumerA(env, sto));
       env.Process(FilterStoreConsumerB(env, sto));
       env.Run(TimeSpan.FromSeconds(20));
-      Assert.Equal(
-@"4: Produce A
-4: Consume A
-6: Produce B
-6: Consume B
-10: Produce A
-14: Consume A
-14: Produce B
-14: Consume B
-18: Produce A
-", sb.ToString());
+      Assert.Equal(string.Join(System.Environment.NewLine,
+"4: Produce A",
+"4: Consume A",
+"6: Produce B",
+"6: Consume B",
+"10: Produce A",
+"14: Consume A",
+"14: Produce B",
+"14: Consume B",
+"18: Produce A", "")
+, sb.ToString());
     }
 
     private static readonly object FilterStoreObjA = new object();

@@ -2,6 +2,8 @@
 
 A .NET port of SimPy, process-based discrete event simulation framework
 
+[![Build status](https://ci.appveyor.com/api/projects/status/hyn83qegeiga81o2/branch/master?svg=true)](https://ci.appveyor.com/project/abeham/simsharp/branch/master)
+
 ---
 
 *Disclaimer: Sim# is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. Sim# is free software: you can redistribute it and/or modify it under the terms of the  GNU General Public License (GPL) as published by the Free Software Foundation, either version 3 of the license, or (at your option) any later version.*

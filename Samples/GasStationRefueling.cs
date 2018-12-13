@@ -48,7 +48,7 @@ namespace SimSharp.Samples {
     private static readonly TimeSpan TankTruckTime = TimeSpan.FromMinutes(10); // Minutes it takes the tank truck to arrive
     private static readonly TimeSpan MinTInter = TimeSpan.FromMinutes(30); // Create a car every min seconds
     private static readonly TimeSpan MaxTInter = TimeSpan.FromMinutes(300); // Create a car every max seconds
-    private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(30); // Simulation time in seconds
+    private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(3000); // Simulation time
 
     private IEnumerable<Event> Car(string name, Simulation env, Resource gasStation, Container fuelPump) {
       /*
@@ -67,7 +67,13 @@ namespace SimSharp.Samples {
 
         // Get the required amount of fuel
         var litersRequired = FuelTankSize - fuelTankLevel;
-        yield return fuelPump.Get(litersRequired);
+        if (litersRequired > fuelPump.Level) {
+          var level = fuelPump.Level;
+          yield return fuelPump.Get(level); // draw it empty
+          yield return fuelPump.Get(litersRequired - level); // wait for the rest
+        } else {
+          yield return fuelPump.Get(litersRequired);
+        }
 
         // The "actual" refueling process takes some time
         yield return env.Timeout(TimeSpan.FromSeconds(litersRequired / RefuelingSpeed));
@@ -79,18 +85,14 @@ namespace SimSharp.Samples {
 
     private IEnumerable<Event> GasStationControl(Simulation env, Container fuelPump) {
       /*
-       * Periodically check the level of the *fuel_pump* and call the tank
-       * truck if the level falls below a threshold.
+       * Call the tank truck if the level falls below a threshold.
        */
       while (true) {
-        if (fuelPump.Level / fuelPump.Capacity * 100 < Threshold) {
-          // We need to call the tank truck now!
-          env.Log("Calling tank truck at {0}", env.Now);
-          // Wait for the tank truck to arrive and refuel the station
-          yield return env.Process(TankTruck(env, fuelPump));
-
-        }
-        yield return env.Timeout(TimeSpan.FromSeconds(10)); // Check every 10 seconds
+        yield return fuelPump.WhenAtMost(fuelPump.Capacity * (Threshold / 100.0));
+        // We need to call the tank truck now!
+        env.Log("Calling tank truck at {0}", env.Now);
+        // Wait for the tank truck to arrive and refuel the station
+        yield return env.Process(TankTruck(env, fuelPump));
       }
     }
 
@@ -101,6 +103,7 @@ namespace SimSharp.Samples {
       var amount = fuelPump.Capacity - fuelPump.Level;
       env.Log("Tank truck refuelling {0} liters.", amount);
       yield return fuelPump.Put(amount);
+      env.Log("Tank truck finished at time {0}.", env.Now);
     }
 
     private IEnumerable<Event> CarGenerator(Simulation env, Resource gasStation, Container fuelPump) {
@@ -116,7 +119,7 @@ namespace SimSharp.Samples {
     public void Simulate(int rseed = RandomSeed) {
       // Setup and start the simulation
       // Create environment and start processes
-      var env = new Simulation(rseed);
+      var env = new Simulation(DateTime.Now.Date, rseed);
       env.Log("== Gas Station refuelling ==");
       var gasStation = new Resource(env, 2);
       var fuelPump = new Container(env, GasStationSize, GasStationSize);

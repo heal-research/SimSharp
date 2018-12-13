@@ -99,18 +99,10 @@ namespace SimSharp {
 
     public Simulation() : this(new DateTime(1970, 1, 1)) { }
     public Simulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
-    public Simulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
-    public Simulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) {
-      DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
-      StartDate = initialDateTime;
-      Now = initialDateTime;
-      Random = random;
-      ScheduleQ = new EventQueue(InitialMaxEvents);
-      Logger = Console.Out;
-    }
     public Simulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
-    public Simulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, randomSeed, defaultStep) { }
-    public Simulation(IRandom random, DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) {
+    public Simulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
+    public Simulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(randomSeed), initialDateTime, defaultStep) { }
+    public Simulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) {
       DefaultTimeStepSeconds = (defaultStep ?? TimeSpan.FromSeconds(1)).Duration().TotalSeconds;
       StartDate = initialDateTime;
       Now = initialDateTime;
@@ -163,6 +155,7 @@ namespace SimSharp {
       Now = StartDate;
       Random = new PcgRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
+      useSpareNormal = false;
     }
 
     public virtual void ScheduleD(double delay, Event @event) {
@@ -765,13 +758,9 @@ namespace SimSharp {
     public ThreadSafeSimulation() : this(new DateTime(1970, 1, 1)) { }
     public ThreadSafeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
     public ThreadSafeSimulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
-    public ThreadSafeSimulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) : base(random, initialDateTime, defaultStep) {
-      _locker = new object();
-    }
     public ThreadSafeSimulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
-    public ThreadSafeSimulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, randomSeed, defaultStep) { }
-    public ThreadSafeSimulation(IRandom random, DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null)
-      : base(random, initialDateTime, randomSeed, defaultStep) {
+    public ThreadSafeSimulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(randomSeed), initialDateTime, defaultStep) { }
+    public ThreadSafeSimulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) : base(random, initialDateTime, defaultStep) {
       _locker = new object();
     }
 

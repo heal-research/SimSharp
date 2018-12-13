@@ -119,15 +119,48 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void TestRunWithUntriggeredEvent() {
-      var exceptionRaised = false;
-      try {
+      Assert.Throws<InvalidOperationException>(() => {
         var env = new Simulation();
         env.Run(new Event(env));
-      } catch (InvalidOperationException e) {
-        Assert.Equal("No scheduled events left but \"until\" event was not triggered.", e.Message);
-        exceptionRaised = true;
-      }
-      Assert.True(exceptionRaised);
+      });
+    }
+
+    [Fact]
+    public void TestReproducibility() {
+      var env = new Simulation(randomSeed: 42);
+      var proc = env.Process(ReproducibleProcess(env));
+      var env2 = new Simulation(randomSeed: 42);
+      var proc2 = env2.Process(ReproducibleProcess(env2));
+      env.Run(); env2.Run();
+      Assert.Equal((double)proc.Value, (double)proc2.Value);
+      Assert.Equal(5, env.ProcessedEvents); // initialize + 3 timeouts + process events
+      Assert.Equal(5, env2.ProcessedEvents);
+      env.Reset(randomSeed: 13);
+      proc = env.Process(ReproducibleProcess(env));
+      env2 = new Simulation(randomSeed: 13);
+      proc2 = env2.Process(ReproducibleProcess(env2));
+      env.Run(); env2.Run();
+      Assert.Equal((double)proc.Value, (double)proc2.Value);
+      Assert.Equal(5, env.ProcessedEvents);
+      Assert.Equal(5, env2.ProcessedEvents);
+      env.Reset(randomSeed: 17);
+      proc = env.Process(ReproducibleProcess(env));
+      env2.Reset(randomSeed: 17);
+      proc2 = env2.Process(ReproducibleProcess(env2));
+      env.Run(); env2.Run();
+      Assert.Equal((double)proc.Value, (double)proc2.Value);
+      Assert.Equal(5, env.ProcessedEvents);
+      Assert.Equal(5, env2.ProcessedEvents);
+    }
+
+    private IEnumerable<Event> ReproducibleProcess(Simulation env) {
+      var t1 = env.RandUniform(1, 3);
+      yield return env.TimeoutD(t1);
+      var t2 = env.RandNormal(3, 0.1);
+      yield return env.TimeoutD(t2);
+      var t3 = env.RandExponential(2);
+      yield return env.TimeoutD(t3);
+      env.ActiveProcess.Succeed(t1 + t2 + t3);
     }
   }
 }

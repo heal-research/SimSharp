@@ -21,7 +21,7 @@ using System;
 namespace SimSharp {
   public class StorePut : Event {
     public DateTime Time { get; private set; }
-    public Process Process { get; private set; }
+    public Process Owner { get; set; }
 
     public StorePut(Simulation environment, Action<Event> callback, object value)
       : base(environment) {
@@ -29,7 +29,7 @@ namespace SimSharp {
       CallbackList.Add(callback);
       Value = value;
       Time = environment.Now;
-      Process = environment.ActiveProcess;
+      Owner = environment.ActiveProcess;
     }
   }
 }

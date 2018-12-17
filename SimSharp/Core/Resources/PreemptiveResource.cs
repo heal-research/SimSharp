@@ -118,7 +118,7 @@ namespace SimSharp {
         var preempt = Users.MaxItems(x => x).Last();
         if (preempt.CompareTo(request) > 0) {
           Users.Remove(preempt);
-          preempt.Process.Interrupt(new Preempted(request.Process, preempt.Time));
+          preempt.Owner?.Interrupt(new Preempted(request.Owner, preempt.Time));
         }
       }
       if (Users.Count < Capacity) {

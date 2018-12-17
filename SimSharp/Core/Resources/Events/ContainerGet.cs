@@ -22,7 +22,7 @@ namespace SimSharp {
   public class ContainerGet : Event {
     public double Amount { get; protected set; }
     public DateTime Time { get; private set; }
-    public Process Process { get; private set; }
+    public Process Owner { get; set; }
 
     public ContainerGet(Simulation environment, Action<Event> callback, double amount)
       : base(environment) {
@@ -30,7 +30,7 @@ namespace SimSharp {
       Amount = amount;
       CallbackList.Add(callback);
       Time = environment.Now;
-      Process = environment.ActiveProcess;
+      Owner = environment.ActiveProcess;
     }
   }
 }

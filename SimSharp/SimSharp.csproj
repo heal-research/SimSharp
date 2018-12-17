@@ -7,17 +7,29 @@
     <DelaySign>False</DelaySign>
     <AssemblyName>SimSharp</AssemblyName>
     <RootNamespace>SimSharp</RootNamespace>
-    <Version>3.0.11</Version>
+    <Version>3.1.0</Version>
     <Authors>Andreas Beham</Authors>
-    <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.0. Sim# uses an efficient event queue (adapted from https://bitbucket.org/BlueRaja/high-speed-priority-queue-for-c) that allows to compute models very fast. Simulating 10 years of the MachineShop sample (http://simpy.readthedocs.org/en/latest/examples/machine_shop.html) that uses preemptive resources requires only 2.5s on a Core i7 2.6Ghz. This model generates more than 5 million events.
+    <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.5 / .NET Standard 2.0. Sim# uses an efficient event queue (adapted from https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp). The MachineShop benchmark comes close to 4 million events per second on a Core i7-7 2.7Ghz.
 
-SimPy allows to model processes easily and with little boiler plate code. A process is described as a method that yields events. When an event is yielded, the process waits on it. Processes are themselves events and so it is convenient to spawn sub-processes that can either be waited upon or that run next to each other. There is no need to inherit from classes or understand a complex object oriented design.</Description>
+SimPy allows modeling processes easily and with little boiler plate code. A process is described as a method that yields events. When an event is yielded, the process waits on it. Processes are themselves events and so it is convenient to spawn sub-processes that can either be waited upon or that run next to each other. There is no need to inherit from classes or understand a complex object oriented design.</Description>
     <Product>Sim#</Product>
     <Company>HEAL, FH Upper Austria</Company>
     <Copyright>Andreas Beham</Copyright>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
-    <PackageReleaseNotes>3.0.11
+    <PackageReleaseNotes>3.1.0
+ - Introduce a faster non-thread safe Simulation class (Environment is now obsolete - backwards compatibility should be preserved)
+ - Introduce When* events for resources allowing to observe changes without having to fall back to using tiny intervals
+ - Introduce PriorityStore that can be used whenever a simple priority queue should be modeled
+ - Introduce permuted congruential generator (PCG) as default random number generator in Simulation (Environment will still default to System.Random as before)
+ - Change method to generate normal distributed random values to Marsaglia-polar method (Environment still uses the old method)
+ - Introduce additional API methods to provide a separate RNG instance
+ - Introduce additional API for generating log-normal distributed values (by giving desired mean and stdev)
+ - Remove warnings by changing "Process" property of events to "Owner" also enabling to set it (when ownership changes, e.g. as the request is handed to a different process)
+ - PreemptiveResource now uses the same priority handling as SimPy (breaks backwards compatibility - results may change)
+ - Remove net40 target (simplifies the build)
+ - Fix GasStationRefueling sample
+
+3.0.11
  - Fixed bug that would cause an infinite loop in ResourcePool when requesting unavailable objects
  
  3.0.10
@@ -29,6 +41,7 @@ SimPy allows to model processes easily and with little boiler plate code. A proc
     <NeutralLanguage />
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <IncludeSource>True</IncludeSource>
     <IncludeSymbols>True</IncludeSymbols>
     <NoWarn>$(NoWarn);1591;1734</NoWarn>
@@ -44,6 +57,9 @@ SimPy allows to model processes easily and with little boiler plate code. A proc
 
   <PropertyGroup>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SimSharp.xml</DocumentationFile>
+    <RepositoryUrl>https://github.com/abeham/SimSharp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>discrete-event simulation</PackageTags>
   </PropertyGroup>
 
   <Target Name="CopyDocumentationFile" AfterTargets="ComputeFilesToPublish">
@@ -51,6 +67,10 @@ SimPy allows to model processes easily and with little boiler plate code. A proc
       <ResolvedFileToPublish Include="@(FinalDocFile)" RelativePath="@(FinalDocFile->'%(Filename)%(Extension)')" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
+  </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />

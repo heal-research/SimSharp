@@ -162,5 +162,18 @@ namespace SimSharp.Tests {
       yield return env.TimeoutD(t3);
       env.ActiveProcess.Succeed(t1 + t2 + t3);
     }
+
+    [Fact]
+    public void EnvironmentBackwardsCompat() {
+      // make sure it returns the same normal-distributed random numbers as the 3.0.11 Environment
+#pragma warning disable CS0618 // Type or member is obsolete
+      var env = new Environment(randomSeed: 10);
+#pragma warning restore CS0618 // Type or member is obsolete
+      var rndNumbers = Enumerable.Range(0, 10).Select(x => env.RandNormal(0, 1)).ToArray();
+      var old = new[] { 1.439249790053017, 0.539700657754765, -0.35962836744484883,
+0.37645276686883905, 0.037506631053281031, -0.92536789644140882, -0.87027850838312693,
+0.65864875161591829, 0.46713487767696055, -0.37878389025311837};
+      Assert.Equal(old, rndNumbers);
+    }
   }
 }

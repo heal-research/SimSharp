@@ -21,34 +21,6 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace SimSharp {
-
-  /// <summary>
-  /// Environments hold the event queues, schedule and process events.
-  /// </summary>
-  [Obsolete("Use class Simulation or ThreadSafeSimulation instead. Due to name clashes with System.Environment the class SimSharp.Environment is being outphased.")]
-  public class Environment : ThreadSafeSimulation {
-    public Environment()
-      : base() {
-      Random = new SystemRandom();
-    }
-    public Environment(TimeSpan? defaultStep)
-      : base(defaultStep) {
-      Random = new SystemRandom();
-    }
-    public Environment(int randomSeed, TimeSpan? defaultStep = null)
-      : base(randomSeed, defaultStep) {
-      Random = new SystemRandom(randomSeed);
-    }
-    public Environment(DateTime initialDateTime, TimeSpan? defaultStep = null)
-      : base(initialDateTime, defaultStep) {
-      Random = new SystemRandom();
-    }
-    public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null)
-      : base(initialDateTime, randomSeed, defaultStep) {
-      Random = new SystemRandom(randomSeed);
-    }
-  }
-
   /// <summary>
   /// Simulation hold the event queues, schedule and process events.
   /// </summary>
@@ -410,7 +382,7 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
-    public double RandNormal(IRandom random, double mu, double sigma) {
+    public virtual double RandNormal(IRandom random, double mu, double sigma) {
       if (useSpareNormal) {
         useSpareNormal = false;
         return spareNormal * sigma + mu;
@@ -872,6 +844,45 @@ namespace SimSharp {
       lock (_locker) {
         return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
       }
+    }
+  }
+
+  /// <summary>
+  /// Environments hold the event queues, schedule and process events.
+  /// </summary>
+  [Obsolete("Use class Simulation or ThreadSafeSimulation instead. Due to name clashes with System.Environment the class SimSharp.Environment is being outphased.")]
+  public class Environment : ThreadSafeSimulation {
+    public Environment()
+      : base() {
+      Random = new SystemRandom();
+    }
+    public Environment(TimeSpan? defaultStep)
+      : base(defaultStep) {
+      Random = new SystemRandom();
+    }
+    public Environment(int randomSeed, TimeSpan? defaultStep = null)
+      : base(randomSeed, defaultStep) {
+      Random = new SystemRandom(randomSeed);
+    }
+    public Environment(DateTime initialDateTime, TimeSpan? defaultStep = null)
+      : base(initialDateTime, defaultStep) {
+      Random = new SystemRandom();
+    }
+    public Environment(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null)
+      : base(initialDateTime, randomSeed, defaultStep) {
+      Random = new SystemRandom(randomSeed);
+    }
+
+    protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
+    public override double RandNormal(IRandom random, double mu, double sigma) {
+      double z, zz, u1, u2;
+      do {
+        u1 = random.NextDouble();
+        u2 = 1 - random.NextDouble();
+        z = NormalMagicConst * (u1 - 0.5) / u2;
+        zz = z * z / 4.0;
+      } while (zz > -Math.Log(u2));
+      return mu + z * sigma;
     }
   }
 }

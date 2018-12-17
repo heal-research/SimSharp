@@ -69,19 +69,7 @@ namespace SimSharp {
     ulong _increment = 1442695040888963407ul;
     const ulong Multiplier = 6364136223846793005ul;
     const double ToDouble01 = 1.0 / 4294967296.0;
-
-    // This attribute ensures that every thread will get its own instance of PCG.
-    // An alternative, since PCG supports streams, is to use a different stream per
-    // thread. 
-    [ThreadStatic]
-    static Pcg _defaultInstance;
-    /// <summary>
-    /// Default instance.
-    /// </summary>
-    public static Pcg Default {
-      get { return _defaultInstance ?? (_defaultInstance = new Pcg(PcgSeed.GuidBasedSeed())); }
-    }
-
+    
     public int Next() {
       uint result = NextUInt();
       return (int)(result >> 1);

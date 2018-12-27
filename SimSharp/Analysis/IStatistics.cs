@@ -18,27 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 
-namespace SimSharp.Samples {
-  class RunAllSamples {
-    public static void Main(string[] args) {
-      // Run all samples one after another
-      //new BankRenege().Simulate();
-      //Console.WriteLine();
-      //new GasStationRefueling().Simulate();
-      //Console.WriteLine();
-      //new MachineShop().Simulate();
-      //Console.WriteLine();
-      //new ProcessCommunication().Simulate();
-      //Console.WriteLine();
-      //new SteelFactory().Simulate();
-      //Console.WriteLine();
-      //new MachineShopSpecialist().Simulate();
-      //Console.WriteLine();
-      //new SimpleShop().Simulate();
-      //Console.WriteLine();
-      //new KanbanControl().Simulate();
-      //Console.WriteLine();
-      new MM1Queueing().Simulate();
-    }
+namespace SimSharp {
+  public interface IStatistics {
+    double Min { get; }
+    double Max { get; }
+    double Sum { get; }
+    double Mean { get; }
+    double StdDev { get; }
+    double Last { get; }
+
+    event EventHandler Updated;
   }
 }

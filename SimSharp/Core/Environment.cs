@@ -205,10 +205,12 @@ namespace SimSharp {
     public virtual object Run(Event stopEvent = null) {
       _stopRequested = false;
       if (stopEvent != null) {
-        if (stopEvent.IsProcessed) return stopEvent.Value;
+        if (stopEvent.IsProcessed) {
+          return stopEvent.Value;
+        }
         stopEvent.AddCallback(StopSimulation);
       }
-
+      OnRunStarted();
       try {
         var stop = ScheduleQ.Count == 0 || _stopRequested;
         while (!stop) {
@@ -216,14 +218,25 @@ namespace SimSharp {
           ProcessedEvents++;
           stop = ScheduleQ.Count == 0 || _stopRequested;
         }
-      } catch (StopSimulationException e) { return e.Value; }
+      } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
+      OnRunFinished();
       if (stopEvent == null) return null;
-      if (!stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
     public virtual void StopAsync() {
       _stopRequested = true;
+    }
+
+    public event EventHandler RunStarted;
+    protected void OnRunStarted() {
+      RunStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    public event EventHandler RunFinished;
+    protected void OnRunFinished() {
+      RunFinished?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -783,10 +796,12 @@ namespace SimSharp {
     public override object Run(Event stopEvent = null) {
       _stopRequested = false;
       if (stopEvent != null) {
-        if (stopEvent.IsProcessed) return stopEvent.Value;
+        if (stopEvent.IsProcessed) {
+          return stopEvent.Value;
+        }
         stopEvent.AddCallback(StopSimulation);
       }
-
+      OnRunStarted();
       try {
         var stop = false;
         lock (_locker) {
@@ -799,9 +814,10 @@ namespace SimSharp {
             stop = ScheduleQ.Count == 0 || _stopRequested;
           }
         }
-      } catch (StopSimulationException e) { return e.Value; }
+      } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
+      OnRunFinished();
       if (stopEvent == null) return null;
-      if (!stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 

@@ -11,6 +11,7 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
     <Copyright>Andreas Beham</Copyright>
+    <RootNamespace>SimSharp.Tests</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

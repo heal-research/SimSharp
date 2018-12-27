@@ -40,7 +40,7 @@ namespace SimSharp.Samples {
       var kb = kanban.Request();
       yield return kb;
       env.Process(Produce(kb));
-      stockStat.Update(kanban.Remaining);
+      stockStat.UpdateTo(kanban.Remaining);
       completedOrders++;
     }
 
@@ -49,7 +49,7 @@ namespace SimSharp.Samples {
         yield return srv;
         yield return env.TimeoutExponential(ProcessingTime);
         kanban.Release(kb);
-        stockStat.Update(kanban.Remaining);
+        stockStat.UpdateTo(kanban.Remaining);
       }
     }
 

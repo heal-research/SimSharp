@@ -19,7 +19,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 
 namespace SimSharp {
-  public sealed class ContinuousStatistics {
+  /// <summary>
+  /// This class calculates some descriptive statistics online without
+  /// remembering all data. It takes into account the amount of time
+  /// that has passed since the last update.
+  /// 
+  /// It can be used to calculate e.g. utilization of some resource or
+  /// inventory levels.
+  /// </summary>
+  public sealed class ContinuousStatistics : IStatistics {
     private readonly Simulation env;
 
     public int Count { get; private set; }
@@ -28,45 +36,113 @@ namespace SimSharp {
 
     public double Min { get; private set; }
     public double Max { get; private set; }
-    public double Area { get; private set; }
-    public double Mean { get; private set; }
+    public double Area {
+      get {
+        if (!UpToDate) OnlineUpdate();
+        return area;
+      }
+      private set => area = value;
+    }
+    double IStatistics.Sum { get { return Area; } }
+    public double Mean {
+      get {
+        if (!UpToDate) OnlineUpdate();
+        return mean;
+      }
+      private set => mean = value;
+    }
     public double StdDev { get { return Math.Sqrt(Variance); } }
-    public double Variance { get { return (TotalTimeD > 0) ? variance / TotalTimeD : 0.0; } }
+    public double Variance {
+      get {
+        if (!UpToDate) OnlineUpdate();
+        return (TotalTimeD > 0) ? variance / TotalTimeD : 0.0;
+      }
+    }
+    public double Current { get; private set; }
+    double IStatistics.Last { get { return Current; } }
+
+    private bool UpToDate { get { return env.NowD == lastUpdateTime; } }
 
     private double lastUpdateTime;
-    private double lastValue;
     private double variance;
 
     private bool firstSample;
-
+    private double area;
+    private double mean;
 
     public ContinuousStatistics(Simulation env) {
       this.env = env;
       lastUpdateTime = env.NowD;
     }
+    public ContinuousStatistics(Simulation env, double initial) {
+      this.env = env;
+      lastUpdateTime = env.NowD;
+      firstSample = true;
+      Current = Min = Max = mean = initial;
+    }
 
-    public void Update(double value) {
+    public void Reset() {
+      Count = 0;
+      TotalTimeD = 0;
+      Current = Min = Max = area = mean = 0;
+      variance = 0;
+      firstSample = false;
+      lastUpdateTime = env.NowD;
+    }
+
+    public void Reset(double initial) {
+      Count = 0;
+      TotalTimeD = 0;
+      Current = Min = Max = mean = initial;
+      area = 0;
+      variance = 0;
+      firstSample = true;
+      lastUpdateTime = env.NowD;
+    }
+
+    public void Increase(double value = 1) {
+      UpdateTo(Current + value);
+    }
+
+    public void Decrease(double value = 1) {
+      UpdateTo(Current - value);
+    }
+
+    [Obsolete("Use UpdateTo instead")]
+    public void Update(double value) { UpdateTo(value); }
+    public void UpdateTo(double value) {
       Count++;
 
       if (!firstSample) {
-        Min = Max = Mean = value;
+        Min = Max = mean = value;
         firstSample = true;
+        lastUpdateTime = env.NowD;
       } else {
         if (value < Min) Min = value;
         if (value > Max) Max = value;
 
-        var duration = env.NowD - lastUpdateTime;
-        if (duration > 0) {
-          Area += (lastValue * duration);
-          var oldMean = Mean;
-          Mean = oldMean + (lastValue - oldMean) * duration / (duration + TotalTimeD);
-          variance = variance + (lastValue - oldMean) * (lastValue - Mean) * duration;
-          TotalTimeD += duration;
-        }
+        OnlineUpdate();
       }
 
+      Current = value;
+      OnUpdated();
+    }
+
+    private void OnlineUpdate() {
+      var duration = env.NowD - lastUpdateTime;
+      if (duration > 0) {
+        area += (Current * duration);
+        var oldMean = mean;
+        mean = oldMean + (Current - oldMean) * duration / (duration + TotalTimeD);
+        variance = variance + (Current - oldMean) * (Current - mean) * duration;
+        TotalTimeD += duration;
+      }
       lastUpdateTime = env.NowD;
-      lastValue = value;
+    }
+
+    public event EventHandler Updated;
+    private void OnUpdated() {
+      Updated?.Invoke(this, EventArgs.Empty);
     }
   }
 }

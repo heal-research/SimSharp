@@ -22,6 +22,7 @@ namespace SimSharp {
   public sealed class PreemptiveRequest : Request, IComparable<PreemptiveRequest>, IComparable {
     public double Priority { get; private set; }
     public bool Preempt { get; private set; }
+    public bool IsPreempted { get; internal set; }
 
     public PreemptiveRequest(Simulation environment, Action<Event> callback, Action<Event> disposeCallback, double priority = 1, bool preempt = false)
       : base(environment, callback, disposeCallback) {

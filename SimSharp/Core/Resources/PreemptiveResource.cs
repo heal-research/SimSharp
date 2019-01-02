@@ -117,6 +117,7 @@ namespace SimSharp {
         // MaxItems are the least important according to priorty, time, and preemption flag
         var preempt = Users.MaxItems(x => x).Last();
         if (preempt.CompareTo(request) > 0) {
+          preempt.IsPreempted = true;
           Users.Remove(preempt);
           preempt.Owner?.Interrupt(new Preempted(request.Owner, preempt.Time));
         }
@@ -129,9 +130,8 @@ namespace SimSharp {
 
     protected virtual void DoRelease(Release release) {
       var req = (PreemptiveRequest)release.Request;
-      if (!Users.Remove(req)) {
-        RequestQueue.TryRemove(req);
-      }
+      if (!Users.Remove(req) && !req.IsPreempted)
+        throw new InvalidOperationException("Released request does not have a user.");
       release.Succeed();
     }
 
@@ -150,13 +150,20 @@ namespace SimSharp {
     protected virtual void TriggerRelease(Event @event = null) {
       while (ReleaseQueue.Count > 0) {
         var release = ReleaseQueue.Peek();
-        DoRelease(release);
-        if (release.IsTriggered) {
+        if (release.Request.IsAlive) {
+          if (!RequestQueue.TryRemove((PreemptiveRequest)release.Request))
+            throw new InvalidOperationException("Failed to cancel a request.");
+          release.Succeed();
           ReleaseQueue.Dequeue();
-          TriggerWhenAny();
-          TriggerWhenFull();
-          TriggerWhenChange();
-        } else break;
+        } else {
+          DoRelease(release);
+          if (release.IsTriggered) {
+            ReleaseQueue.Dequeue();
+            TriggerWhenAny();
+            TriggerWhenFull();
+            TriggerWhenChange();
+          } else break;
+        }
       }
     }
 

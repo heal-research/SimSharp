@@ -144,13 +144,20 @@ namespace SimSharp {
     protected virtual void TriggerRelease(Event @event = null) {
       while (ReleaseQueue.Count > 0) {
         var release = ReleaseQueue.Peek();
-        DoRelease(release);
-        if (release.IsTriggered) {
+        if (release.Request.IsAlive) {
+          if (!RequestQueue.Remove((ResourcePoolRequest)release.Request))
+            throw new InvalidOperationException("Failed to cancel a request.");
+          release.Succeed();
           ReleaseQueue.Dequeue();
-          TriggerWhenAny();
-          TriggerWhenFull();
-          TriggerWhenChange();
-        } else break;
+        } else {
+          DoRelease(release);
+          if (release.IsTriggered) {
+            ReleaseQueue.Dequeue();
+            TriggerWhenAny();
+            TriggerWhenFull();
+            TriggerWhenChange();
+          } else break;
+        }
       }
     }
 

@@ -1332,5 +1332,26 @@ namespace SimSharp.Tests {
       yield return res.WhenFull();
       Assert.Equal(8, env.NowD);
     }
+
+    [Fact]
+    public void TestResourcePoolCanceledRequests() {
+      var env = new Simulation();
+      var pool = new ResourcePool(env, new object[] { 1, 2 });
+      env.Process(CancelResourcePoolProcess(env, pool));
+      env.Run();
+      Assert.False(pool.IsAvailable(x => x == null));
+    }
+
+    private IEnumerable<Event> CancelResourcePoolProcess(Simulation env, ResourcePool pool) {
+      var req1 = pool.Request(filter: x => x is int ? (int)x == 1 : false);
+      var req2 = pool.Request(filter: x => x is int ? (int)x == 2 : false);
+      var req3 = pool.Request(filter: x => x is int ? (int)x == 1 : false);
+
+      yield return req1;
+      yield return req2;
+      yield return pool.Release(req3); // cancel request
+      yield return pool.Release(req2);
+      yield return pool.Release(req1);
+    }
   }
 }

@@ -113,9 +113,8 @@ namespace SimSharp {
     }
 
     protected virtual void DoRelease(Release release) {
-      if (!Users.Remove(release.Request)) {
-        RequestQueue.TryRemove(release.Request);
-      }
+      if (!Users.Remove(release.Request))
+        throw new InvalidOperationException("Released request does not have a user.");
       release.Succeed();
     }
 
@@ -134,6 +133,12 @@ namespace SimSharp {
     protected virtual void TriggerRelease(Event @event = null) {
       while (ReleaseQueue.Count > 0) {
         var release = ReleaseQueue.Peek();
+        if (release.Request.IsAlive) {
+          if (!RequestQueue.TryRemove(release.Request))
+            throw new InvalidOperationException("Failed to cancel a request.");
+          release.Succeed();
+          ReleaseQueue.Dequeue();
+        }
         DoRelease(release);
         if (release.IsTriggered) {
           ReleaseQueue.Dequeue();

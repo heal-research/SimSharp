@@ -1,6 +1,6 @@
 ﻿#region License Information
 /* SimSharp - A .NET port of SimPy, discrete event simulation framework
-Copyright (C) 2018  Heuristic and Evolutionary Algorithms Laboratory (HEAL)
+Copyright (C) 2019  Heuristic and Evolutionary Algorithms Laboratory (HEAL)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

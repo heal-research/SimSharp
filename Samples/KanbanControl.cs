@@ -24,7 +24,7 @@ namespace SimSharp.Samples {
     private Simulation env;
     private Resource kanban;
     private Resource server;
-    private ContinuousStatistics stockStat;
+    private TimeSeriesMonitor stockStat;
     private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
     private static readonly TimeSpan ProcessingTime = TimeSpan.FromMinutes(2.5);
     private int completedOrders;
@@ -59,7 +59,7 @@ namespace SimSharp.Samples {
       env.Log("== Kanban controlled production system ==");
       kanban = new Resource(env, capacity: 15);
       server = new Resource(env, capacity: 1);
-      stockStat = new ContinuousStatistics(env);
+      stockStat = new TimeSeriesMonitor(env);
       env.Process(Source());
       env.Run(TimeSpan.FromDays(180));
       Console.WriteLine("Stock: {0} ; {1:F3}±{2:F3} ; {3} (Min;Mean±StdDev;Max) kanbans ", stockStat.Min, stockStat.Mean, stockStat.StdDev, stockStat.Max);

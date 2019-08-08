@@ -31,7 +31,7 @@ namespace SimSharp.Tests {
     public void TestContinuousStatisticsSimple(double[] times, double[] values, double min, double max,
       double mean, double variance, double area) {
       var env = new Simulation();
-      var stat = new ContinuousStatistics(env);
+      var stat = new TimeSeriesMonitor(env);
       foreach (var v in times.Zip(values, Tuple.Create)) {
         if (v.Item1 > 0) env.RunD(v.Item1);
         stat.UpdateTo(v.Item2);
@@ -57,7 +57,7 @@ namespace SimSharp.Tests {
     [Fact]
     public void TestContinuousStatisticsAutoUpdate() {
       var env = new Simulation();
-      var stat = new ContinuousStatistics(env);
+      var stat = new TimeSeriesMonitor(env);
       env.Process(StatProcess(env, stat));
       env.Run();
 
@@ -66,7 +66,7 @@ namespace SimSharp.Tests {
       env.Run();
     }
 
-    private IEnumerable<Event> StatProcess(Simulation env, ContinuousStatistics stat) {
+    private IEnumerable<Event> StatProcess(Simulation env, TimeSeriesMonitor stat) {
       stat.UpdateTo(3);
       yield return env.TimeoutD(1);
       stat.UpdateTo(1);
@@ -93,7 +93,7 @@ namespace SimSharp.Tests {
     [InlineData(new double[] { 0, 1, double.PositiveInfinity, 2 })]
     [InlineData(new double[] { 0, 1, double.NegativeInfinity, 2 })]
     public void TestDiscreteStatistics(IEnumerable<double> data) {
-      var stat = new DiscreteStatistics();
+      var stat = new SampleMonitor();
       var data_list = data.ToList();
       if (data_list.All(x => !double.IsNaN(x) && !double.IsInfinity(x))) {
         foreach (var d in data_list) stat.Add(d);

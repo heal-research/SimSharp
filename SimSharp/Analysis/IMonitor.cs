@@ -19,7 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 using System;
 
 namespace SimSharp {
-  public interface IStatistics {
+  public interface IMonitor {
+    bool Collect { get; }
+
     double Min { get; }
     double Max { get; }
     double Sum { get; }
@@ -27,6 +29,19 @@ namespace SimSharp {
     double StdDev { get; }
     double Last { get; }
 
+    double GetMedian();
+    double GetPercentile(double p);
+    
     event EventHandler Updated;
+  }
+
+  public interface ISampleMonitor : IMonitor {
+    void Add(double value);
+  }
+
+  public interface ITimeSeriesMonitor : IMonitor {
+    void Increase(double value);
+    void Decrease(double value);
+    void UpdateTo(double value);
   }
 }

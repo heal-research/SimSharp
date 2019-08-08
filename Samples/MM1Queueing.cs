@@ -21,36 +21,21 @@ using System.Collections.Generic;
 
 namespace SimSharp.Samples {
   public class MM1Queueing {
-    private Simulation env;
-    private Resource server;
-    private ContinuousStatistics wip, utilization;
-    private DiscreteStatistics waitingtime, leadtime;
     private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
     private static readonly TimeSpan ProcessingTime = TimeSpan.FromMinutes(2.5);
     
-    private IEnumerable<Event> Source() {
+    private IEnumerable<Event> Source(Simulation env, Resource server) {
       while (true) {
         yield return env.TimeoutExponential(OrderArrivalTime);
-        env.Process(Order());
+        env.Process(Order(env, server));
       }
     }
 
-    private IEnumerable<Event> Order() {
-      var start = env.Now;
-      wip.Increase();
-      var req = server.Request();
-      yield return req;
-      utilization.UpdateTo(server.InUse / (double)server.Capacity);
-      waitingtime.Add((env.Now - start).TotalMinutes);
-      yield return env.Process(Produce(req));
-      wip.Decrease();
-      leadtime.Add((env.Now - start).TotalMinutes);
-    }
-
-    private IEnumerable<Event> Produce(Request req) {
-      yield return env.TimeoutExponential(ProcessingTime);
-      yield return server.Release(req);
-      utilization.UpdateTo(server.InUse / (double)server.Capacity);
+    private IEnumerable<Event> Order(Simulation env, Resource server) {
+      using (var req = server.Request()) {
+        yield return req;
+        yield return env.TimeoutExponential(ProcessingTime);
+      }
     }
 
     public void Simulate() {
@@ -61,12 +46,11 @@ namespace SimSharp.Samples {
       var analyticLeadtime = 1 / (mu - lambda);
       var analyticWaitingtime = rho / (mu - lambda);
 
-      env = new Simulation(randomSeed: 1);
-      server = new Resource(env, capacity: 1);
-      wip = new ContinuousStatistics(env);
-      utilization = new ContinuousStatistics(env);
-      leadtime = new DiscreteStatistics();
-      waitingtime = new DiscreteStatistics();
+      var env = new Simulation(randomSeed: 1, defaultStep: TimeSpan.FromMinutes(1));
+      var utilization = new TimeSeriesMonitor(env);
+      var wip = new TimeSeriesMonitor(env, collect: true);
+      var leadtime = new SampleMonitor(collect: true);
+      var waitingtime = new SampleMonitor(collect: true);
 
       env.Log("Analytical results of this system:");
       env.Log("\tUtilization.Mean\tWIP.Mean\tLeadtime.Mean\tWaitingTime.Mean");
@@ -90,22 +74,37 @@ namespace SimSharp.Samples {
         .Add("WaitingTime", waitingtime, Report.Measures.Mean)
         .SetOutput(env.Logger)
         .SetSeparator("\t")
-        .SetFinalUpdate(withHeaders: true) // creates a summary of the means at the end
+        .SetFinalUpdate(withHeaders: false) // creates a summary of the means at the end
         .Build();
 
-      env.Log("== m/m/1 queuing system (run 1) ==");
-      env.Process(Source());
-      env.Run(TimeSpan.FromDays(365));
-      
-      env.Reset(2); // reset environment
-      server = new Resource(env, capacity: 1); // reset resources
-      wip.Reset(); // reset statistics
-      utilization.Reset();
-      leadtime.Reset();
+      env.Log("Simulated results of this system:");
+      env.Log("");
+      summary.WriteHeader(); // write the header just once
 
-      env.Log("== m/m/1 queuing system (run 2) ==");
-      env.Process(Source());
-      env.Run(TimeSpan.FromDays(365));
+      for (var i = 0; i < 5; i++) {
+        env.Reset(i + 1); // reset environment
+        utilization.Reset(); // reset monitors
+        wip.Reset();
+        leadtime.Reset();
+        waitingtime.Reset();
+        var server = new Resource(env, capacity: 1) {
+          Utilization = utilization,
+          WIP = wip,
+          LeadTime = leadtime,
+          WaitingTime = waitingtime,
+        };
+
+        env.Process(Source(env, server));
+        env.Run(TimeSpan.FromDays(365));
+      }
+
+      env.Log("");
+      env.Log("Detailed results from the last run:");
+      env.Log("");
+      env.Log(utilization.Print("Utilization"));
+      env.Log(wip.Print("WIP"));
+      env.Log(leadtime.Print("Lead time"));
+      env.Log(waitingtime.Print("Waiting time"));
     }
   }
 }

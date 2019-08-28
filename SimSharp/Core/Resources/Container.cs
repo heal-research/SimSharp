@@ -42,6 +42,12 @@ namespace SimSharp {
     protected SimplePriorityQueue<Event, double> WhenAtMostQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
 
+    public ITimeSeriesMonitor Fillrate { get; set; }
+    public ITimeSeriesMonitor PutQueueLength { get; set; }
+    public ISampleMonitor PutWaitingTime { get; set; }
+    public ITimeSeriesMonitor GetQueueLength { get; set; }
+    public ISampleMonitor GetWaitingTime { get; set; }
+
     public Container(Simulation environment, double capacity = double.MaxValue, double initial = 0) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
       if (initial < 0) throw new ArgumentException("Initial must be >= 0", "initial");
@@ -57,6 +63,7 @@ namespace SimSharp {
     }
 
     public virtual ContainerPut Put(double amount) {
+      if (amount < 0) throw new ArgumentException("Cannot put negative amount", "amount");
       if (amount > Capacity) throw new ArgumentException("Cannot put more than capacity", "amount");
       var put = new ContainerPut(Environment, TriggerGet, amount);
       PutQueue.Enqueue(put);
@@ -65,6 +72,7 @@ namespace SimSharp {
     }
 
     public virtual ContainerGet Get(double amount) {
+      if (amount < 0) throw new ArgumentException("Cannot get negative amount", "amount");
       if (amount > Capacity) throw new ArgumentException("Cannot get more than capacity", "amount");
       var get = new ContainerGet(Environment, TriggerPut, amount);
       GetQueue.Enqueue(get);
@@ -102,6 +110,7 @@ namespace SimSharp {
 
     protected virtual void DoPut(ContainerPut put) {
       if (Capacity - Level >= put.Amount) {
+        PutWaitingTime?.Add(Environment.ToDouble(Environment.Now - put.Time));
         Level += put.Amount;
         put.Succeed();
       }
@@ -109,6 +118,7 @@ namespace SimSharp {
 
     protected virtual void DoGet(ContainerGet get) {
       if (Level >= get.Amount) {
+        GetWaitingTime?.Add(Environment.ToDouble(Environment.Now - get.Time));
         Level -= get.Amount;
         get.Succeed();
       }
@@ -124,6 +134,8 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Fillrate?.UpdateTo(Level / Capacity);
+      PutQueueLength?.UpdateTo(PutQueue.Count);
     }
 
     protected virtual void TriggerGet(Event @event = null) {
@@ -136,6 +148,8 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Fillrate?.UpdateTo(Level / Capacity);
+      GetQueueLength?.UpdateTo(GetQueue.Count);
     }
 
     protected virtual void TriggerWhenAtLeast() {

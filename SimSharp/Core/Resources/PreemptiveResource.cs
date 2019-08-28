@@ -52,6 +52,14 @@ namespace SimSharp {
     protected List<Event> WhenEmptyQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
 
+    public ITimeSeriesMonitor Utilization { get; set; }
+    public ITimeSeriesMonitor WIP { get; set; }
+    public ITimeSeriesMonitor QueueLength { get; set; }
+    public ISampleMonitor LeadTime { get; set; }
+    public ISampleMonitor WaitingTime { get; set; }
+    public ISampleMonitor BreakOffTime { get; set; }
+    public ISampleMonitor InterruptTime { get; set; }
+
     public PreemptiveResource(Simulation environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
       Environment = environment;
@@ -117,12 +125,14 @@ namespace SimSharp {
         // MaxItems are the least important according to priorty, time, and preemption flag
         var preempt = Users.MaxItems(x => x).Last();
         if (preempt.CompareTo(request) > 0) {
+          InterruptTime?.Add(Environment.ToDouble(Environment.Now - request.Time));
           preempt.IsPreempted = true;
           Users.Remove(preempt);
           preempt.Owner?.Interrupt(new Preempted(request.Owner, preempt.Time));
         }
       }
       if (Users.Count < Capacity) {
+        WaitingTime?.Add(Environment.ToDouble(Environment.Now - request.Time));
         Users.Add(request);
         request.Succeed();
       }
@@ -132,6 +142,7 @@ namespace SimSharp {
       var req = (PreemptiveRequest)release.Request;
       if (!Users.Remove(req) && !req.IsPreempted)
         throw new InvalidOperationException("Released request does not have a user.");
+      LeadTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
       release.Succeed();
     }
 
@@ -145,6 +156,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
@@ -153,6 +167,7 @@ namespace SimSharp {
         if (release.Request.IsAlive) {
           if (!RequestQueue.TryRemove((PreemptiveRequest)release.Request))
             throw new InvalidOperationException("Failed to cancel a request.");
+          BreakOffTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
           release.Succeed();
           ReleaseQueue.Dequeue();
         } else {
@@ -165,6 +180,9 @@ namespace SimSharp {
           } else break;
         }
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerWhenAny() {

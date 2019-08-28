@@ -38,12 +38,20 @@ namespace SimSharp {
 
     protected Queue<StorePut> PutQueue { get; private set; }
     protected Queue<StoreGet> GetQueue { get; private set; }
-    protected SimplePriorityQueue<object, double> Items { get; private set; }
+    protected SimplePriorityQueue<StoreItem, double> Items { get; private set; }
     protected List<Event> WhenNewQueue { get; private set; }
     protected List<Event> WhenAnyQueue { get; private set; }
     protected List<Event> WhenFullQueue { get; private set; }
     protected List<Event> WhenEmptyQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
+
+    public ITimeSeriesMonitor Utilization { get; set; }
+    public ITimeSeriesMonitor WIP { get; set; }
+    public ISampleMonitor LeadTime { get; set; }
+    public ITimeSeriesMonitor PutQueueLength { get; set; }
+    public ISampleMonitor PutWaitingTime { get; set; }
+    public ITimeSeriesMonitor GetQueueLength { get; set; }
+    public ISampleMonitor GetWaitingTime { get; set; }
 
     public PriorityStore(Simulation environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
@@ -51,7 +59,7 @@ namespace SimSharp {
       Capacity = capacity;
       PutQueue = new Queue<StorePut>();
       GetQueue = new Queue<StoreGet>();
-      Items = new SimplePriorityQueue<object, double>();
+      Items = new SimplePriorityQueue<StoreItem, double>();
       WhenNewQueue = new List<Event>();
       WhenAnyQueue = new List<Event>();
       WhenFullQueue = new List<Event>();
@@ -64,10 +72,10 @@ namespace SimSharp {
       Capacity = capacity;
       PutQueue = new Queue<StorePut>();
       GetQueue = new Queue<StoreGet>();
-      Items = new SimplePriorityQueue<object, double>();
+      Items = new SimplePriorityQueue<StoreItem, double>();
       var itemsList = items.ToList();
       foreach (var zip in itemsList.Zip(priorities, (a, b) => new { Item = a, Prio = b }))
-        Items.Enqueue(zip.Item, zip.Prio);
+        Items.Enqueue(new StoreItem() { AdmissionDate = environment.Now, Item = zip.Item }, zip.Prio);
       if (Items.Count != itemsList.Count) throw new ArgumentException("Fewer priorities than items are given.", "priorities");
 
       WhenNewQueue = new List<Event>();
@@ -128,7 +136,8 @@ namespace SimSharp {
     protected virtual void DoPut(StorePut put) {
       if (Items.Count < Capacity) {
         var pi = (PriorityItem)put.Value;
-        Items.Enqueue(pi.Item, pi.Priority);
+        PutWaitingTime?.Add(Environment.ToDouble(Environment.Now - put.Time));
+        Items.Enqueue(new StoreItem() { AdmissionDate = Environment.Now, Item = pi.Item}, pi.Priority);
         put.Succeed();
       }
     }
@@ -136,7 +145,9 @@ namespace SimSharp {
     protected virtual void DoGet(StoreGet get) {
       if (Items.Count > 0) {
         var item = Items.Dequeue();
-        get.Succeed(item);
+        GetWaitingTime?.Add(Environment.ToDouble(Environment.Now - get.Time));
+        LeadTime?.Add(Environment.ToDouble(Environment.Now - item.AdmissionDate));
+        get.Succeed(item.Item);
       }
     }
 
@@ -152,6 +163,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(Count / (double)Capacity);
+      WIP?.UpdateTo(Count + PutQueue.Count + GetQueue.Count);
+      PutQueueLength?.UpdateTo(PutQueue.Count);
     }
 
     protected virtual void TriggerGet(Event @event = null) {
@@ -164,6 +178,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(Count / (double)Capacity);
+      WIP?.UpdateTo(Count + PutQueue.Count + GetQueue.Count);
+      GetQueueLength?.UpdateTo(GetQueue.Count);
     }
 
     protected virtual void TriggerWhenNew() {
@@ -207,9 +224,9 @@ namespace SimSharp {
       WhenChangeQueue.Clear();
     }
 
-    protected class PriorityItem {
-      public double Priority { get; protected set; }
-      public object Item { get; protected set; }
+    protected struct PriorityItem {
+      public double Priority { get; }
+      public object Item { get; }
 
       public PriorityItem(double priority, object item) {
         Priority = priority;

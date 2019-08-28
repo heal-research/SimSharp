@@ -28,7 +28,7 @@ namespace SimSharp.Tests {
     [InlineData(new double[] { 0, 1, 1, 1, 1, 1 }, new double[] { 6, 2, 3, 5, -1, -4 }, -4, 6, 3, 6, 15)]
     [InlineData(new double[] { 0, 10, 0, 1, 1, 1, 1 }, new double[] { 0, 6, 2, 3, 5, -1, -4 }, -4, 6, 0.64285714285714, 2.37244897959184, 9)]
     [InlineData(new double[] { 1, 1, 1, 2, 0, 0, 4, 7, 4 }, new double[] { 3, -2, 5, 6, -4, 1, 0, -2, 3 }, -4, 6, 0.3684210526315789, 4.232686980609418, 7)]
-    public void TestContinuousStatisticsSimple(double[] times, double[] values, double min, double max,
+    public void TestTimeSeriesMonitorSimple(double[] times, double[] values, double min, double max,
       double mean, double variance, double area) {
       var env = new Simulation();
       var stat = new TimeSeriesMonitor(env);
@@ -55,7 +55,7 @@ namespace SimSharp.Tests {
     }
 
     [Fact]
-    public void TestContinuousStatisticsAutoUpdate() {
+    public void TestTimeSeriesMonitorAutoUpdate() {
       var env = new Simulation();
       var stat = new TimeSeriesMonitor(env);
       env.Process(StatProcess(env, stat));
@@ -92,7 +92,7 @@ namespace SimSharp.Tests {
     [InlineData(new double[] { 0, 1, double.NaN, 2 })]
     [InlineData(new double[] { 0, 1, double.PositiveInfinity, 2 })]
     [InlineData(new double[] { 0, 1, double.NegativeInfinity, 2 })]
-    public void TestDiscreteStatistics(IEnumerable<double> data) {
+    public void TestSampleMonitor(IEnumerable<double> data) {
       var stat = new SampleMonitor();
       var data_list = data.ToList();
       if (data_list.All(x => !double.IsNaN(x) && !double.IsInfinity(x))) {

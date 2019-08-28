@@ -47,6 +47,13 @@ namespace SimSharp {
     protected List<Event> WhenEmptyQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
 
+    public ITimeSeriesMonitor Utilization { get; set; }
+    public ITimeSeriesMonitor WIP { get; set; }
+    public ITimeSeriesMonitor QueueLength { get; set; }
+    public ISampleMonitor LeadTime { get; set; }
+    public ISampleMonitor WaitingTime { get; set; }
+    public ISampleMonitor BreakOffTime { get; set; }
+
     public ResourcePool(Simulation environment, IEnumerable<object> resources) {
       Environment = environment;
       if (resources == null) throw new ArgumentNullException("resources");
@@ -114,6 +121,7 @@ namespace SimSharp {
     protected virtual void DoRequest(ResourcePoolRequest request) {
       foreach (var o in Resources) {
         if (!request.Filter(o)) continue;
+        WaitingTime?.Add(Environment.ToDouble(Environment.Now - request.Time));
         Resources.Remove(o);
         request.Succeed(o);
         return;
@@ -122,6 +130,7 @@ namespace SimSharp {
 
     protected virtual void DoRelease(Release release) {
       Resources.Add(release.Request.Value);
+      LeadTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
       release.Succeed();
     }
 
@@ -139,6 +148,9 @@ namespace SimSharp {
         } else current = current.Next;
         if (Resources.Count == 0) break;
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
@@ -147,6 +159,7 @@ namespace SimSharp {
         if (release.Request.IsAlive) {
           if (!RequestQueue.Remove((ResourcePoolRequest)release.Request))
             throw new InvalidOperationException("Failed to cancel a request.");
+          BreakOffTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
           release.Succeed();
           ReleaseQueue.Dequeue();
         } else {
@@ -159,6 +172,9 @@ namespace SimSharp {
           } else break;
         }
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerWhenAny() {

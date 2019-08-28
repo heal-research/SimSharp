@@ -47,10 +47,10 @@ namespace SimSharp.Samples {
       var analyticWaitingtime = rho / (mu - lambda);
 
       var env = new Simulation(randomSeed: 1, defaultStep: TimeSpan.FromMinutes(1));
-      var utilization = new TimeSeriesMonitor(env);
-      var wip = new TimeSeriesMonitor(env, collect: true);
-      var leadtime = new SampleMonitor(collect: true);
-      var waitingtime = new SampleMonitor(collect: true);
+      var utilization = new TimeSeriesMonitor(env, name: "Utilization");
+      var wip = new TimeSeriesMonitor(env, name: "WIP", collect: true);
+      var leadtime = new SampleMonitor(name: "Lead time", collect: true);
+      var waitingtime = new SampleMonitor(name: "Waiting time", collect: true);
 
       env.Log("Analytical results of this system:");
       env.Log("\tUtilization.Mean\tWIP.Mean\tLeadtime.Mean\tWaitingTime.Mean");
@@ -75,6 +75,7 @@ namespace SimSharp.Samples {
         .SetOutput(env.Logger)
         .SetSeparator("\t")
         .SetFinalUpdate(withHeaders: false) // creates a summary of the means at the end
+        .SetTimeAPI(useDApi: true)
         .Build();
 
       env.Log("Simulated results of this system:");
@@ -101,10 +102,10 @@ namespace SimSharp.Samples {
       env.Log("");
       env.Log("Detailed results from the last run:");
       env.Log("");
-      env.Log(utilization.Print("Utilization"));
-      env.Log(wip.Print("WIP"));
-      env.Log(leadtime.Print("Lead time"));
-      env.Log(waitingtime.Print("Waiting time"));
+      env.Log(utilization.Summarize());
+      env.Log(wip.Summarize(maxBins: 10, histInterval: 2));
+      env.Log(leadtime.Summarize(maxBins: 10, histInterval: 5));
+      env.Log(waitingtime.Summarize(maxBins: 10, histInterval: 4));  ;
     }
   }
 }

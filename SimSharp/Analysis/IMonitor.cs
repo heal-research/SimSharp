@@ -31,6 +31,8 @@ namespace SimSharp {
 
     double GetMedian();
     double GetPercentile(double p);
+
+    string Summarize();
     
     event EventHandler Updated;
   }

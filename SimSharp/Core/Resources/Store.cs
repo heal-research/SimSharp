@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimSharp {
   /// <summary>
@@ -37,12 +38,20 @@ namespace SimSharp {
 
     protected Queue<StorePut> PutQueue { get; private set; }
     protected Queue<StoreGet> GetQueue { get; private set; }
-    protected Queue<object> Items { get; private set; }
+    protected Queue<StoreItem> Items { get; private set; }
     protected List<Event> WhenNewQueue { get; private set; }
     protected List<Event> WhenAnyQueue { get; private set; }
     protected List<Event> WhenFullQueue { get; private set; }
     protected List<Event> WhenEmptyQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
+
+    public ITimeSeriesMonitor Utilization { get; set; }
+    public ITimeSeriesMonitor WIP { get; set; }
+    public ISampleMonitor LeadTime { get; set; }
+    public ITimeSeriesMonitor PutQueueLength { get; set; }
+    public ISampleMonitor PutWaitingTime { get; set; }
+    public ITimeSeriesMonitor GetQueueLength { get; set; }
+    public ISampleMonitor GetWaitingTime { get; set; }
 
     public Store(Simulation environment, int capacity = int.MaxValue) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0", "capacity");
@@ -50,7 +59,7 @@ namespace SimSharp {
       Capacity = capacity;
       PutQueue = new Queue<StorePut>();
       GetQueue = new Queue<StoreGet>();
-      Items = new Queue<object>();
+      Items = new Queue<StoreItem>();
       WhenNewQueue = new List<Event>();
       WhenAnyQueue = new List<Event>();
       WhenFullQueue = new List<Event>();
@@ -63,7 +72,7 @@ namespace SimSharp {
       Capacity = capacity;
       PutQueue = new Queue<StorePut>();
       GetQueue = new Queue<StoreGet>();
-      Items = new Queue<object>(items);
+      Items = new Queue<StoreItem>(items.Select(x => new StoreItem() { AdmissionDate = environment.Now, Item = x }));
       WhenNewQueue = new List<Event>();
       WhenAnyQueue = new List<Event>();
       WhenFullQueue = new List<Event>();
@@ -121,7 +130,8 @@ namespace SimSharp {
 
     protected virtual void DoPut(StorePut put) {
       if (Items.Count < Capacity) {
-        Items.Enqueue(put.Value);
+        PutWaitingTime?.Add(Environment.ToDouble(Environment.Now - put.Time));
+        Items.Enqueue(new StoreItem() { AdmissionDate = Environment.Now, Item = put.Value });
         put.Succeed();
       }
     }
@@ -129,7 +139,9 @@ namespace SimSharp {
     protected virtual void DoGet(StoreGet get) {
       if (Items.Count > 0) {
         var item = Items.Dequeue();
-        get.Succeed(item);
+        GetWaitingTime?.Add(Environment.ToDouble(Environment.Now - get.Time));
+        LeadTime?.Add(Environment.ToDouble(Environment.Now - item.AdmissionDate));
+        get.Succeed(item.Item);
       }
     }
 
@@ -145,6 +157,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(Count / (double)Capacity);
+      WIP?.UpdateTo(Count + PutQueue.Count + GetQueue.Count);
+      PutQueueLength?.UpdateTo(PutQueue.Count);
     }
 
     protected virtual void TriggerGet(Event @event = null) {
@@ -157,6 +172,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(Count / (double)Capacity);
+      WIP?.UpdateTo(Count + PutQueue.Count + GetQueue.Count);
+      GetQueueLength?.UpdateTo(GetQueue.Count);
     }
 
     protected virtual void TriggerWhenNew() {
@@ -199,5 +217,10 @@ namespace SimSharp {
         evt.Succeed();
       WhenChangeQueue.Clear();
     }
+  }
+
+  public struct StoreItem {
+    public DateTime AdmissionDate;
+    public object Item;
   }
 }

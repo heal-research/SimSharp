@@ -64,11 +64,20 @@ namespace SimSharp.Samples {
       // Setup and start the simulation
       var start = new DateTime(2014, 2, 1);
       // Create an environment and start the setup process
-      var env = new Simulation(start, 41);
+      var env = new Simulation(start, rseed, defaultStep: TimeSpan.FromMinutes(1));
       env.Log("== Bank renege ==");
-      var counter = new Resource(env, capacity: 1);
+      var counter = new Resource(env, capacity: 1) {
+        BreakOffTime = new SampleMonitor(name: "BreakOffTime", collect: true),
+        Utilization = new TimeSeriesMonitor(env, name: "Utilization"),
+        WaitingTime = new SampleMonitor(name: "Waiting time", collect: true),
+        QueueLength = new TimeSeriesMonitor(env, name: "Queue Length", collect: true),
+      };
       env.Process(Source(env, counter));
       env.Run();
+      env.Log(counter.BreakOffTime.Summarize());
+      env.Log(counter.Utilization.Summarize());
+      env.Log(counter.WaitingTime.Summarize());
+      env.Log(counter.QueueLength.Summarize());
     }
   }
 }

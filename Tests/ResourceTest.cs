@@ -559,7 +559,7 @@ namespace SimSharp.Tests {
     class MyPriorityStore : PriorityStore {
       public int PutQueueLength { get { return PutQueue.Count; } }
       public int GetQueueLength { get { return GetQueue.Count; } }
-      public object Peek { get { return Items.First; } }
+      public object Peek { get { return Items.First.Item; } }
       public MyPriorityStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
 

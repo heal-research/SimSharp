@@ -37,6 +37,12 @@ namespace SimSharp {
     /// </summary>
     public bool Collect { get; }
 
+    /// <summary>
+    /// The name of the variable that is being monitored.
+    /// Used for output in <see cref="Summarize(bool, int, double?, double?)"/>.
+    /// </summary>
+    public string Name { get; set; }
+
     public int Count { get; private set; }
 
     public double Min { get; private set; }
@@ -97,7 +103,8 @@ namespace SimSharp {
       return s.OrderBy(x => x).Skip(k - 1).Take(2).Average();
     }
 
-    public SampleMonitor(bool collect = false) {
+    public SampleMonitor(string name = null, bool collect = false) {
+      Name = name;
       Collect = collect;
       if (collect) samples = new List<double>(64);
     }
@@ -137,7 +144,36 @@ namespace SimSharp {
       Updated?.Invoke(this, EventArgs.Empty);
     }
 
-    public string Print(string name = null, double? histMin = null, double? histInterval = null) {
+    string IMonitor.Summarize() {
+      return Summarize();
+    }
+
+    /// <summary>
+    /// Provides a summary of the statistics in a certain format.
+    /// If the monitor is configured to collect data, it may also print a histogram.
+    /// </summary>
+    /// <param name="withHistogram">Whether to suppress the histogram.
+    /// This is only effective if <see cref="Collect"/> was set to true, otherwise
+    /// the data to produce the histogram is not available in the first place.</param>
+    /// <param name="maxBins">The maximum number of bins that should be used.
+    /// Note that the bin width and thus the number of bins is also governed by
+    /// <paramref name="histInterval"/> if it is defined.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <param name="histMin">The minimum for the histogram to start at or the sample
+    /// minimum in case the default (null) is given.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <param name="histInterval">The interval for the bins of the histogram or the
+    /// range (<see cref="Max"/> - <see cref="Min"/>) divided by the number of bins
+    /// (<paramref name="maxBins"/>) in case the default value (null) is given.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <returns>A formatted string that provides a summary of the statistics.</returns>
+    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? histInterval = null) {
       var nozero = Collect ? samples.Where(x => x != 0).ToList() : new List<double>();
       var nozeromin = nozero.Count > 0 ? nozero.Min() : double.NaN;
       var nozeromax = nozero.Count > 0 ? nozero.Max() : double.NaN;
@@ -145,8 +181,8 @@ namespace SimSharp {
       var nozerostdev = nozero.Count > 2 ? Math.Sqrt(nozero.Sum(x => (x - nozeromean) * (x - nozeromean)) / (nozero.Count - 1.0)) : double.NaN;
       var sb = new StringBuilder();
       sb.Append("Statistics");
-      if (!string.IsNullOrEmpty(name))
-        sb.Append(" of " + name);
+      if (!string.IsNullOrEmpty(Name))
+        sb.Append(" of " + Name);
       sb.AppendLine();
       sb.AppendLine("                all             excl.zero       zero           ");
       sb.AppendLine("--------------- --------------- --------------- ---------------");
@@ -162,11 +198,12 @@ namespace SimSharp {
       }
       sb.AppendLine(string.Format("{0,15} {1,15} {2,15}", "Maximum", Formatter.Format15(Max), Formatter.Format15(nozeromax)));
 
-      if (Collect) {
+      if (Collect && withHistogram) {
         var min = histMin ?? Min;
-        var interval = histInterval ?? (Max - Min) / 20.0;
-        var histData = samples.GroupBy(x => (int)Math.Floor(Math.Max(x - min + interval, 0) / interval))
-                           .ToDictionary(x => x.Key, x => x.Count());
+        var interval = histInterval ?? (Max - Min) / maxBins;
+        var histData = samples.GroupBy(x => x <= min ? 0 : (int)Math.Floor(Math.Min((x - min + interval) / interval, maxBins)))
+                           .Select(x => new { Key = x.Key, Value = x.Count() })
+                           .OrderBy(x => x.Key);
         sb.AppendLine();
         sb.AppendLine("Histogram");
         sb.AppendLine("<=              count      %     cum%   ");
@@ -174,7 +211,7 @@ namespace SimSharp {
         var cumul = 0.0;
         var totStars = 0;
         var last = -1;
-        foreach (var kvp in histData.OrderBy(x => x.Key)) {
+        foreach (var kvp in histData) {
           while (kvp.Key > last + 1) {
             last++;
             var tmp = "|".PadLeft(totStars + 1);
@@ -189,7 +226,9 @@ namespace SimSharp {
           var stars = string.Join("", Enumerable.Repeat("*", numstars));
           totStars += numstars;
           var cumulbar = "|".PadLeft(totStars + 1 - numstars);
-          sb.AppendLine(string.Format("{0,15} {1,10} {2,5:F1} {3,5:F1} {4}{5}", Formatter.Format15(min + kvp.Key * interval), kvp.Value, prob * 100, cumul * 100, stars, cumulbar));
+          sb.AppendLine(string.Format("{0,15} {1,10} {2,5:F1} {3,5:F1} {4}{5}",
+            (kvp.Key == maxBins && min + kvp.Key * interval < Max) ? "inf" : Formatter.Format15(min + kvp.Key * interval),
+            kvp.Value, prob * 100, cumul * 100, stars, cumulbar));
           last = kvp.Key;
         }
       }

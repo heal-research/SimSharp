@@ -46,6 +46,13 @@ namespace SimSharp {
     protected List<Event> WhenEmptyQueue { get; private set; }
     protected List<Event> WhenChangeQueue { get; private set; }
 
+    public ITimeSeriesMonitor Utilization { get; set; }
+    public ITimeSeriesMonitor WIP { get; set; }
+    public ITimeSeriesMonitor QueueLength { get; set; }
+    public ISampleMonitor LeadTime { get; set; }
+    public ISampleMonitor WaitingTime { get; set; }
+    public ISampleMonitor BreakOffTime { get; set; }
+
     public PriorityResource(Simulation environment, int capacity = 1) {
       if (capacity <= 0) throw new ArgumentException("Capacity must be > 0.", "capacity");
       Environment = environment;
@@ -107,6 +114,7 @@ namespace SimSharp {
 
     protected virtual void DoRequest(Request request) {
       if (Users.Count < Capacity) {
+        WaitingTime?.Add(Environment.ToDouble(Environment.Now - request.Time));
         Users.Add(request);
         request.Succeed();
       }
@@ -115,6 +123,7 @@ namespace SimSharp {
     protected virtual void DoRelease(Release release) {
       if (!Users.Remove(release.Request))
         throw new InvalidOperationException("Released request does not have a user.");
+      LeadTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
       release.Succeed();
     }
 
@@ -128,6 +137,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerRelease(Event @event = null) {
@@ -136,6 +148,7 @@ namespace SimSharp {
         if (release.Request.IsAlive) {
           if (!RequestQueue.TryRemove(release.Request))
             throw new InvalidOperationException("Failed to cancel a request.");
+          BreakOffTime?.Add(Environment.ToDouble(Environment.Now - release.Request.Time));
           release.Succeed();
           ReleaseQueue.Dequeue();
         }
@@ -147,6 +160,9 @@ namespace SimSharp {
           TriggerWhenChange();
         } else break;
       }
+      Utilization?.UpdateTo(InUse / (double)Capacity);
+      WIP?.UpdateTo(InUse + RequestQueue.Count);
+      QueueLength?.UpdateTo(RequestQueue.Count);
     }
 
     protected virtual void TriggerWhenAny() {

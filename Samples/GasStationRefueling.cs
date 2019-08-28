@@ -70,14 +70,13 @@ namespace SimSharp.Samples {
         if (litersRequired > fuelPump.Level) {
           var level = fuelPump.Level;
           yield return fuelPump.Get(level); // draw it empty
+          yield return env.Timeout(TimeSpan.FromSeconds(level / RefuelingSpeed));
           yield return fuelPump.Get(litersRequired - level); // wait for the rest
+          yield return env.Timeout(TimeSpan.FromSeconds((litersRequired - level) / RefuelingSpeed));
         } else {
           yield return fuelPump.Get(litersRequired);
+          yield return env.Timeout(TimeSpan.FromSeconds(litersRequired / RefuelingSpeed));
         }
-
-        // The "actual" refueling process takes some time
-        yield return env.Timeout(TimeSpan.FromSeconds(litersRequired / RefuelingSpeed));
-
         env.Log("{0} finished refueling in {1} seconds.", name, (env.Now - start).TotalSeconds);
       }
     }
@@ -101,9 +100,8 @@ namespace SimSharp.Samples {
       yield return env.Timeout(TankTruckTime);
       env.Log("Tank truck arriving at time {0}", env.Now);
       var amount = fuelPump.Capacity - fuelPump.Level;
-      env.Log("Tank truck refuelling {0} liters.", amount);
       yield return fuelPump.Put(amount);
-      env.Log("Tank truck finished at time {0}.", env.Now);
+      env.Log("Tank truck finished refuelling {0} liters at time {1}.", amount, env.Now);
     }
 
     private IEnumerable<Event> CarGenerator(Simulation env, Resource gasStation, Container fuelPump) {
@@ -121,13 +119,23 @@ namespace SimSharp.Samples {
       // Create environment and start processes
       var env = new Simulation(DateTime.Now.Date, rseed);
       env.Log("== Gas Station refuelling ==");
-      var gasStation = new Resource(env, 2);
-      var fuelPump = new Container(env, GasStationSize, GasStationSize);
+      var gasStation = new Resource(env, 2) {
+        QueueLength = new TimeSeriesMonitor(env, name: "Waiting cars", collect: true),
+        WaitingTime = new SampleMonitor(name: "Waiting time", collect: true),
+        Utilization = new TimeSeriesMonitor(env, name: "Station utilization"),
+      };
+      var fuelPump = new Container(env, GasStationSize, GasStationSize) {
+        Fillrate = new TimeSeriesMonitor(env, name: "Tank fill rate")
+      };
       env.Process(GasStationControl(env, fuelPump));
       env.Process(CarGenerator(env, gasStation, fuelPump));
 
       // Execute!
       env.Run(SimTime);
+      env.Log(gasStation.QueueLength.Summarize());
+      env.Log(gasStation.WaitingTime.Summarize());
+      env.Log(gasStation.Utilization.Summarize());
+      env.Log(fuelPump.Fillrate.Summarize());
     }
   }
 }

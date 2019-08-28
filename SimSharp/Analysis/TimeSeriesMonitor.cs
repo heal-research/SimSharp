@@ -47,6 +47,11 @@ namespace SimSharp {
     /// may return all the remembered values for further processing.
     /// </summary>
     public bool Collect { get; }
+    /// <summary>
+    /// The name of the variable that is being monitored.
+    /// Used for output in <see cref="Summarize(bool, int, double?, double?)"/>.
+    /// </summary>
+    public string Name { get; set; }
 
     public int Count { get; private set; }
     public double TotalTimeD { get; private set; }
@@ -93,7 +98,12 @@ namespace SimSharp {
     /// Returns the list of collected values, or an empty enumerable
     /// when <see cref="Collect"/> was initialized to false.
     /// </summary>
-    public IEnumerable<Entry> Series { get { return series != null ? series.AsEnumerable() : Enumerable.Empty<Entry>(); } }
+    public IEnumerable<Entry> Series {
+      get {
+        if (!UpToDate) OnlineUpdate();
+        return series != null ? series.AsEnumerable() : Enumerable.Empty<Entry>();
+      }
+    }
 
     /// <summary>
     /// Calls <see cref="GetPercentile(double)"/>.
@@ -130,13 +140,16 @@ namespace SimSharp {
       var total = seq.Last().CumulatedDuration;
       var n = total * p;
       int ilower = 0, iupper = seq.Count - 1;
-      for (var i = 0; i < seq.Count; i++) {
+      if (seq[ilower].CumulatedDuration >= n) return seq[ilower].Level;
+      if (seq.Count > 2 && seq[iupper - 1].CumulatedDuration < n) return seq[iupper].Level;
+      for (var i = 0; i < seq.Count - 1; i++) {
         if (seq[i].CumulatedDuration < n) ilower = i;
-        if (total - seq[i].CumulatedDuration < n) iupper = seq.Count - i - 1;
+        if (seq[seq.Count - i - 2].CumulatedDuration > n) iupper = seq.Count - i - 1;
       }
-      if (ilower == iupper) return seq[ilower].Level;
-      if (seq[ilower].Duration < seq[iupper].Duration) return seq[ilower].Level;
-      return seq[iupper].Level;
+      // partitions around pivot ilower+1 with sum less than p resp. (1-p) on left resp. right side
+      if (iupper - ilower == 2) return seq[ilower + 1].Level;
+      // partitions where either left side is exactly p or right side exactly (1-p)
+      return (seq[ilower].Level + seq[iupper].Level) / 2.0;
     }
 
     private static IEnumerable<LevelDuration> Cumulate(IList<Entry> s) {
@@ -149,14 +162,16 @@ namespace SimSharp {
       }
     }
 
-    public TimeSeriesMonitor(Simulation env, bool collect = false) {
+    public TimeSeriesMonitor(Simulation env, string name = null, bool collect = false) {
       this.env = env;
+      Name = name;
       Collect = collect;
       lastUpdateTime = env.NowD;
       if (Collect) series = new List<Entry>(64);
     }
-    public TimeSeriesMonitor(Simulation env, double initial, bool collect = false) {
+    public TimeSeriesMonitor(Simulation env, double initial, string name = null, bool collect = false) {
       this.env = env;
+      Name = name;
       Collect = collect;
       lastUpdateTime = env.NowD;
       firstSample = true;
@@ -238,7 +253,36 @@ namespace SimSharp {
       Updated?.Invoke(this, EventArgs.Empty);
     }
 
-    public string Print(string name = null, double? histMin = null, double? histInterval = null) {
+    string IMonitor.Summarize() {
+      return Summarize();
+    }
+
+    /// <summary>
+    /// Provides a summary of the statistics in a certain format.
+    /// If the monitor is configured to collect data, it may also print a histogram.
+    /// </summary>
+    /// <param name="withHistogram">Whether to suppress the histogram.
+    /// This is only effective if <see cref="Collect"/> was set to true, otherwise
+    /// the data to produce the histogram is not available in the first place.</param>
+    /// <param name="maxBins">The maximum number of bins that should be used.
+    /// Note that the bin width and thus the number of bins is also governed by
+    /// <paramref name="histInterval"/> if it is defined.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <param name="histMin">The minimum for the histogram to start at or the sample
+    /// minimum in case the default (null) is given.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <param name="histInterval">The interval for the bins of the histogram or the
+    /// range (<see cref="Max"/> - <see cref="Min"/>) divided by the number of bins
+    /// (<paramref name="maxBins"/>) in case the default value (null) is given.
+    /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
+    /// was set to true, otherwise the data to produce the histogram is not available
+    /// in the first place.</param>
+    /// <returns>A formatted string that provides a summary of the statistics.</returns>
+    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? histInterval = null) {
       var nozero = Collect ? series.Where(x => x.Level != 0 && x.Duration > 0).ToList() : new List<Entry>();
       var nozeromin = nozero.Count > 0 ? nozero.Min(x => x.Level) : double.NaN;
       var nozeromax = nozero.Count > 0 ? nozero.Max(x => x.Level) : double.NaN;
@@ -247,8 +291,8 @@ namespace SimSharp {
       var nozerostdev = nozero.Count > 2 ? Math.Sqrt(nozero.Sum(x => x.Duration * (x.Level - nozeromean) * (x.Level - nozeromean)) / nozeroduration) : double.NaN;
       var sb = new StringBuilder();
       sb.Append("Time series statistics");
-      if (!string.IsNullOrEmpty(name))
-        sb.Append(" of " + name);
+      if (!string.IsNullOrEmpty(Name))
+        sb.Append(" of " + Name);
       sb.AppendLine();
       sb.AppendLine("                all             excl.zero       zero           ");
       sb.AppendLine("--------------- --------------- --------------- ---------------");
@@ -265,7 +309,7 @@ namespace SimSharp {
       }
       sb.AppendLine(string.Format("{0,15} {1,15} {2,15}", "Maximum", Formatter.Format15(Max), Formatter.Format15(nozeromax)));
 
-      if (Collect) {
+      if (Collect && withHistogram) {
         var histData = Cumulate(series);
         sb.AppendLine();
         sb.AppendLine("Histogram");
@@ -279,11 +323,11 @@ namespace SimSharp {
         } else {
           var kvp = iter.Current;
           var moreData = true;
-          for (var bin = 0; bin <= 20; bin++) {
+          for (var bin = 0; bin <= maxBins; bin++) {
             var next = (histMin ?? Min) + bin * (histInterval ?? (Max - Min) / 20.0);
             var dur = 0.0;
             var prob = 0.0;
-            while (moreData && kvp.Level <= next) {
+            while (moreData && (kvp.Level <= next || bin == maxBins)) {
               dur += kvp.Duration;
               prob += kvp.Duration / TotalTimeD;
               cumul = kvp.CumulatedDuration / TotalTimeD;
@@ -297,7 +341,10 @@ namespace SimSharp {
             var stars = string.Join("", Enumerable.Repeat("*", numstars));
             totStars += numstars;
             var cumulbar = "|".PadLeft(totStars + 1 - numstars);
-            sb.AppendLine(string.Format("{0,15} {1,15} {2,5:F1} {3,5:F1} {4}{5}", Formatter.Format15(next), Formatter.Format15(dur), prob * 100, cumul * 100, stars, cumulbar));
+            sb.AppendLine(string.Format("{0,15} {1,15} {2,5:F1} {3,5:F1} {4}{5}",
+              (!moreData && next < Max) ? "inf" : Formatter.Format15(next),
+              Formatter.Format15(dur), prob * 100, cumul * 100, stars, cumulbar));
+            if (!moreData) break;
           }
         }
       }
@@ -305,7 +352,7 @@ namespace SimSharp {
     }
 
     public override string ToString() {
-      return Print();
+      return Summarize();
     }
 
     public struct Entry {

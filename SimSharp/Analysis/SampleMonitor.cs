@@ -38,6 +38,13 @@ namespace SimSharp {
     public bool Collect { get; }
 
     /// <summary>
+    /// The monitor can be set to suppress updates. When it is set
+    /// to false, the statistics will not be updated and new samples
+    /// are ignored.
+    /// </summary>
+    public bool Active { get; set; }
+
+    /// <summary>
     /// The name of the variable that is being monitored.
     /// Used for output in <see cref="Summarize(bool, int, double?, double?)"/>.
     /// </summary>
@@ -48,7 +55,7 @@ namespace SimSharp {
     public double Min { get; private set; }
     public double Max { get; private set; }
     public double Total { get; private set; }
-    double IMonitor.Sum { get { return Total; } }
+    double INumericMonitor.Sum { get { return Total; } }
     public double Mean { get; private set; }
     public double StdDev { get { return Math.Sqrt(Variance); } }
     public double Variance { get { return (Count > 0) ? variance / Count : 0.0; } }
@@ -104,6 +111,7 @@ namespace SimSharp {
     }
 
     public SampleMonitor(string name = null, bool collect = false) {
+      Active = true;
       Name = name;
       Collect = collect;
       if (collect) samples = new List<double>(64);
@@ -118,6 +126,8 @@ namespace SimSharp {
     }
 
     public void Add(double value) {
+      if (!Active) return;
+
       if (double.IsNaN(value) || double.IsInfinity(value))
         throw new ArgumentException("Not a valid double", "value");
       Count++;
@@ -157,7 +167,7 @@ namespace SimSharp {
     /// the data to produce the histogram is not available in the first place.</param>
     /// <param name="maxBins">The maximum number of bins that should be used.
     /// Note that the bin width and thus the number of bins is also governed by
-    /// <paramref name="histInterval"/> if it is defined.
+    /// <paramref name="binWidth"/> if it is defined.
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
@@ -166,14 +176,14 @@ namespace SimSharp {
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
-    /// <param name="histInterval">The interval for the bins of the histogram or the
+    /// <param name="binWidth">The interval for the bins of the histogram or the
     /// range (<see cref="Max"/> - <see cref="Min"/>) divided by the number of bins
     /// (<paramref name="maxBins"/>) in case the default value (null) is given.
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
     /// <returns>A formatted string that provides a summary of the statistics.</returns>
-    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? histInterval = null) {
+    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? binWidth = null) {
       var nozero = Collect ? samples.Where(x => x != 0).ToList() : new List<double>();
       var nozeromin = nozero.Count > 0 ? nozero.Min() : double.NaN;
       var nozeromax = nozero.Count > 0 ? nozero.Max() : double.NaN;
@@ -200,7 +210,7 @@ namespace SimSharp {
 
       if (Collect && withHistogram) {
         var min = histMin ?? Min;
-        var interval = histInterval ?? (Max - Min) / maxBins;
+        var interval = binWidth ?? (Max - Min) / maxBins;
         var histData = samples.GroupBy(x => x <= min ? 0 : (int)Math.Floor(Math.Min((x - min + interval) / interval, maxBins)))
                            .Select(x => new { Key = x.Key, Value = x.Count() })
                            .OrderBy(x => x.Key);

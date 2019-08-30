@@ -47,13 +47,43 @@ namespace SimSharp {
     /// may return all the remembered values for further processing.
     /// </summary>
     public bool Collect { get; }
+
+    private bool active;
+    /// <summary>
+    /// The monitor can be set to suppress updates. When it is set
+    /// to false, the statistics, except for <see cref="Current"/>
+    /// will not be updated and new samples are ignored.
+    /// When set to true it will resume updates from the current
+    /// simulation time onward.
+    /// </summary>
+    public bool Active {
+      get { return active; }
+      set {
+        if (active == value) return;
+        if (firstSampleObserved && lastUpdateTime < env.NowD) {
+          if (value) {
+            // enable it
+            if (Current < Min) Min = Current;
+            if (Current > Max) Max = Current;
+
+            lastUpdateTime = env.NowD;
+            series.Add(new Entry { Date = env.NowD, Level = Current });
+          } else if (!value) {
+            // disable it
+            OnlineUpdate();
+          }
+          active = value;
+          OnUpdated();
+        } else active = value;
+      }
+    }
+
     /// <summary>
     /// The name of the variable that is being monitored.
     /// Used for output in <see cref="Summarize(bool, int, double?, double?)"/>.
     /// </summary>
     public string Name { get; set; }
 
-    public int Count { get; private set; }
     public double TotalTimeD { get; private set; }
     public TimeSpan TotalTime { get { return env.ToTimeSpan(TotalTimeD); } }
 
@@ -66,7 +96,7 @@ namespace SimSharp {
       }
       private set => area = value;
     }
-    double IMonitor.Sum { get { return Area; } }
+    double INumericMonitor.Sum { get { return Area; } }
     public double Mean {
       get {
         if (!UpToDate) OnlineUpdate();
@@ -82,14 +112,14 @@ namespace SimSharp {
       }
     }
     public double Current { get; private set; }
-    double IMonitor.Last { get { return Current; } }
+    double INumericMonitor.Last { get { return Current; } }
 
-    private bool UpToDate { get { return env.NowD == lastUpdateTime; } }
+    private bool UpToDate { get { return !Active || env.NowD == lastUpdateTime; } }
 
     private double lastUpdateTime;
     private double variance;
 
-    private bool firstSample;
+    private bool firstSampleObserved;
     private double area;
     private double mean;
 
@@ -139,17 +169,16 @@ namespace SimSharp {
       if (seq.Count == 0) return double.NaN;
       var total = seq.Last().CumulatedDuration;
       var n = total * p;
-      int ilower = 0, iupper = seq.Count - 1;
-      if (seq[ilower].CumulatedDuration >= n) return seq[ilower].Level;
-      if (seq.Count > 2 && seq[iupper - 1].CumulatedDuration < n) return seq[iupper].Level;
-      for (var i = 0; i < seq.Count - 1; i++) {
-        if (seq[i].CumulatedDuration < n) ilower = i;
-        if (seq[seq.Count - i - 2].CumulatedDuration > n) iupper = seq.Count - i - 1;
+      var ilower = 0;
+      while (ilower < seq.Count) {
+        if (seq[ilower].CumulatedDuration >= n) break;
+        ilower++;
       }
-      // partitions around pivot ilower+1 with sum less than p resp. (1-p) on left resp. right side
-      if (iupper - ilower == 2) return seq[ilower + 1].Level;
-      // partitions where either left side is exactly p or right side exactly (1-p)
-      return (seq[ilower].Level + seq[iupper].Level) / 2.0;
+      if (seq[ilower].CumulatedDuration == n) {
+        if (ilower < seq.Count - 1)
+          return (seq[ilower].Level + seq[ilower + 1].Level) / 2.0;
+      }
+      return seq[ilower].Level;
     }
 
     private static IEnumerable<LevelDuration> Cumulate(IList<Entry> s) {
@@ -164,6 +193,7 @@ namespace SimSharp {
 
     public TimeSeriesMonitor(Simulation env, string name = null, bool collect = false) {
       this.env = env;
+      active = true;
       Name = name;
       Collect = collect;
       lastUpdateTime = env.NowD;
@@ -171,32 +201,34 @@ namespace SimSharp {
     }
     public TimeSeriesMonitor(Simulation env, double initial, string name = null, bool collect = false) {
       this.env = env;
+      active = true;
       Name = name;
       Collect = collect;
       lastUpdateTime = env.NowD;
-      firstSample = true;
+      firstSampleObserved = true;
       Current = Min = Max = mean = initial;
       if (Collect) series = new List<Entry>(64) { new Entry { Date = env.NowD, Level = initial } };
     }
 
     public void Reset() {
-      Count = 0;
       TotalTimeD = 0;
       Current = Min = Max = area = mean = 0;
       if (Collect) series.Clear();
       variance = 0;
-      firstSample = false;
+      firstSampleObserved = false;
       lastUpdateTime = env.NowD;
     }
 
     public void Reset(double initial) {
-      Count = 0;
       TotalTimeD = 0;
       Current = Min = Max = mean = initial;
-      if (Collect) series.Clear();
+      if (Collect) {
+        series.Clear();
+        series.Add(new Entry { Date = env.NowD, Level = initial });
+      }
       area = 0;
       variance = 0;
-      firstSample = true;
+      firstSampleObserved = true;
       lastUpdateTime = env.NowD;
     }
 
@@ -209,24 +241,29 @@ namespace SimSharp {
     }
 
     public void UpdateTo(double value) {
-      Count++;
+      if (!Active) {
+        Current = value;
+        return;
+      }
 
-      if (!firstSample) {
+      if (!firstSampleObserved) {
         Min = Max = mean = value;
-        firstSample = true;
+        firstSampleObserved = true;
         lastUpdateTime = env.NowD;
         if (Collect) series.Add(new Entry { Date = env.NowD, Level = value });
+        Current = value;
       } else {
         if (value < Min) Min = value;
         if (value > Max) Max = value;
 
         OnlineUpdate();
+
+        if (Current != value) {
+          if (Collect) series.Add(new Entry { Date = env.NowD, Level = value });
+          Current = value;
+        }
       }
 
-      if (Current != value) {
-        if (Collect) series.Add(new Entry { Date = env.NowD, Level = value });
-        Current = value;
-      }
       OnUpdated();
     }
 
@@ -266,7 +303,7 @@ namespace SimSharp {
     /// the data to produce the histogram is not available in the first place.</param>
     /// <param name="maxBins">The maximum number of bins that should be used.
     /// Note that the bin width and thus the number of bins is also governed by
-    /// <paramref name="histInterval"/> if it is defined.
+    /// <paramref name="binWidth"/> if it is defined.
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
@@ -275,14 +312,14 @@ namespace SimSharp {
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
-    /// <param name="histInterval">The interval for the bins of the histogram or the
+    /// <param name="binWidth">The interval for the bins of the histogram or the
     /// range (<see cref="Max"/> - <see cref="Min"/>) divided by the number of bins
     /// (<paramref name="maxBins"/>) in case the default value (null) is given.
     /// This is only effective if <see cref="Collect"/> and <paramref name="withHistogram"/>
     /// was set to true, otherwise the data to produce the histogram is not available
     /// in the first place.</param>
     /// <returns>A formatted string that provides a summary of the statistics.</returns>
-    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? histInterval = null) {
+    public string Summarize(bool withHistogram = true, int maxBins = 20, double? histMin = null, double? binWidth = null) {
       var nozero = Collect ? series.Where(x => x.Level != 0 && x.Duration > 0).ToList() : new List<Entry>();
       var nozeromin = nozero.Count > 0 ? nozero.Min(x => x.Level) : double.NaN;
       var nozeromax = nozero.Count > 0 ? nozero.Max(x => x.Level) : double.NaN;
@@ -296,7 +333,6 @@ namespace SimSharp {
       sb.AppendLine();
       sb.AppendLine("                all             excl.zero       zero           ");
       sb.AppendLine("--------------- --------------- --------------- ---------------");
-      sb.AppendLine(string.Format("{0,15} {1,15} {2,15} {3,15}", "Count", Formatter.Format15(Count), Formatter.Format15(Collect ? nozero.Count : double.NaN), Formatter.Format15(Collect ? Count - nozero.Count : double.NaN)));
       sb.AppendLine(string.Format("{0,15} {1,15} {2,15} {3,15}", "Duration", Formatter.Format15(TotalTimeD), Formatter.Format15(nozeroduration), Formatter.Format15(TotalTimeD - nozeroduration)));
       sb.AppendLine(string.Format("{0,15} {1,15} {2,15}", "Mean", Formatter.Format15(Mean), Formatter.Format15(nozeromean)));
       sb.AppendLine(string.Format("{0,15} {1,15} {2,15}", "Std.dev", Formatter.Format15(StdDev), Formatter.Format15(nozerostdev)));
@@ -324,7 +360,7 @@ namespace SimSharp {
           var kvp = iter.Current;
           var moreData = true;
           for (var bin = 0; bin <= maxBins; bin++) {
-            var next = (histMin ?? Min) + bin * (histInterval ?? (Max - Min) / 20.0);
+            var next = (histMin ?? Min) + bin * (binWidth ?? (Max - Min) / 20.0);
             var dur = 0.0;
             var prob = 0.0;
             while (moreData && (kvp.Level <= next || bin == maxBins)) {
@@ -365,6 +401,58 @@ namespace SimSharp {
       public double Level;
       public double Duration;
       public double CumulatedDuration;
+    }
+  }
+
+  [Obsolete("Use the class TimeSeriesMonitor instead.")]
+  public sealed class ContinuousStatistics {
+    private readonly Simulation env;
+
+    public int Count { get; private set; }
+    public double TotalTimeD { get; private set; }
+    public TimeSpan TotalTime { get { return env.ToTimeSpan(TotalTimeD); } }
+
+    public double Min { get; private set; }
+    public double Max { get; private set; }
+    public double Area { get; private set; }
+    public double Mean { get; private set; }
+    public double StdDev { get { return Math.Sqrt(Variance); } }
+    public double Variance { get { return (TotalTimeD > 0) ? variance / TotalTimeD : 0.0; } }
+
+    private double lastUpdateTime;
+    private double lastValue;
+    private double variance;
+
+    private bool firstSample;
+
+
+    public ContinuousStatistics(Simulation env) {
+      this.env = env;
+      lastUpdateTime = env.NowD;
+    }
+
+    public void Update(double value) {
+      Count++;
+
+      if (!firstSample) {
+        Min = Max = Mean = value;
+        firstSample = true;
+      } else {
+        if (value < Min) Min = value;
+        if (value > Max) Max = value;
+
+        var duration = env.NowD - lastUpdateTime;
+        if (duration > 0) {
+          Area += (lastValue * duration);
+          var oldMean = Mean;
+          Mean = oldMean + (lastValue - oldMean) * duration / (duration + TotalTimeD);
+          variance = variance + (lastValue - oldMean) * (lastValue - Mean) * duration;
+          TotalTimeD += duration;
+        }
+      }
+
+      lastUpdateTime = env.NowD;
+      lastValue = value;
     }
   }
 }

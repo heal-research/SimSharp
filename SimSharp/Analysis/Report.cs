@@ -237,7 +237,7 @@ namespace SimSharp {
       /// or when <paramref name="measure"/> is not valid.</exception>
       /// <exception cref="ArgumentNullException">Thrown when <paramref name="statistics"/> is null.</exception>
       /// <returns>This builder instance.</returns>
-      public Builder Add(string name, IMonitor statistics, Measures measure = Measures.All) {
+      public Builder Add(string name, INumericMonitor statistics, Measures measure = Measures.All) {
         if (string.IsNullOrEmpty(name)) throw new ArgumentException("Name must be a non-empty string", "name");
         if (statistics == null) throw new ArgumentNullException("statistics");
         if (measure == 0 || measure > Measures.All) throw new ArgumentException("No measures have been selected.", "measure");
@@ -383,7 +383,7 @@ namespace SimSharp {
 
     private class Key {
       public string Name { get; set; }
-      public IMonitor Statistics { get; set; }
+      public INumericMonitor Statistics { get; set; }
       public Measures Measure { get; set; }
       public int TotalMeasures { get; set; }
     }

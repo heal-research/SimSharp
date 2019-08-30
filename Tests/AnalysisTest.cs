@@ -25,33 +25,73 @@ namespace SimSharp.Tests {
   public class AnalysisTest {
 
     [Theory]
-    [InlineData(new double[] { 0, 1, 1, 1, 1, 1 }, new double[] { 6, 2, 3, 5, -1, -4 }, -4, 6, 3, 6, 15)]
-    [InlineData(new double[] { 0, 10, 0, 1, 1, 1, 1 }, new double[] { 0, 6, 2, 3, 5, -1, -4 }, -4, 6, 0.64285714285714, 2.37244897959184, 9)]
-    [InlineData(new double[] { 1, 1, 1, 2, 0, 0, 4, 7, 4 }, new double[] { 3, -2, 5, 6, -4, 1, 0, -2, 3 }, -4, 6, 0.3684210526315789, 4.232686980609418, 7)]
-    public void TestTimeSeriesMonitorSimple(double[] times, double[] values, double min, double max,
-      double mean, double variance, double area) {
+    [InlineData(new double[] { 3, 2, 5, 0, 1, 1, 1, 1, 1, 3, 2 }, new double[] { 10, 100, -100, 6, 2, 3, 5, -1, -4, 2, 1 }, -4, 6, 3, 6, 15, 3)]
+    [InlineData(new double[] { 1, 3, 1, 0, 10, 0, 1, 1, 1, 1, 3, 2 }, new double[] { 1, 0, 1, 0, 6, 2, 3, 5, -1, -4, 2, 1 }, -4, 6, 0.64285714285714, 2.37244897959184, 9, 0)]
+    [InlineData(new double[] { 1, 1, 10, 1, 1, 1, 2, 0, 0, 4, 7, 4, 3, 2 }, new double[] { -1, -1, -1, 3, -2, 5, 6, -4, 1, 0, -2, 3, 2, 1 }, -4, 6, 0.3684210526315789, 4.232686980609418, 7, 0)]
+    public void TestTimeSeriesMonitor(double[] times, double[] values, double min, double max,
+      double mean, double variance, double area, double median) {
       var env = new Simulation();
-      var stat = new TimeSeriesMonitor(env);
+      var stat = new TimeSeriesMonitor(env, collect: false) { Active = false };
+      var stat_collect = new TimeSeriesMonitor(env, collect: true) { Active = false };
+      var count = 0;
       foreach (var v in times.Zip(values, Tuple.Create)) {
         if (v.Item1 > 0) env.RunD(v.Item1);
+        if (count == 3) { stat.Active = stat_collect.Active = true; }
         stat.UpdateTo(v.Item2);
+        stat_collect.UpdateTo(v.Item2);
+        if (count == times.Length - 3) { stat.Active = stat_collect.Active = false; }
+        count++;
       }
       Assert.Equal(min, stat.Min);
       Assert.Equal(max, stat.Max);
       Assert.Equal(mean, stat.Mean, 14);
       Assert.Equal(variance, stat.Variance, 14);
       Assert.Equal(area, stat.Area);
+      Assert.True(double.IsNaN(stat.GetMedian()));
+      Assert.True(double.IsNaN(stat.GetPercentile(0.25)));
+      Assert.True(double.IsNaN(stat.GetPercentile(0.75)));
+      Assert.Empty(stat.Series);
+      Assert.Equal(min, stat_collect.Min);
+      Assert.Equal(max, stat_collect.Max);
+      Assert.Equal(mean, stat_collect.Mean, 14);
+      Assert.Equal(variance, stat_collect.Variance, 14);
+      Assert.Equal(area, stat_collect.Area);
+      Assert.Equal(median, stat_collect.GetMedian());
+      Assert.True(stat_collect.GetPercentile(0.25) <= median);
+      Assert.True(stat_collect.GetPercentile(0.75) >= median);
+      Assert.Equal(values.Length - 5, stat_collect.Series.Count());
 
       stat.Reset();
+      Assert.False(stat.Active);
+      stat_collect.Reset();
+      Assert.False(stat_collect.Active);
+      count = 0;
       foreach (var v in times.Zip(values, Tuple.Create)) {
         if (v.Item1 > 0) env.RunD(v.Item1);
+        if (count == 3) { stat.Active = stat_collect.Active = true; }
         stat.UpdateTo(v.Item2);
+        stat_collect.UpdateTo(v.Item2);
+        if (count == times.Length - 3) { stat.Active = stat_collect.Active = false; }
+        count++;
       }
       Assert.Equal(min, stat.Min);
       Assert.Equal(max, stat.Max);
       Assert.Equal(mean, stat.Mean, 14);
       Assert.Equal(variance, stat.Variance, 14);
       Assert.Equal(area, stat.Area);
+      Assert.True(double.IsNaN(stat.GetMedian()));
+      Assert.True(double.IsNaN(stat.GetPercentile(0.25)));
+      Assert.True(double.IsNaN(stat.GetPercentile(0.75)));
+      Assert.Empty(stat.Series);
+      Assert.Equal(min, stat_collect.Min);
+      Assert.Equal(max, stat_collect.Max);
+      Assert.Equal(mean, stat_collect.Mean, 14);
+      Assert.Equal(variance, stat_collect.Variance, 14);
+      Assert.Equal(area, stat_collect.Area);
+      Assert.Equal(median, stat_collect.GetMedian());
+      Assert.True(stat_collect.GetPercentile(0.25) <= median);
+      Assert.True(stat_collect.GetPercentile(0.75) >= median);
+      Assert.Equal(values.Length - 5, stat_collect.Series.Count());
     }
 
     [Fact]
@@ -80,47 +120,87 @@ namespace SimSharp.Tests {
     }
 
     [Theory]
-    [InlineData(new double[] {  1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })]
-    [InlineData(new double[] { 10, 9, 8, 7, 6, 5, 4, 3, 2,  1 })]
-    [InlineData(new double[] { -1, -2, -3, -4, -5, 6, 7, 8, 9, 10 })]
-    [InlineData(new double[] { -10, -9, -8, -7, -6, -5, 4, 3, 2, 1 })]
-    [InlineData(new double[] { 0 })]
-    [InlineData(new double[] { 9 })]
-    [InlineData(new double[] { 0, 0 })]
-    [InlineData(new double[] { 5, 5, 5, 5, 5 })]
-    [InlineData(new double[] { 0, 0, 5, 0, 0 })]
-    [InlineData(new double[] { 0, 1, double.NaN, 2 })]
-    [InlineData(new double[] { 0, 1, double.PositiveInfinity, 2 })]
-    [InlineData(new double[] { 0, 1, double.NegativeInfinity, 2 })]
+    [InlineData(new double[] { 5, 5,  1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })]
+    [InlineData(new double[] { 5, 5, 10, 9, 8, 7, 6, 5, 4, 3, 2,  1 })]
+    [InlineData(new double[] { 5, 5, -1, -2, -3, -4, -5, 6, 7, 8, 9, 10 })]
+    [InlineData(new double[] { 5, 5, -10, -9, -8, -7, -6, -5, 4, 3, 2, 1 })]
+    [InlineData(new double[] { 5, 5, 0 })]
+    [InlineData(new double[] { 5, 5, 9 })]
+    [InlineData(new double[] { 5, 5, 0, 0 })]
+    [InlineData(new double[] { 5, 5, 5, 5, 5, 5, 5 })]
+    [InlineData(new double[] { 5, 5, 0, 0, 5, 0, 0 })]
+    [InlineData(new double[] { 5, 5, 0, 1, double.NaN, 2 })]
+    [InlineData(new double[] { 5, 5, 0, 1, double.PositiveInfinity, 2 })]
+    [InlineData(new double[] { 5, 5, 0, 1, double.NegativeInfinity, 2 })]
     public void TestSampleMonitor(IEnumerable<double> data) {
-      var stat = new SampleMonitor();
+      var stat = new SampleMonitor(collect: false) { Active = false };
+      var stat_collect = new SampleMonitor(collect: true) { Active = false };
       var data_list = data.ToList();
       if (data_list.All(x => !double.IsNaN(x) && !double.IsInfinity(x))) {
-        foreach (var d in data_list) stat.Add(d);
-        var avg = data_list.Average();
-        var sum = data_list.Sum();
-        var cnt = data_list.Count;
-        var min = data_list.Min();
-        var max = data_list.Max();
+        var count = 0;
+        foreach (var d in data_list) {
+          if (count == 2) { stat.Active = stat_collect.Active = true; }
+          stat.Add(d); stat_collect.Add(d);
+          count++;
+        }
+        var avg = data_list.Skip(2).Average();
+        var sum = data_list.Skip(2).Sum();
+        var cnt = data_list.Skip(2).Count();
+        var min = data_list.Skip(2).Min();
+        var max = data_list.Skip(2).Max();
         var pvar = 0.0;
-        foreach (var d in data_list) pvar += (d - avg) * (d - avg);
+        foreach (var d in data_list.Skip(2)) pvar += (d - avg) * (d - avg);
         pvar /= cnt;
+        var med = data_list.Skip(2).Count() % 2 == 1 ? data_list.Skip(2).OrderBy(x => x).Skip(data_list.Skip(2).Count() / 2 - 1).First()
+          : data_list.Skip(2).OrderBy(x => x).Skip(data_list.Skip(2).Count() / 2 - 1).Take(2).Average();
         Assert.Equal(avg, stat.Mean);
         Assert.Equal(sum, stat.Total);
         Assert.Equal(cnt, stat.Count);
         Assert.Equal(min, stat.Min);
         Assert.Equal(max, stat.Max);
         Assert.Equal(pvar, stat.Variance, 14);
+        Assert.True(double.IsNaN(stat.GetMedian()));
+        Assert.Empty(stat.Samples);
+        Assert.Equal(avg, stat_collect.Mean);
+        Assert.Equal(sum, stat_collect.Total);
+        Assert.Equal(cnt, stat_collect.Count);
+        Assert.Equal(min, stat_collect.Min);
+        Assert.Equal(max, stat_collect.Max);
+        Assert.Equal(pvar, stat_collect.Variance, 14);
+        Assert.Equal(med, stat_collect.GetMedian());
+        Assert.Equal(data_list.Skip(2).Count(), stat_collect.Samples.Count());
 
+        stat.Active = false;
         stat.Reset();
-        foreach (var d in data_list) stat.Add(d);
+        Assert.False(stat.Active);
+        stat_collect.Active = false;
+        stat_collect.Reset();
+        Assert.False(stat_collect.Active);
+
+        count = 0;
+        foreach (var d in data_list) {
+          if (count == 2) { stat.Active = stat_collect.Active = true; }
+          stat.Add(d); stat_collect.Add(d);
+          count++;
+        }
         Assert.Equal(avg, stat.Mean);
         Assert.Equal(sum, stat.Total);
         Assert.Equal(cnt, stat.Count);
         Assert.Equal(min, stat.Min);
         Assert.Equal(max, stat.Max);
         Assert.Equal(pvar, stat.Variance, 14);
+        Assert.True(double.IsNaN(stat.GetMedian()));
+        Assert.Empty(stat.Samples);
+        Assert.Equal(avg, stat_collect.Mean);
+        Assert.Equal(sum, stat_collect.Total);
+        Assert.Equal(cnt, stat_collect.Count);
+        Assert.Equal(min, stat_collect.Min);
+        Assert.Equal(max, stat_collect.Max);
+        Assert.Equal(pvar, stat_collect.Variance, 14);
+        Assert.Equal(med, stat_collect.GetMedian());
+        Assert.Equal(data_list.Skip(2).Count(), stat_collect.Samples.Count());
       } else {
+        stat.Active = true;
         Assert.Throws<ArgumentException>(() => {
           foreach (var d in data_list) stat.Add(d);
         });

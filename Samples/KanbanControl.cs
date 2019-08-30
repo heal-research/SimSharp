@@ -53,9 +53,9 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate() {
+    public void Simulate(int rseed = 42) {
       completedOrders = 0;
-      env = new Simulation();
+      env = new Simulation(randomSeed: rseed);
       env.Log("== Kanban controlled production system ==");
       kanban = new Resource(env, capacity: 15);
       server = new Resource(env, capacity: 1);
@@ -67,7 +67,7 @@ namespace SimSharp.Samples {
       env.Run(TimeSpan.FromDays(180));
       Console.WriteLine("Kanbans in stock: {0} ; {1:F1}±{2:F1} ; {3} (Min;Mean±StdDev;Max) kanbans ", stockStat.Min, stockStat.Mean, stockStat.StdDev, stockStat.Max);
       Console.WriteLine("Produced kanbans: {0:N0}", completedOrders);
-      Console.WriteLine(stockStat.Summarize(histInterval: 1));
+      Console.WriteLine(stockStat.Summarize(binWidth: 1));
     }
   }
 }

@@ -38,23 +38,30 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate() {
-      var lambda = 1 / OrderArrivalTime.TotalMinutes;
-      var mu = 1 / ProcessingTime.TotalMinutes;
+    private IEnumerable<Event> HandleWarmup(Simulation env, TimeSpan warmupTime, params IMonitor[] monitors) {
+      foreach (var mon in monitors) mon.Active = false;
+      yield return env.Timeout(warmupTime);
+      foreach (var mon in monitors) mon.Active = true;
+    }
+
+    public void Simulate(int repetitions = 5) {
+      var lambda = 1 / OrderArrivalTime.TotalDays;
+      var mu = 1 / ProcessingTime.TotalDays;
       var rho = lambda / mu;
       var analyticWIP = rho / (1 - rho);
       var analyticLeadtime = 1 / (mu - lambda);
       var analyticWaitingtime = rho / (mu - lambda);
 
-      var env = new Simulation(randomSeed: 1, defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(randomSeed: 1, defaultStep: TimeSpan.FromDays(1));
       var utilization = new TimeSeriesMonitor(env, name: "Utilization");
       var wip = new TimeSeriesMonitor(env, name: "WIP", collect: true);
       var leadtime = new SampleMonitor(name: "Lead time", collect: true);
       var waitingtime = new SampleMonitor(name: "Waiting time", collect: true);
 
       env.Log("Analytical results of this system:");
-      env.Log("\tUtilization.Mean\tWIP.Mean\tLeadtime.Mean\tWaitingTime.Mean");
-      env.Log("\t{0}\t{1}\t{2}\t{3}", rho, analyticWIP, analyticLeadtime, analyticWaitingtime);
+      env.Log("Time\tUtilization.Mean\tWIP.Mean\tLeadtime.Mean\tWaitingTime.Mean");
+      env.Log("{4}\t{0}\t{1}\t{2}\t{3}", rho, analyticWIP, analyticLeadtime, analyticWaitingtime, double.PositiveInfinity);
+      env.Log("");
 
       // example to create a running report of these measures every simulated week
       //var report = Report.CreateBuilder(env)
@@ -78,11 +85,11 @@ namespace SimSharp.Samples {
         .SetTimeAPI(useDApi: true)
         .Build();
 
-      env.Log("Simulated results of this system:");
+      env.Log("Simulated results of this system (" + repetitions + " repetitions):");
       env.Log("");
       summary.WriteHeader(); // write the header just once
 
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < repetitions; i++) {
         env.Reset(i + 1); // reset environment
         utilization.Reset(); // reset monitors
         wip.Reset();
@@ -96,6 +103,7 @@ namespace SimSharp.Samples {
         };
 
         env.Process(Source(env, server));
+        env.Process(HandleWarmup(env, TimeSpan.FromDays(32), utilization, wip, leadtime, waitingtime));
         env.Run(TimeSpan.FromDays(365));
       }
 
@@ -103,9 +111,9 @@ namespace SimSharp.Samples {
       env.Log("Detailed results from the last run:");
       env.Log("");
       env.Log(utilization.Summarize());
-      env.Log(wip.Summarize(maxBins: 10, histInterval: 2));
-      env.Log(leadtime.Summarize(maxBins: 10, histInterval: 5));
-      env.Log(waitingtime.Summarize(maxBins: 10, histInterval: 4));  ;
+      env.Log(wip.Summarize(maxBins: 10, binWidth: 2));
+      env.Log(leadtime.Summarize(maxBins: 10, binWidth: 5 / 1440.0));
+      env.Log(waitingtime.Summarize(maxBins: 10, binWidth: 4 / 1440.0));  ;
     }
   }
 }

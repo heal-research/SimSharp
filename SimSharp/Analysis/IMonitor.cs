@@ -20,6 +20,16 @@ using System;
 
 namespace SimSharp {
   public interface IMonitor {
+    bool Active { get; set; }
+    string Name { get; }
+
+    string Summarize();
+
+
+    event EventHandler Updated;
+  }
+
+  public interface INumericMonitor : IMonitor {
     bool Collect { get; }
 
     double Min { get; }
@@ -31,17 +41,13 @@ namespace SimSharp {
 
     double GetMedian();
     double GetPercentile(double p);
-
-    string Summarize();
-    
-    event EventHandler Updated;
   }
 
-  public interface ISampleMonitor : IMonitor {
+  public interface ISampleMonitor : INumericMonitor {
     void Add(double value);
   }
 
-  public interface ITimeSeriesMonitor : IMonitor {
+  public interface ITimeSeriesMonitor : INumericMonitor {
     void Increase(double value);
     void Decrease(double value);
     void UpdateTo(double value);

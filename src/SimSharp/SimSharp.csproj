@@ -45,7 +45,7 @@ SimPy allows modeling processes easily and with little boiler plate code. A proc
     <NeutralLanguage />
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSource>True</IncludeSource>
     <IncludeSymbols>True</IncludeSymbols>
     <NoWarn>$(NoWarn);1591;1734</NoWarn>
@@ -73,7 +73,8 @@ SimPy allows modeling processes easily and with little boiler plate code. A proc
   </Target>
 
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="$(PackageLicenseFile)" />
+    <None Include="..\LICENSE.txt" Link="LICENSE.txt" Pack="true" />
+    <None Include="..\LICENSE-3RD-PARTY.txt" Link="LICENSE-3RD-PARTY.txt" Pack="true" />
   </ItemGroup>
 
   <ItemGroup>

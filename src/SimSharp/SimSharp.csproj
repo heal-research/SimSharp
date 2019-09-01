@@ -73,8 +73,8 @@ SimPy allows modeling processes easily and with little boiler plate code. A proc
   </Target>
 
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Link="LICENSE.txt" Pack="true" />
-    <None Include="..\LICENSE-3RD-PARTY.txt" Link="LICENSE-3RD-PARTY.txt" Pack="true" />
+    <None Include="$(SolutionDir)..\LICENSE.txt" Link="LICENSE.txt" Pack="true" />
+    <None Include="$(SolutionDir)..\LICENSE-3RD-PARTY.txt" Link="LICENSE-3RD-PARTY.txt" Pack="true" />
   </ItemGroup>
 
   <ItemGroup>

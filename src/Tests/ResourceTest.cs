@@ -522,13 +522,13 @@ namespace SimSharp.Tests {
     }
 
     class MyContainer : Container {
-      public int PutQueueLength { get { return PutQueue.Count; } }
-      public int GetQueueLength { get { return GetQueue.Count; } }
+      public int PutQueueCount { get { return PutQueue.Count; } }
+      public int GetQueueCount { get { return GetQueue.Count; } }
       public MyContainer(Simulation environment, double capacity = Double.MaxValue, double initial = 0) : base(environment, capacity, initial) { }
     }
     class MyFilterStore : FilterStore {
-      public int PutQueueLength { get { return PutQueue.Count; } }
-      public int GetQueueLength { get { return GetQueue.Count; } }
+      public int PutQueueCount { get { return PutQueue.Count; } }
+      public int GetQueueCount { get { return GetQueue.Count; } }
       public MyFilterStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
     class MyPreemptiveResource : PreemptiveResource {
@@ -552,13 +552,13 @@ namespace SimSharp.Tests {
       public MyResourcePool(Simulation environment, IEnumerable<object> items) : base(environment, items) { }
     }
     class MyStore : Store {
-      public int PutQueueLength { get { return PutQueue.Count; } }
-      public int GetQueueLength { get { return GetQueue.Count; } }
+      public int PutQueueCount { get { return PutQueue.Count; } }
+      public int GetQueueCount { get { return GetQueue.Count; } }
       public MyStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
     class MyPriorityStore : PriorityStore {
-      public int PutQueueLength { get { return PutQueue.Count; } }
-      public int GetQueueLength { get { return GetQueue.Count; } }
+      public int PutQueueCount { get { return PutQueue.Count; } }
+      public int GetQueueCount { get { return GetQueue.Count; } }
       public object Peek { get { return Items.First.Item; } }
       public MyPriorityStore(Simulation environment, int capacity = Int32.MaxValue) : base(environment, capacity) { }
     }
@@ -568,38 +568,38 @@ namespace SimSharp.Tests {
       var env = new Simulation();
       var res = new MyContainer(env);
       Assert.Equal(0, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var get = res.Get(1);
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       get = res.Get(1);
       Assert.False(get.IsTriggered);
       Assert.Equal(0, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       env.Run();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Level);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
     }
 
     [Fact]
@@ -607,38 +607,38 @@ namespace SimSharp.Tests {
       var env = new Simulation();
       var res = new MyFilterStore(env);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var get = res.Get();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       get = res.Get();
       Assert.False(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       env.Run();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
     }
 
     [Fact]
@@ -802,38 +802,38 @@ namespace SimSharp.Tests {
       var env = new Simulation();
       var res = new MyStore(env);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var get = res.Get();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       get = res.Get();
       Assert.False(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       put = res.Put(1);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       env.Run();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
     }
 
     [Fact]
@@ -841,45 +841,45 @@ namespace SimSharp.Tests {
       var env = new Simulation();
       var res = new MyPriorityStore(env);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var put = res.Put(1, priority: 2);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
 
       var get = res.Get();
       Assert.True(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
       Assert.Equal(1, (int)get.Value);
 
       get = res.Get();
       Assert.False(get.IsTriggered);
       Assert.Equal(0, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       put = res.Put(2, priority: 2);
       Assert.True(put.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       put = res.Put(1, priority: 1);
       Assert.True(put.IsTriggered);
       Assert.Equal(2, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(1, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(1, res.GetQueueCount);
 
       env.Run();
       Assert.True(get.IsTriggered);
       Assert.Equal(1, res.Count);
-      Assert.Equal(0, res.PutQueueLength);
-      Assert.Equal(0, res.GetQueueLength);
+      Assert.Equal(0, res.PutQueueCount);
+      Assert.Equal(0, res.GetQueueCount);
       Assert.Equal(1, (int)get.Value);
       Assert.Equal(2, (int)res.Peek);
     }

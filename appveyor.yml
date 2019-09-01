@@ -1,0 +1,22 @@
+version: '{build}'
+image: Visual Studio 2017
+build_script:
+- pwsh: >-
+    pushd src
+
+    dotnet restore
+
+    dotnet build --configuration Release
+
+    popd
+
+    Exit $LASTEXITCODE
+test_script:
+- pwsh: >-
+    pushd src
+
+    dotnet test Tests --configuration Release
+
+    popd
+
+    Exit $LASTEXITCODE

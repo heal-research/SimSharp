@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  public class GasStationRefueling {
+  public class GasStationRefueling : ISimulate {
     /*
      * Gas Station Refueling example
      *
@@ -103,10 +103,10 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = RandomSeed) {
+    public void Simulate() {
       // Setup and start the simulation
       // Create environment and start processes
-      var env = new Simulation(DateTime.Now.Date, rseed);
+      var env = new Simulation(DateTime.Now.Date, RandomSeed);
       env.Log("== Gas Station refuelling ==");
       var gasStation = new Resource(env, 2) {
         QueueLength = new TimeSeriesMonitor(env, name: "Waiting cars", collect: true),

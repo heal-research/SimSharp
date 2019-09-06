@@ -9,7 +9,8 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  public class KanbanControl {
+  public class KanbanControl : ISimulate {
+    private const int RandomSeed = 42;
     private Simulation env;
     private Resource kanban;
     private Resource server;
@@ -42,9 +43,9 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = 42) {
+    public void Simulate() {
       completedOrders = 0;
-      env = new Simulation(randomSeed: rseed);
+      env = new Simulation(RandomSeed);
       env.Log("== Kanban controlled production system ==");
       kanban = new Resource(env, capacity: 15);
       server = new Resource(env, capacity: 1);

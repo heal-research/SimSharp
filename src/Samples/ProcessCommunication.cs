@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  public class ProcessCommunication {
+  public class ProcessCommunication : ISimulate {
     /*
      * Process communication example
      * 
@@ -21,6 +21,8 @@ namespace SimSharp.Samples {
      *  together using :class:`~simpy.resources.store.Store` for one-to-one,
      *  asynchronous processes.
      */
+    private const int RandomSeed = 42;
+
     private IEnumerable<Event> MessageGenerator(string name, Simulation env, Store outPipe) {
       // A process which randomly generates messages.
       while (true) {
@@ -63,9 +65,9 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = 42) {
+    public void Simulate() {
       // Setup and start the simulation
-      var env = new Simulation(rseed, TimeSpan.FromSeconds(1));
+      var env = new Simulation(RandomSeed, TimeSpan.FromSeconds(1));
       env.Log("== Process communication ==");
 
       var pipe = new Store(env);

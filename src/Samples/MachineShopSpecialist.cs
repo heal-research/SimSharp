@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp.Samples {
-  public class MachineShopSpecialist {
+  public class MachineShopSpecialist : ISimulate {
     /*
      * Machine shop specialist example
      * 
@@ -119,11 +119,11 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = RandomSeed) {
+    public void Simulate() {
       // Setup and start the simulation
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
-      var env = new Simulation(start, rseed);
+      var env = new Simulation(start, RandomSeed);
       env.Log("== Machine shop specialist ==");
       var repairman = new ResourcePool(env, new[] { Jack, John });
       var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, (MachineBrands)(x % Enum.GetValues(typeof(MachineBrands)).Length), repairman)).ToArray();

@@ -6,28 +6,18 @@
 #endregion
 
 using System;
+using System.Linq;
 
 namespace SimSharp.Samples {
   class RunAllSamples {
     public static void Main(string[] args) {
-      // Run all samples one after another
-      new BankRenege().Simulate();
-      Console.WriteLine();
-      new GasStationRefueling().Simulate();
-      Console.WriteLine();
-      new MachineShop().Simulate();
-      Console.WriteLine();
-      new ProcessCommunication().Simulate();
-      Console.WriteLine();
-      new SteelFactory().Simulate();
-      Console.WriteLine();
-      new MachineShopSpecialist().Simulate();
-      Console.WriteLine();
-      new SimpleShop().Simulate();
-      Console.WriteLine();
-      new KanbanControl().Simulate();
-      Console.WriteLine();
-      new MM1Queueing().Simulate();
+      foreach (Type mytype in System.Reflection.Assembly.GetExecutingAssembly().GetTypes()
+        .Where(mytype => mytype .GetInterfaces().Contains(typeof(ISimulate)))) 
+      {
+          // Run all samples one after another
+          ((ISimulate)Activator.CreateInstance(mytype)).Simulate();
+          Console.WriteLine();
+      }
     }
   }
 }

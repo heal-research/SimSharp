@@ -9,8 +9,9 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  public class BankRenege {
+  public class BankRenege : ISimulate {
 
+    private const int RandomSeed = 41;
     private const int NewCustomers = 10; // Total number of customers
     private static readonly TimeSpan IntervalCustomers = TimeSpan.FromMinutes(10.0); // Generate new customers roughly every x minutes
     private static readonly TimeSpan MinPatience = TimeSpan.FromMinutes(1); // Min. customer patience
@@ -49,11 +50,11 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = 41) {
+    public void Simulate() {
       // Setup and start the simulation
       var start = new DateTime(2014, 2, 1);
       // Create an environment and start the setup process
-      var env = new Simulation(start, rseed, defaultStep: TimeSpan.FromMinutes(1));
+      var env = new Simulation(start, RandomSeed, defaultStep: TimeSpan.FromMinutes(1));
       env.Log("== Bank renege ==");
       var counter = new Resource(env, capacity: 1) {
         BreakOffTime = new SampleMonitor(name: "BreakOffTime", collect: true),

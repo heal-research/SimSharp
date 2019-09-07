@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp.Samples {
-  public class MachineShop {
+  public class MachineShop : ISimulate {
     /*
      * Machine shop example
      * 
@@ -124,11 +124,11 @@ namespace SimSharp.Samples {
       }
     }
 
-    public void Simulate(int rseed = RandomSeed) {
+    public void Simulate() {
       // Setup and start the simulation
       // Create an environment and start the setup process
       var start = new DateTime(2014, 2, 1);
-      var env = new Simulation(start, rseed);
+      var env = new Simulation(start, RandomSeed);
       env.Log("== Machine shop ==");
       var repairman = new PreemptiveResource(env, 1);
       var machines = Enumerable.Range(0, NumMachines).Select(x => new Machine(env, "Machine " + x, repairman)).ToArray();

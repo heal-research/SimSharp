@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SimSharp.Samples {
-  public class MM1Queueing {
+  public class MM1Queueing : ISimulate{
     private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
     private static readonly TimeSpan ProcessingTime = TimeSpan.FromMinutes(2.5);
     
@@ -33,7 +33,8 @@ namespace SimSharp.Samples {
       foreach (var mon in monitors) mon.Active = true;
     }
 
-    public void Simulate(int repetitions = 5) {
+    public void Simulate() {
+      var repetitions = 5;
       var lambda = 1 / OrderArrivalTime.TotalDays;
       var mu = 1 / ProcessingTime.TotalDays;
       var rho = lambda / mu;

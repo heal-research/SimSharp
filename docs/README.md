@@ -2,7 +2,14 @@
 
 The documentation covers the following aspects:
 
-[TOC]
+* [Introduction](#introduction)
+* [Modeling](#modeling)
+  + [Processes](#processes)
+  + [Resources](#resources)
+  + [Putting it together](#putting-it-together)
+* [Monitoring](#monitoring)
+  + [Reports](#reports)
+
 
 ## Introduction
 
@@ -77,41 +84,59 @@ In any case, it is simple to extend the standard resources given that the code i
 
 ### Putting it together
 
-Processes that interact with common resources may create highly dynamic behavior which may not be analytically tractable and thus has to be simulated.
+Processes that interact with common resources may create highly dynamic behavior which may not be analytically tractable and thus have to be simulated. Sim# includes a number of samples that, while being easy to understand and simple, show how to model certain processes such as preemption, interruption, handover of resource requests and more. A short summary of the provided samples together with the highlights are given in the following:
 
-It is best to look at the many samples that have been provided along with the Sim# sources to see both simple and more complex models. Here is a short summary:
+##### [BankRenege](../src/Samples/BankRenege.cs)
 
-* [BankRenege](../src/Samples/BankRenege.cs)
+- Timeout when waiting for a resource
+- Track and print statistics
 
-This sample uses a single shared resource (bank teller) that customers queue for. The model shows how quitting a queue prematurely is possible, for instance because the customer has run out of patience. It also tracks and prints several statistics.
+The bank renege sample uses a single shared resource (bank teller) that customers queue for. There is a single queue and each customer has a certain patience for waiting in the queue. When the patience has run out, the customer will leave the queue without doing business. The queue is not explicitly added to the model, but is part of the Resource that models the bank teller. This resource can automatically track statistics on the queue's length and waiting time.
 
-* [GasStationRefueling](../src/Samples/GasStationRefueling.cs)
+##### [GasStationRefueling](../src/Samples/GasStationRefueling.cs)
 
-This sample uses both a discrete (fuel pump) and a continuous (tank) resource. Cars are queuing at the fuel pump and consume gasoline from the tank. When the tank runs below a certain threshold a truck is dispatched to refill it. This shows how *When*-events of resources can be used. These events have been introduced with Sim# 3.1 (they are ported from the [desmod](https://desmod.readthedocs.io/en/latest/) package - an extension of SimPy).
+- Combination of discrete (fuel pump) and continuous resource (tank)
+- Use of *When*-events to react to resupply of the tank
 
-* [KanbanControl](../src/Samples/KanbanControl.cs)
+The gas station refueling sample uses both a discrete (fuel pump) and a continuous (tank) resource. Cars are queuing at the fuel pump and consume gasoline from the tank. When the tank runs below a certain threshold a truck is dispatched to refill it. *When*-events of resources were introduced as part of the Sim# 3.1 release (they are ported from the [desmod](https://desmod.readthedocs.io/en/latest/) package - an extension of SimPy). Note that the Sim# is a discrete event simulation kernel, thus there cannot be a continuous drain from the tank.
 
-This samples shows how a simple production system that uses kanban can be modeled. It shows how to use monitors to track a variable of interest (the number of kanbans in stock over time).
+##### [KanbanControl](../src/Samples/KanbanControl.cs)
 
-* [MachineShop](../src/Samples/MachineShop.cs) and [MachineShopSpecialist](../src/Samples/MachineShopSpecialist.cs)
+- Usage of Monitors to track variables in user code
 
-In this model a production system with machine break-downs is described. It shows how to interrupt processes, e.g. in the case of a break-down the current job is suspended. The -Specialist model additionally shows how to use the ResourcePool to model repairman with different characteristics.
+The kanban control sample shows how a simple production system that uses kanban can be modeled. It shows how to use monitors to track a variable of interest (the number of kanbans in stock over time).
 
-* [MM1Queueing](../src/Samples/MM1Queueing.cs)
+##### [MachineShop](../src/Samples/MachineShop.cs) and [MachineShopSpecialist](../src/Samples/MachineShopSpecialist.cs)
+
+- Interrupting other processes
+- Usage of PreemptivePriorityResource and ResourcePool
+
+In this model a production system with machine break-downs is described. In the event of a break-down the current job is interrupted and suspended until a repairman has been dispatched to fix it. The -Specialist model additionally shows how to use the ResourcePool to model repairman with different characteristics.
+
+##### [MM1Queueing](../src/Samples/MM1Queueing.cs)
+
+- Comparison of analytic with simulated results
+- Tracking of statistics
+- Reports
 
 The "Hello World" of simulation models. It shows how to perform repetitions and track statistical properties. It also prints the analytical properties of this system - which are known in this case.
 
-* [ProcessCommunication](../src/Samples/ProcessCommunication.cs)
+##### [ProcessCommunication](../src/Samples/ProcessCommunication.cs)
+
+- Interaction between processes
+- Store resource
 
 This model describes a simple producer-consumer situation. It shows how processes may interact with each other using a Store resource.
 
-* [SimpleShop](../src/Samples/SimpleShop.cs) and [SteelFactory](../src/Samples/SteelFactory.cs)
+##### [SimpleShop](../src/Samples/SimpleShop.cs) and [SteelFactory](../src/Samples/SteelFactory.cs)
+
+* Acquiring and releasing a resource in separate processes
 
 These model describe a two-step production. The first step may be blocked by the second. The models should show how one process may obtain a resource, but another processes releases that resource.
 
 ## Monitoring
 
-Monitoring is new with Sim# 3.2. Instead of following the SimPy approach which is difficult to translate to .NET. The implementation in Sim# is more akin to [Salabim](https://www.salabim.org).
+Monitoring has been introduced with Sim# 3.2. Instead of following the SimPy approach which is difficult to translate to .NET. The implementation in Sim# is more akin to [Salabim](https://www.salabim.org).
 
 There are two different kinds of monitors:
 
@@ -128,7 +153,9 @@ var server = new Resource(env, capacity: 5) {
 };
 ```
 
-Monitors may be created with ```collect: true```. This means the monitor will keep the datapoints and thus can compute median, percentiles, and print a histogram of the data. By default collect is false, which still allows computing min, max, mean, standard deviation, count, and sum in a memory efficient way.
+Monitors may be created with ```collect: true```. This means the monitor will keep the datapoints and thus can compute median, percentiles, and print a histogram of the data. By default collect is false, which still allows computing min, max, mean, standard deviation, count, and sum and in a memory efficient way.
+
+As has been mentioned above, the KanbanControl sample shows how to use monitors in the code that describes the model in order to track own variables of interest.
 
 ### Reports
 

@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace SimSharp.Tests {
@@ -163,6 +164,82 @@ namespace SimSharp.Tests {
 0.37645276686883905, 0.037506631053281031, -0.92536789644140882, -0.87027850838312693,
 0.65864875161591829, 0.46713487767696055, -0.37878389025311837};
       Assert.Equal(old, rndNumbers);
+    }
+
+    [Fact]
+    public void PseudoRealTimeEnvTestStopTest() {
+      var then = DateTime.UtcNow;
+      var env = new PseudoRealTimeSimulation();
+      env.Run(TimeSpan.FromSeconds(1));
+      var now = DateTime.UtcNow;
+      Assert.True(now - then >= TimeSpan.FromSeconds(1));
+
+      var t = Task.Run(() => env.Run(TimeSpan.FromMinutes(1)));
+      Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
+      env.StopAsync();
+      Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
+      Assert.True(t.IsCompleted);
+    }
+
+    [Fact]
+    public void PseudoRealTimeEnvTest() {
+      var then = DateTime.UtcNow;
+      var delay = TimeSpan.FromSeconds(1);
+      var env = new PseudoRealTimeSimulation();
+      env.Process(RealTimeDelay(env, delay));
+      env.Run();
+      var now = DateTime.UtcNow;
+      Assert.True(now - then >= delay);
+    }
+
+    private IEnumerable<Event> RealTimeDelay(Simulation env, TimeSpan delay) {
+      yield return env.Timeout(delay);
+    }
+
+    [Fact]
+    public void MixedPseudoRealTimeEnvTest() {
+      var delay0 = TimeSpan.FromSeconds(8.0);
+      var delay1 = TimeSpan.FromSeconds(1.0);
+      var delay2 = TimeSpan.FromSeconds(5.0);
+      var env = new PseudoRealTimeSimulation();
+
+      // process 1
+      env.Process(MixedTestRealTimeDelay(env, delay0, delay1, delay2)); // should take at least 8 - 6 + 1 = 3 seconds in real time
+      // process 2
+      env.Process(MixedTestVirtualTimeDelay(env, delay0, delay1, delay2)); // should take 1 second in real and 5 seconds in virtual time
+
+      var then = DateTime.UtcNow;
+      env.Run();
+      var now = DateTime.UtcNow;
+      Assert.True(now - then >= delay0 - delay2); // delay2 is virtual
+    }
+
+    // yields events for process 1
+    private IEnumerable<Event> MixedTestRealTimeDelay(PseudoRealTimeSimulation env, TimeSpan delay0, TimeSpan delay1, TimeSpan delay2) {
+      Assert.True(env.Now == env.StartDate);
+      var then = DateTime.UtcNow;
+      yield return env.Timeout(delay0);
+      var now = DateTime.UtcNow;
+      Assert.True(env.Now == env.StartDate + delay0);
+      Assert.True(now - then >= delay0 - delay2); // delay2 is virtual
+    }
+
+    // yields events for process 2
+    private IEnumerable<Event> MixedTestVirtualTimeDelay(PseudoRealTimeSimulation env, TimeSpan delay0, TimeSpan delay1, TimeSpan delay2) {
+      Assert.True(env.Now == env.StartDate);
+      var then = DateTime.UtcNow;
+      yield return env.Timeout(delay1); // delays 1 second in real time
+      var now = DateTime.UtcNow;
+      Assert.True(env.Now == env.StartDate + delay1);
+      Assert.True(now - then >= delay1);
+
+      env.SwitchToVirtualTime();
+
+      yield return env.Timeout(delay2); // delays 5 seconds in virtual time
+      Assert.True(env.Now == env.StartDate + delay1 + delay2);
+
+      // switch back to real time happens at virtual time 00:00:06
+      env.SwitchToRealTime(); // real time timeout in process 1 should delay at least 8 - 6 + 1 = 3 seconds
     }
   }
 }

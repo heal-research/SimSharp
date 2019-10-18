@@ -8,6 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimSharp {
   /// <summary>
@@ -177,7 +179,7 @@ namespace SimSharp {
       return Run(stopEvent);
     }
 
-    protected bool _stopRequested = false;
+    protected CancellationTokenSource _stop = null;
     /// <summary>
     /// Run until a certain event is processed.
     /// </summary>
@@ -192,7 +194,7 @@ namespace SimSharp {
     /// <param name="stopEvent">The event that stops the simulation.</param>
     /// <returns></returns>
     public virtual object Run(Event stopEvent = null) {
-      _stopRequested = false;
+      _stop = new CancellationTokenSource();
       if (stopEvent != null) {
         if (stopEvent.IsProcessed) {
           return stopEvent.Value;
@@ -201,21 +203,21 @@ namespace SimSharp {
       }
       OnRunStarted();
       try {
-        var stop = ScheduleQ.Count == 0 || _stopRequested;
+        var stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         while (!stop) {
           Step();
           ProcessedEvents++;
-          stop = ScheduleQ.Count == 0 || _stopRequested;
+          stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         }
       } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
       OnRunFinished();
       if (stopEvent == null) return null;
-      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stop.IsCancellationRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
     public virtual void StopAsync() {
-      _stopRequested = true;
+      _stop?.Cancel();
     }
 
     public event EventHandler RunStarted;
@@ -786,7 +788,7 @@ namespace SimSharp {
     /// <param name="stopEvent">The event that stops the simulation.</param>
     /// <returns></returns>
     public override object Run(Event stopEvent = null) {
-      _stopRequested = false;
+      _stop = new CancellationTokenSource();
       if (stopEvent != null) {
         if (stopEvent.IsProcessed) {
           return stopEvent.Value;
@@ -797,19 +799,19 @@ namespace SimSharp {
       try {
         var stop = false;
         lock (_locker) {
-          stop = ScheduleQ.Count == 0 || _stopRequested;
+          stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         }
         while (!stop) {
           Step();
           ProcessedEvents++;
           lock (_locker) {
-            stop = ScheduleQ.Count == 0 || _stopRequested;
+            stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
           }
         }
       } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
       OnRunFinished();
       if (stopEvent == null) return null;
-      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stop.IsCancellationRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
@@ -851,6 +853,72 @@ namespace SimSharp {
     public override DateTime Peek() {
       lock (_locker) {
         return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
+      }
+    }
+  }
+
+  public class PseudoRealTimeSimulation : ThreadSafeSimulation {
+    private const double DefaultRealTimeFactor = 1.0;
+    private const double RealTimeThreshold = 1000.0;
+
+    public double RealTimeFactor { get; private set; } = DefaultRealTimeFactor;
+    public bool IsRunningInRealTime => RealTimeFactor < RealTimeThreshold;
+
+    public PseudoRealTimeSimulation() : this(new DateTime(1970, 1, 1)) { }
+    public PseudoRealTimeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
+    public PseudoRealTimeSimulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
+    public PseudoRealTimeSimulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public PseudoRealTimeSimulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(randomSeed), initialDateTime, defaultStep) { }
+    public PseudoRealTimeSimulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) : base(random, initialDateTime, defaultStep) { }
+
+    public override void StopAsync() {
+      base.StopAsync();
+    }
+
+    public override void Step() {
+      lock (_locker) {
+        if (IsRunningInRealTime) {
+          var next = ScheduleQ.First.PrimaryPriority;
+          var delay = next - Now;
+          if (RealTimeFactor != 1.0) delay = TimeSpan.FromMilliseconds(delay.Milliseconds * 1.0 / RealTimeFactor);
+          if (delay > TimeSpan.Zero) Task.Delay(delay, _stop.Token).Wait();
+        }
+      }
+      base.Step();
+    }
+
+    /// <summary>
+    /// Switches the simulation to virtual time mode. In this mode, events
+    /// are processed without delay just like in a ThreadSafeSimulation.
+    /// </summary>
+    public virtual void SwitchToVirtualTime() {
+      lock (_locker) {
+        RealTimeFactor = RealTimeThreshold;
+      }
+    }
+
+    /// <summary>
+    /// Switches the simulation to real time mode. The real time factor of
+    /// this default mode is configurable.
+    /// </summary>
+    /// <remarks>
+    /// Per default, a <see cref="PseudoRealTimeSimulation"/> is executed
+    /// in real time with a simulation speed factor of 1.0.
+    /// 
+    /// With a factor of 1.0, a timeout of 5.0 seconds would delay the
+    /// simulation for 5.0 seconds. With a factor of 2.0, the same timeout
+    /// would delay the simulation for 2.5 seconds, whereas a factor of
+    /// 0.5 would delay the simulation for 10.0 seconds.
+    /// </remarks>
+    /// <param name="realTimeFactor">A factor greater than 0.0 used to scale real time events (higher value = faster execution).</param>
+    public virtual void SwitchToRealTime(double realTimeFactor = DefaultRealTimeFactor) {
+      lock (_locker) {
+        if (RealTimeFactor <= 0.0) throw new ArgumentException("The simulation speed scaling factor must not be negative.", nameof(realTimeFactor));
+        if (realTimeFactor >= RealTimeThreshold) {
+          SwitchToVirtualTime();
+        } else {
+          RealTimeFactor = realTimeFactor;
+        }
       }
     }
   }

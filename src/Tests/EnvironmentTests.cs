@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace SimSharp.Tests {
@@ -163,6 +164,36 @@ namespace SimSharp.Tests {
 0.37645276686883905, 0.037506631053281031, -0.92536789644140882, -0.87027850838312693,
 0.65864875161591829, 0.46713487767696055, -0.37878389025311837};
       Assert.Equal(old, rndNumbers);
+    }
+
+    [Fact]
+    public void PseudoRealTimeEnvTestStopTest() {
+      var then = DateTime.UtcNow;
+      var env = new PseudoRealTimeSimulation();
+      env.Run(TimeSpan.FromSeconds(1));
+      var now = DateTime.UtcNow;
+      Assert.True(now - then >= TimeSpan.FromSeconds(1));
+
+      var t = Task.Run(() => env.Run(TimeSpan.FromMinutes(1)));
+      Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
+      env.StopAsync();
+      Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
+      Assert.True(t.IsCompleted);
+    }
+
+    [Fact]
+    public void PseudoRealTimeEnvTest() {
+      var then = DateTime.UtcNow;
+      var delay = TimeSpan.FromSeconds(1);
+      var env = new PseudoRealTimeSimulation();
+      env.Process(RealTimeDelay(env, delay));
+      env.Run();
+      var now = DateTime.UtcNow;
+      Assert.True(now - then >= delay);
+    }
+
+    private IEnumerable<Event> RealTimeDelay(Simulation env, TimeSpan delay) {
+      yield return env.Timeout(delay);
     }
   }
 }

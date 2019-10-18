@@ -8,6 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimSharp {
   /// <summary>
@@ -177,7 +179,7 @@ namespace SimSharp {
       return Run(stopEvent);
     }
 
-    protected bool _stopRequested = false;
+    protected CancellationTokenSource _stop = null;
     /// <summary>
     /// Run until a certain event is processed.
     /// </summary>
@@ -192,7 +194,7 @@ namespace SimSharp {
     /// <param name="stopEvent">The event that stops the simulation.</param>
     /// <returns></returns>
     public virtual object Run(Event stopEvent = null) {
-      _stopRequested = false;
+      _stop = new CancellationTokenSource();
       if (stopEvent != null) {
         if (stopEvent.IsProcessed) {
           return stopEvent.Value;
@@ -201,21 +203,21 @@ namespace SimSharp {
       }
       OnRunStarted();
       try {
-        var stop = ScheduleQ.Count == 0 || _stopRequested;
+        var stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         while (!stop) {
           Step();
           ProcessedEvents++;
-          stop = ScheduleQ.Count == 0 || _stopRequested;
+          stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         }
       } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
       OnRunFinished();
       if (stopEvent == null) return null;
-      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stop.IsCancellationRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
     public virtual void StopAsync() {
-      _stopRequested = true;
+      _stop?.Cancel();
     }
 
     public event EventHandler RunStarted;
@@ -783,7 +785,7 @@ namespace SimSharp {
     /// <param name="stopEvent">The event that stops the simulation.</param>
     /// <returns></returns>
     public override object Run(Event stopEvent = null) {
-      _stopRequested = false;
+      _stop = new CancellationTokenSource();
       if (stopEvent != null) {
         if (stopEvent.IsProcessed) {
           return stopEvent.Value;
@@ -794,19 +796,19 @@ namespace SimSharp {
       try {
         var stop = false;
         lock (_locker) {
-          stop = ScheduleQ.Count == 0 || _stopRequested;
+          stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
         }
         while (!stop) {
           Step();
           ProcessedEvents++;
           lock (_locker) {
-            stop = ScheduleQ.Count == 0 || _stopRequested;
+            stop = ScheduleQ.Count == 0 || _stop.IsCancellationRequested;
           }
         }
       } catch (StopSimulationException e) { OnRunFinished(); return e.Value; }
       OnRunFinished();
       if (stopEvent == null) return null;
-      if (!_stopRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
+      if (!_stop.IsCancellationRequested && !stopEvent.IsTriggered) throw new InvalidOperationException("No scheduled events left but \"until\" event was not triggered.");
       return stopEvent.Value;
     }
 
@@ -849,6 +851,28 @@ namespace SimSharp {
       lock (_locker) {
         return ScheduleQ.Count > 0 ? ScheduleQ.First.PrimaryPriority : DateTime.MaxValue;
       }
+    }
+  }
+
+  public class PseudoRealTimeSimulation : ThreadSafeSimulation {
+    public PseudoRealTimeSimulation() : this(new DateTime(1970, 1, 1)) { }
+    public PseudoRealTimeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
+    public PseudoRealTimeSimulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
+    public PseudoRealTimeSimulation(int randomSeed, TimeSpan? defaultStep = null) : this(new DateTime(1970, 1, 1), randomSeed, defaultStep) { }
+    public PseudoRealTimeSimulation(DateTime initialDateTime, int randomSeed, TimeSpan? defaultStep = null) : this(new PcgRandom(randomSeed), initialDateTime, defaultStep) { }
+    public PseudoRealTimeSimulation(IRandom random, DateTime initialDateTime, TimeSpan? defaultStep = null) : base(random, initialDateTime, defaultStep) { }
+
+    public override void StopAsync() {
+      base.StopAsync();
+    }
+
+    public override void Step() {
+      lock (_locker) {
+        var next = ScheduleQ.First.PrimaryPriority;
+        var delay = next - Now;
+        if (delay > TimeSpan.Zero) Task.Delay(delay, _stop.Token).Wait();
+      }
+      base.Step();
     }
   }
 

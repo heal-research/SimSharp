@@ -855,6 +855,12 @@ namespace SimSharp {
   }
 
   public class PseudoRealTimeSimulation : ThreadSafeSimulation {
+    private const double DefaultRealTimeFactor = 1.0;
+    private const double RealTimeThreshold = 1000.0;
+
+    public double RealTimeFactor { get; private set; } = DefaultRealTimeFactor;
+    public bool IsRunningInRealTime => RealTimeFactor < RealTimeThreshold;
+
     public PseudoRealTimeSimulation() : this(new DateTime(1970, 1, 1)) { }
     public PseudoRealTimeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
     public PseudoRealTimeSimulation(DateTime initialDateTime, TimeSpan? defaultStep = null) : this(new PcgRandom(), initialDateTime, defaultStep) { }
@@ -868,11 +874,49 @@ namespace SimSharp {
 
     public override void Step() {
       lock (_locker) {
-        var next = ScheduleQ.First.PrimaryPriority;
-        var delay = next - Now;
-        if (delay > TimeSpan.Zero) Task.Delay(delay, _stop.Token).Wait();
+        if (IsRunningInRealTime) {
+          var next = ScheduleQ.First.PrimaryPriority;
+          var delay = next - Now;
+          if (RealTimeFactor != 1.0) delay = TimeSpan.FromMilliseconds(delay.Milliseconds * 1.0 / RealTimeFactor);
+          if (delay > TimeSpan.Zero) Task.Delay(delay, _stop.Token).Wait();
+        }
       }
       base.Step();
+    }
+
+    /// <summary>
+    /// Switches the simulation to virtual time mode. In this mode, events
+    /// are processed without delay just like in a ThreadSafeSimulation.
+    /// </summary>
+    public virtual void SwitchToVirtualTime() {
+      lock (_locker) {
+        RealTimeFactor = RealTimeThreshold;
+      }
+    }
+
+    /// <summary>
+    /// Switches the simulation to real time mode. The real time factor of
+    /// this default mode is configurable.
+    /// </summary>
+    /// <remarks>
+    /// Per default, a <see cref="PseudoRealTimeSimulation"/> is executed
+    /// in real time with a simulation speed factor of 1.0.
+    /// 
+    /// With a factor of 1.0, a timeout of 5.0 seconds would delay the
+    /// simulation for 5.0 seconds. With a factor of 2.0, the same timeout
+    /// would delay the simulation for 2.5 seconds, whereas a factor of
+    /// 0.5 would delay the simulation for 10.0 seconds.
+    /// </remarks>
+    /// <param name="realTimeFactor">A factor greater than 0.0 used to scale real time events (higher value = faster execution).</param>
+    public virtual void SwitchToRealTime(double realTimeFactor = DefaultRealTimeFactor) {
+      lock (_locker) {
+        if (RealTimeFactor <= 0.0) throw new ArgumentException("The simulation speed scaling factor must not be negative.", nameof(realTimeFactor));
+        if (realTimeFactor >= RealTimeThreshold) {
+          SwitchToVirtualTime();
+        } else {
+          RealTimeFactor = realTimeFactor;
+        }
+      }
     }
   }
 

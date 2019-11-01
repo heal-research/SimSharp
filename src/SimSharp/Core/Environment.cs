@@ -859,10 +859,9 @@ namespace SimSharp {
 
   public class PseudoRealTimeSimulation : ThreadSafeSimulation {
     private const double DefaultRealTimeFactor = 1.0;
-    private const double RealTimeThreshold = 1000.0;
 
-    public double RealTimeFactor { get; private set; } = DefaultRealTimeFactor;
-    public bool IsRunningInRealTime => RealTimeFactor < RealTimeThreshold;
+    public double? RealTimeFactor { get; protected set; } = DefaultRealTimeFactor;
+    public bool IsRunningInRealTime => RealTimeFactor.HasValue;
 
     public PseudoRealTimeSimulation() : this(new DateTime(1970, 1, 1)) { }
     public PseudoRealTimeSimulation(TimeSpan? defaultStep) : this(new DateTime(1970, 1, 1), defaultStep) { }
@@ -875,13 +874,29 @@ namespace SimSharp {
       base.StopAsync();
     }
 
+    protected CancellationTokenSource _delay = null;
+
     public override void Step() {
-      lock (_locker) {
-        if (IsRunningInRealTime) {
-          var next = ScheduleQ.First.PrimaryPriority;
-          var delay = next - Now;
-          if (RealTimeFactor != 1.0) delay = TimeSpan.FromMilliseconds(delay.Milliseconds * 1.0 / RealTimeFactor);
-          if (delay > TimeSpan.Zero) Task.Delay(delay, _stop.Token).Wait();
+      if (IsRunningInRealTime) {
+        lock (_locker) {
+          if (IsRunningInRealTime) {
+            var next = ScheduleQ.First.PrimaryPriority;
+            var delay = next - Now;
+            if (RealTimeFactor.Value != 1.0) delay = TimeSpan.FromMilliseconds(delay.Milliseconds / RealTimeFactor.Value);
+            if (delay > TimeSpan.Zero) {
+              _delay = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+              var then = DateTime.UtcNow;
+              Task.Delay(delay, _delay.Token).Wait();
+              if (_delay.IsCancellationRequested) {
+                var now = DateTime.UtcNow;
+                var observedDelay = now - then;
+                if (observedDelay < delay) {
+                  Now += observedDelay;
+                  return; // next event is not processed
+                }
+              }
+            }
+          }
         }
       }
       base.Step();
@@ -889,11 +904,13 @@ namespace SimSharp {
 
     /// <summary>
     /// Switches the simulation to virtual time mode. In this mode, events
-    /// are processed without delay just like in a ThreadSafeSimulation.
+    /// are processed without delay just like in a <see cref="ThreadSafeSimulation"/>.
     /// </summary>
     public virtual void SwitchToVirtualTime() {
+      if (!IsRunningInRealTime) return;
       lock (_locker) {
-        RealTimeFactor = RealTimeThreshold;
+        RealTimeFactor = null;
+        _delay?.Cancel(); // TODO: Same lock region
       }
     }
 
@@ -913,12 +930,8 @@ namespace SimSharp {
     /// <param name="realTimeFactor">A factor greater than 0.0 used to scale real time events (higher value = faster execution).</param>
     public virtual void SwitchToRealTime(double realTimeFactor = DefaultRealTimeFactor) {
       lock (_locker) {
-        if (RealTimeFactor <= 0.0) throw new ArgumentException("The simulation speed scaling factor must not be negative.", nameof(realTimeFactor));
-        if (realTimeFactor >= RealTimeThreshold) {
-          SwitchToVirtualTime();
-        } else {
-          RealTimeFactor = realTimeFactor;
-        }
+        if (realTimeFactor <= 0.0) throw new ArgumentException("The simulation speed scaling factor must be strictly positive.", nameof(realTimeFactor));
+        RealTimeFactor = realTimeFactor;
       }
     }
   }

@@ -376,30 +376,16 @@ namespace SimSharp {
     /// from two uniform random distributed values.
     /// </summary>
     /// <remarks>
-    /// A spare random variable is generated from the second uniformly
-    /// distributed value. Thus, the two calls to the uniform random number
-    /// generator will be made only every second call.
+    /// Unlike <see cref="RandNormal(double, double)"/> this method does not
+    /// make use of a spare random variable. It discards the spare and thus
+    /// requires twice the number of calls to the underlying IRandom instance.
     /// </remarks>
     /// <param name="random">The random number generator to use.</param>
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
     public virtual double RandNormal(IRandom random, double mu, double sigma) {
-      if (useSpareNormal) {
-        useSpareNormal = false;
-        return spareNormal * sigma + mu;
-      } else {
-        double u, v, s;
-        do {
-          u = random.NextDouble() * 2 - 1;
-          v = random.NextDouble() * 2 - 1;
-          s = u * u + v * v;
-        } while (s >= 1 || s == 0);
-        var mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
-        spareNormal = v * mul;
-        useSpareNormal = true;
-        return mu + sigma * u * mul;
-      }
+      return MarsagliaPolar(random, mu, sigma, out _); // do not reuse the spare normal in this case, because it could be from a different RNG
     }
     /// <summary>
     /// Uses the Marsaglia polar method to generate a random variable
@@ -413,8 +399,25 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
-    public double RandNormal(double mu, double sigma) {
-      return RandNormal(Random, mu, sigma);
+    public virtual double RandNormal(double mu, double sigma) {
+      if (useSpareNormal) {
+        useSpareNormal = false;
+        return spareNormal * sigma + mu;
+      } else {
+        useSpareNormal = true;
+        return MarsagliaPolar(Random, mu, sigma, out spareNormal);
+      }
+    }
+    private double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
+      double u, v, s;
+      do {
+        u = random.NextDouble() * 2 - 1;
+        v = random.NextDouble() * 2 - 1;
+        s = u * u + v * v;
+      } while (s > 1 || s == 0);
+      var mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
+      spare = v * mul;
+      return mu + sigma * u * mul;
     }
 
     /// <summary>
@@ -879,6 +882,9 @@ namespace SimSharp {
     }
 
     protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
+    public override double RandNormal(double mu, double sigma) {
+      return RandNormal(Random, mu, sigma);
+    }
     public override double RandNormal(IRandom random, double mu, double sigma) {
       double z, zz, u1, u2;
       do {

@@ -10,6 +10,7 @@ A .NET port and extension of SimPy, process-based discrete event simulation fram
 
 ---
 
+This is a short introduction, please refer to the [documentation](docs/README.md) for more information on working with Sim# and an overview of the sample models provided.
 
 Sim# aims to port the concepts used in SimPy [1] to the .NET world. Sim# is implemented in C# and is available via Nuget for .NET Framework 4.5 and is also .NET Standard 2.0 compliant. Sim# uses an efficient event queue (adapted from [3]) that allows to compute models very quickly. Simulating 10 years of the MachineShop sample [4], that uses preemptive resources, requires less than 1.5s on a Core i7-7 2.7Ghz. This model generates more than 5 million events.
 

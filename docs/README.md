@@ -6,7 +6,7 @@ The documentation covers the following aspects:
 * [Modeling](#modeling)
   + [Processes](#processes)
   + [Resources](#resources)
-  + [Putting it together](#putting-it-together)
+  + [Samples](#samples)
 * [Monitoring](#monitoring)
   + [Reports](#reports)
 
@@ -82,7 +82,7 @@ A *Container* contains a continuous amount of some substance. Again, the substan
 
 In any case, it is simple to extend the standard resources given that the code is open source. The classes are of moderate complexity, e.g. the *Resource* class is described in about 200 lines of code.
 
-### Putting it together
+### Samples
 
 Processes that interact with common resources may create highly dynamic behavior which may not be analytically tractable and thus have to be simulated. Sim# includes a number of samples that, while being easy to understand and simple, show how to model certain processes such as preemption, interruption, handover of resource requests and more. A short summary of the provided samples together with the highlights are given in the following:
 

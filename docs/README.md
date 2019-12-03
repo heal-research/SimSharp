@@ -7,6 +7,7 @@ The documentation covers the following aspects:
   + [Processes](#processes)
   + [Resources](#resources)
   + [Samples](#samples)
+  + [Environments](#environments)
 * [Monitoring](#monitoring)
   + [Reports](#reports)
 
@@ -82,6 +83,23 @@ A *Container* contains a continuous amount of some substance. Again, the substan
 
 In any case, it is simple to extend the standard resources given that the code is open source. The classes are of moderate complexity, e.g. the *Resource* class is described in about 200 lines of code.
 
+### Environments
+
+Sim# offers several different simulation environments. The default environment is called `Simulation` and is the fastest. There is also a `ThreadSafeSimulation` which synchronises access to the event queue. This is useful if there is a separate thread that may create processes or which may fire events. It should be noted that the simulation itself is not multi-threaded. At any time there may only be a single process that is active. The "simulation thread" is that thread that called the `Run()` method.
+
+#### Realtime Simulation
+
+Starting with Sim# 3.3 we introduce a `PseudoRealtimeSimulation` environment that derives from `ThreadSafeSimulation`. It will put the simulation thread to sleep for the duration given by the next event in the queue, i.e., a delay of 5 seconds will put the simulation to sleep 5 seconds. An actual realtime guarantee is however not made. In fact, the overhead of the environment, for instance waking up processes, adding and removing from the event queue, and so on are not accounted for. Thus, this may lag behind the actual wall clock time.
+
+However, this environment allows *switching between real and virtual time* and also accepts a realtime scale so that it can be used to perform faster and slower than the actual real time by a certain factor. It offers to method to control the speed:
+
+* `SetVirtualTime()` will process items as fast as `ThreadSafeSimulation`
+* `SetRealtime(double scale)` will switch the simulation into realtime mode.
+
+These methods are thread safe and may be called from different threads.
+
+Obtaining the current simulation time using `Now` in realtime mode will account for the duration that the simulation is sleeping. Thus, calling this property from a different thread will always receive the actual simulation time, i.e., the time of the last event plus the elapsed time.
+
 ### Samples
 
 Processes that interact with common resources may create highly dynamic behavior which may not be analytically tractable and thus have to be simulated. Sim# includes a number of samples that, while being easy to understand and simple, show how to model certain processes such as preemption, interruption, handover of resource requests and more. A short summary of the provided samples together with the highlights are given in the following:
@@ -133,6 +151,12 @@ This model describes a simple producer-consumer situation. It shows how processe
 * Acquiring and releasing a resource in separate processes
 
 These model describe a two-step production. The first step may be blocked by the second. The models should show how one process may obtain a resource, but another processes releases that resource.
+
+##### [PseudoRealTimeSample](../src/Samples/PseudoRealTimeSample.cs)
+
+* Running a process that awaits some timeout in realtime
+
+This model describes a single process that will define a timeout which is awaited in realtime.
 
 ## Monitoring
 

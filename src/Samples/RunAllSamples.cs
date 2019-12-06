@@ -28,6 +28,8 @@ namespace SimSharp.Samples {
       new KanbanControl().Simulate();
       Console.WriteLine();
       new MM1Queueing().Simulate();
+      Console.WriteLine();
+      new PseudoRealtimeSample().Simulate();
     }
   }
 }

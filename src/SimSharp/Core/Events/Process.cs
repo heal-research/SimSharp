@@ -153,4 +153,31 @@ namespace SimSharp {
       }
     }
   }
+
+  public class PseudoRealtimeProcess : Process {
+    public double RealtimeScale { get; set; }
+
+    public new PseudoRealtimeSimulation Environment {
+      get { return (PseudoRealtimeSimulation)base.Environment; }
+    }
+
+    /// <summary>
+    /// Sets up a new process.
+    /// The process places an initialize event into the event queue which starts
+    /// the process by retrieving events from the generator.
+    /// </summary>
+    /// <param name="environment">The environment in which the process lives.</param>
+    /// <param name="generator">The generator function of the process.</param>
+    /// <param name="priority">The priority if multiple processes are started at the same time.</param>
+    /// <param name="realtimeScale">A value strictly greater than 0 used to scale real time events (1 = realtime).</param>
+    public PseudoRealtimeProcess(PseudoRealtimeSimulation environment, IEnumerable<Event> generator, int priority = 0, double realtimeScale = PseudoRealtimeSimulation.DefaultRealtimeScale)
+      : base(environment, generator, priority) {
+      RealtimeScale = realtimeScale;
+    }
+
+    protected override void Resume(Event @event) {
+      Environment.SetRealtime(RealtimeScale);
+      base.Resume(@event);
+    }
+  }
 }

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -620,6 +621,41 @@ namespace SimSharp {
     public TimeSpan RandWeibull(TimeSpan alpha, TimeSpan beta) {
       return RandWeibull(Random, alpha, beta);
     }
+
+    /// <summary>
+    /// Generates a random sample from a given source
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="random"></param>
+    /// <param name="source">a random sample is generated from its elements.</param>
+    /// <param name="weights">The probabilities associated with each entry in source.</param>
+    /// <returns>The generated random samples</returns>
+    public T RandChoice<T>(IRandom random, IList<T> source, IList<double> weights) {
+      if (source.Count != weights.Count) {
+        throw new Exception("source and weights must have same size");
+      }
+
+      var totalW = weights.Sum();
+      if (totalW != 1) {
+        throw new Exception("probabilities do not sum to 1");
+      }
+
+      var aggWeights = new List<double>(weights.Count);
+      double agg = 0;
+      foreach (var item in weights) {
+        agg += item;
+        aggWeights.Add(agg);
+      }
+
+      var rnd = random.NextDouble();
+      var idx = aggWeights.BinarySearch(rnd);
+      idx = idx < 0 ? ~idx : idx;
+      return source[idx];
+    }
+    public T RandChoice<T>(IList<T> source, IList<double> weights) {
+      return RandChoice(Random, source, weights);
+    }
+
     #endregion
 
     #region Random timeouts

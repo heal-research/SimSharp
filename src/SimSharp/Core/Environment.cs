@@ -625,8 +625,8 @@ namespace SimSharp {
     /// <summary>
     /// Generates a random sample from a given source
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="random"></param>
+    /// <typeparam name="T">The type of the element in parameter source</typeparam>
+    /// <param name="random">The random number generator to use.</param>
     /// <param name="source">a random sample is generated from its elements.</param>
     /// <param name="weights">The probabilities associated with each entry in source.</param>
     /// <returns>The generated random samples</returns>
@@ -652,6 +652,13 @@ namespace SimSharp {
       idx = idx < 0 ? ~idx : idx;
       return source[idx];
     }
+    /// <summary>
+    /// Generates a random sample from a given source
+    /// </summary>
+    /// <typeparam name="T">The type of the element in parameter source</typeparam>
+    /// <param name="source">a random sample is generated from its elements.</param>
+    /// <param name="weights">The probabilities associated with each entry in source.</param>
+    /// <returns>The generated random samples</returns>
     public T RandChoice<T>(IList<T> source, IList<double> weights) {
       return RandChoice(Random, source, weights);
     }

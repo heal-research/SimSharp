@@ -622,42 +622,63 @@ namespace SimSharp {
       return RandWeibull(Random, alpha, beta);
     }
 
+
     /// <summary>
     /// Generates a random sample from a given source
     /// </summary>
     /// <typeparam name="T">The type of the element in parameter source</typeparam>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="source"/> and <paramref name="weights"/> have different size.
+    /// or when <paramref name="weights"/> contains an invalid or negative value.
+    /// or when <paramref name="weights"/> sum equals zero or an invalid value.
+    /// </exception>
     /// <param name="random">The random number generator to use.</param>
     /// <param name="source">a random sample is generated from its elements.</param>
-    /// <param name="weights">The probabilities associated with each entry in source.</param>
+    /// <param name="weights">The weight associated with each entry in source.</param>
     /// <returns>The generated random samples</returns>
     public T RandChoice<T>(IRandom random, IList<T> source, IList<double> weights) {
       if (source.Count != weights.Count) {
-        throw new Exception("source and weights must have same size");
+        throw new ArgumentException("source and weights must have same size");
       }
 
-      var totalW = weights.Sum();
-      if (totalW != 1) {
-        throw new Exception("probabilities do not sum to 1");
+      double totalW = 0;
+      foreach (var w in weights) {
+        if (w < 0) {
+          throw new ArgumentException("weight values must be non-negative", nameof(weights));
+        }
+        totalW += w;
       }
 
-      var aggWeights = new List<double>(weights.Count);
-      double agg = 0;
-      foreach (var item in weights) {
-        agg += item;
-        aggWeights.Add(agg);
-      }
+      if (double.IsNaN(totalW) || double.IsInfinity(totalW))
+        throw new ArgumentException("Not a valid weight", nameof(weights));
+      if (totalW == 0)
+        throw new ArgumentException("total weight must be greater than 0", nameof(weights));
 
       var rnd = random.NextDouble();
-      var idx = aggWeights.BinarySearch(rnd);
-      idx = idx < 0 ? ~idx : idx;
+      double aggWeight = 0;
+      int idx = 0;
+      foreach (var w in weights) {
+        if (w > 0) {
+          aggWeight += (w / totalW);
+          if (rnd <= aggWeight) {
+            break;
+          }
+        }
+        idx++;
+      }
       return source[idx];
     }
     /// <summary>
     /// Generates a random sample from a given source
     /// </summary>
     /// <typeparam name="T">The type of the element in parameter source</typeparam>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="source"/> and <paramref name="weights"/> have different size.
+    /// or when <paramref name="weights"/> contains an invalid or negative value.
+    /// or when <paramref name="weights"/> sum equals zero
+    /// </exception>
     /// <param name="source">a random sample is generated from its elements.</param>
-    /// <param name="weights">The probabilities associated with each entry in source.</param>
+    /// <param name="weights">The weight associated with each entry in source.</param>
     /// <returns>The generated random samples</returns>
     public T RandChoice<T>(IList<T> source, IList<double> weights) {
       return RandChoice(Random, source, weights);

@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -530,8 +529,7 @@ namespace SimSharp {
     /// <returns>A log-normal distributed random value.</returns>
     public double RandLogNormal2(IRandom random, double mean, double stdev) {
       if (stdev == 0) return mean;
-      var alpha = Math.Sqrt(mean * stdev) / mean;
-      var sigma = Math.Sqrt(Math.Log(1 + (alpha * alpha)));
+      var sigma = Math.Sqrt(Math.Log(stdev * stdev / (mean * mean) + 1));
       var mu = Math.Log(mean) - 0.5 * sigma * sigma;
       return Math.Exp(RandNormal(random, mu, sigma));
     }

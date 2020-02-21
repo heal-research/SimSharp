@@ -179,7 +179,7 @@ namespace SimSharp.Tests {
       var t = Task.Run(() => env.Run(TimeSpan.FromMinutes(1)));
       Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
       env.StopAsync();
-      Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
+      Task.Delay(TimeSpan.FromMilliseconds(500)).Wait();
       Assert.True(t.IsCompleted);
     }
 

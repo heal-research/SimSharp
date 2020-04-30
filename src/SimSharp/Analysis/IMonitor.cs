@@ -6,6 +6,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 
 namespace SimSharp {
   public interface IMonitor {
@@ -34,6 +35,7 @@ namespace SimSharp {
 
   public interface ISampleMonitor : INumericMonitor {
     void Add(double value);
+    IEnumerable<double> Samples { get; }
   }
 
   public interface ITimeSeriesMonitor : INumericMonitor {

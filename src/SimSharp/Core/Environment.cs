@@ -969,7 +969,12 @@ namespace SimSharp {
     /// The current model time. Note that, while in realtime, this may continuously change.
     /// </summary>
     public override DateTime Now {
-      get { lock (_timeLocker) { return base.Now + _rtDelayTime.Elapsed; } }
+      get {
+        lock (_timeLocker) {
+          if (!IsRunningInRealtime) return base.Now;
+          return base.Now + TimeSpan.FromMilliseconds(_rtDelayTime.Elapsed.TotalMilliseconds * RealtimeScale.Value);
+        }
+      }
       protected set => base.Now = value;
     }
 
@@ -1009,7 +1014,7 @@ namespace SimSharp {
         var observed = _rtDelayTime.Elapsed;
 
         lock (_locker) {
-          if (rtScale.Value != 1.0) observed = TimeSpan.FromMilliseconds(observed.TotalMilliseconds / rtScale.Value);
+          if (rtScale.Value != 1.0) observed = TimeSpan.FromMilliseconds(observed.TotalMilliseconds * rtScale.Value);
           if (_rtDelayCtrl.IsCancellationRequested && observed < delay) {
             lock (_timeLocker) {
               Now = base.Now + observed;

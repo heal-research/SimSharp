@@ -7,7 +7,7 @@
     <DelaySign>False</DelaySign>
     <AssemblyName>SimSharp</AssemblyName>
     <RootNamespace>SimSharp</RootNamespace>
-    <Version>3.3.1</Version>
+    <Version>3.3.2</Version>
     <Authors>Andreas Beham</Authors>
     <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.5 / .NET Standard 2.0. Sim# uses an efficient event queue (adapted from https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp). The MachineShop benchmark comes close to 3.5 million events per second on a Core i7-7 2.7Ghz.
 
@@ -16,9 +16,16 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <Company>HEAL, FH Upper Austria</Company>
     <Copyright>Andreas Beham</Copyright>
     <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
-    <PackageReleaseNotes>Sim# 3.3.1 adds a RandChoice method to generate random samples from a weighted source of items.
-
-It also fixes a bug with respect to the calculation of the sigma parameter in RandLogNormal2 methods (which takes the desired sample standard deviation as input).</PackageReleaseNotes>
+    <PackageReleaseNotes>Sim# 3.3.2 contains one enhancement and two bug fixes.
+    
+    Enhancement
+    1) Adds method to obtain samples to the ISampleMonitor interface.
+    
+    Bug fixes - it fixes two bugs in PseudoRealtimeEnvironment when using it in
+    Realtime mode with a scaling factor other than 1.
+    1) Getting the value of Now returned the elapsed time without scaling.
+    2) When the simulation is stopped, the already elapsed time was wrongly scaled.
+    </PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>

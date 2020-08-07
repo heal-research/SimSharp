@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Xunit;
 
@@ -49,6 +51,38 @@ namespace SimSharp.Tests {
         .Select(_ => env2.RandChoice(source, new[] { 5d, 3, 2 }));
 
       Assert.Equal(res1, res2);
+    }
+
+    [Fact]
+    public void RandChoiceTests() {
+      var source = new [] { "a", "b", "c", "d", "e", "f", "g" };
+      for (var i = 0; i < 50; i++) {
+        var env = new Simulation(i);
+
+        Assert.Contains(env.RandChoice(source), source);
+        foreach (var s in env.RandChoice(source, 5))
+          Assert.Contains(s, source);
+        Assert.Equal(4, env.RandChoice(source, 4).Count());
+        Assert.Equal(20, env.RandChoice(source, 20).Count());
+        Assert.Empty(env.RandChoice(source, 0));
+        Assert.Throws<ArgumentException>(() => env.RandChoice(source, -1).ToList());
+
+        Assert.Contains(env.RandChoiceOnline(source), source);
+        foreach (var s in env.RandChoiceOnline(source, 5))
+          Assert.Contains(s, source);
+        Assert.Equal(4, env.RandChoiceOnline(source, 4).Count());
+        Assert.Equal(20, env.RandChoiceOnline(source, 20).Count());
+        Assert.Empty(env.RandChoiceOnline(source, 0));
+        Assert.Throws<ArgumentException>(() => env.RandChoiceOnline(source, -1).ToList());
+
+        Assert.Equal(source, env.RandChoiceNoRepetition(source, source.Length));
+        var sample = env.RandChoiceNoRepetition(source, 4).ToList();
+        Assert.Equal(source.Where(x => sample.Contains(x)), sample);
+        Assert.Equal(5, env.RandChoiceNoRepetition(source, 5).Distinct().Count());
+        Assert.Empty(env.RandChoiceNoRepetition(source, 0));
+        Assert.Throws<ArgumentException>(() => env.RandChoiceNoRepetition(source, source.Length + 1).ToList());
+        Assert.Throws<ArgumentException>(() => env.RandChoiceNoRepetition(source, -1).ToList());
+      }
     }
   }
 }

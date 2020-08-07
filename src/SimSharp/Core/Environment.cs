@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -620,6 +621,60 @@ namespace SimSharp {
       return RandWeibull(Random, alpha, beta);
     }
 
+    /// <summary>
+    /// This method chooses a single element from <paramref name="source"/> with equal probability.
+    /// </summary>
+    /// <param name="random">The random number generator to use.</param>
+    /// <param name="source">The elements to choose from.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>The chosen element.</returns>
+    public T RandChoice<T>(IRandom random, IList<T> source) {
+      var idx = random.Next(source.Count);
+      return source[idx];
+    }
+    /// <summary>
+    /// Calls <see cref="RandChoice{T}(IRandom, IList{T})"/> with the default RNG instance <see cref="Random"/>.
+    /// </summary>
+    /// <param name="source">The elements to choose from.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>The chosen element.</returns>
+    public T RandChoice<T>(IList<T> source) {
+      return RandChoice(Random, source);
+    }
+
+    /// <summary>
+    /// This method chooses <paramref name="count"/> elements from <paramref name="source"/> with repetition.
+    /// </summary>
+    /// <remarks>
+    /// Runtime complexity for selecting M out of a list of N elements is O(M).
+    /// Order is not preserved, the items are returned in arbitrary order.
+    /// 
+    /// Parameter <paramref name="count"/> can be 0 in which case the enumerable will be empty.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="count"/> is negative.
+    /// </exception>
+    /// <param name="random">The random number generator to use.</param>
+    /// <param name="source">The elements to choose from.</param>
+    /// <param name="count">The number of elements to choose.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>An enumeration of the elements.</returns>
+    public IEnumerable<T> RandChoice<T>(IRandom random, IList<T> source, int count) {
+      if (count < 0) throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      for (var i = 0; i < count; i++) {
+        yield return source[random.Next(source.Count)];
+      }
+    }    
+    /// <summary>
+    /// Calls <see cref="RandChoice{T}(IRandom, IList{T}, int)"/> with the default RNG instance <see cref="Random"/>.
+    /// </summary>
+    /// <param name="source">The elements to choose from.</param>
+    /// <param name="count">The number of elements to choose.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>The chosen element.</returns>
+    public IEnumerable<T> RandChoice<T>(IList<T> source, int count) {
+      return RandChoice(Random, source, count);
+    }
 
     /// <summary>
     /// Generates a random sample from a given source
@@ -680,6 +735,170 @@ namespace SimSharp {
     /// <returns>The generated random samples</returns>
     public T RandChoice<T>(IList<T> source, IList<double> weights) {
       return RandChoice(Random, source, weights);
+    }
+
+    /// <summary>
+    /// This methods chooses a single element from <paramref name="source"/> randomly and by only enumerating
+    /// the elements.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is <see cref="RandChoice{T}(IRandom, IList{T})"/>. Use of this method should
+    /// be limited to cases where it is undesirable to reserve a contiguous block of memory for <paramref name="source"/>.
+    /// 
+    /// This method iterates over all elements and calls the RNG each time, thus runtime complexity is O(N).
+    /// </remarks>
+    /// <param name="random">The random number generator to use.</param>
+    /// <param name="source">The elements to choose from.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>The chosen element.</returns>
+    public T RandChoiceOnline<T>(IRandom random, IEnumerable<T> source) {
+      var iter = source.GetEnumerator();
+      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(source)} is empty");
+      var chosen = iter.Current;
+      var count = 2;
+      while (iter.MoveNext()) {
+        if (count * Random.NextDouble() < 1) {
+          chosen = iter.Current;
+        }
+        count++;
+      }
+      return chosen;
+    }
+    /// <summary>
+    /// Calls <see cref="RandChoiceOnline{T}(IRandom, IEnumerable{T})"/> with the default RNG instance <see cref="Random"/>.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is <see cref="RandChoice{T}(IList{T})"/>. Use of this method should
+    /// be limited to cases where it is undesirable to reserve a contiguous block of memory for <paramref name="source"/>.
+    /// 
+    /// This method iterates over all elements and calls the RNG each time, thus runtime complexity is O(N).
+    /// </remarks>
+    /// <param name="source">The elements to choose from.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>The chosen element.</returns>
+    public T RandChoiceOnline<T>(IEnumerable<T> source) {
+      return RandChoiceOnline<T>(Random, source);
+    }
+
+    /// <summary>
+    /// This methods chooses <paramref name="count"/> element from <paramref name="source"/> randomly and by only enumerating
+    /// the elements.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is <see cref="RandChoice{T}(IRandom, IList{T}, int)"/>. Use of this method should
+    /// be limited to cases where it is undesirable to reserve a contiguous block of memory for <paramref name="source"/>.
+    /// However, the method itself reserves an array of length <paramref name="count"/> and uses a single pass of all elements
+    /// in <parmaref name="source"/>.
+    /// 
+    /// Using a count of 0 is possible and will return an empty enumerable.
+    /// 
+    /// For selecting M from a source of N elements runtime complexity is O(N*M). The random number generator will also be called M*N times.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="count"/> is negative.</exception>
+    /// <param name="random">The random number generator to use.</param>
+    /// <param name="source">The elements to choose from.</param>
+    /// <param name="count">The number of elements to choose.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>An enumeration of the chosen elements.</returns>
+    public IEnumerable<T> RandChoiceOnline<T>(IRandom random, IEnumerable<T> source, int count) {
+      if (count <= 0) {
+        if (count == 0) return Enumerable.Empty<T>();
+        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      }
+      var iter = source.GetEnumerator();
+      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(source)} is empty");
+      var chosen = new T[count];
+      for (var c = 0; c < count; c++) chosen[c] = iter.Current;
+      var element = 2;
+      while (iter.MoveNext()) {
+        for (var c = 0; c < count; c++) {
+          if (element * Random.NextDouble() < 1) {
+            chosen[c] = iter.Current;
+          }
+        }
+        element++;
+      }
+      return chosen;
+    }
+    /// <summary>
+    /// Calls <see cref="RandChoiceOnline{T}(IRandom, IEnumerable{T}, int)"/> with the default RNG instance <see cref="Random"/>.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is <see cref="RandChoice{T}(IList{T}, int)"/>. Use of this method should
+    /// be limited to cases where it is undesirable to reserve a contiguous block of memory for <paramref name="source"/>.
+    /// However, the method itself reserves an array of length <paramref name="count"/> and uses a single pass of all elements
+    /// in <parmaref name="source"/>.
+    /// 
+    /// Using a count of 0 is possible and will return an empty enumerable.
+    /// 
+    /// For selecting M from a source of N elements runtime complexity is O(N*M). The random number generator will also be called M*N times.
+    /// </remarks>
+    /// <param name="source">The elements to choose from.</param>
+    /// <param name="count">The number of elements to choose.</param>
+    /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
+    /// <returns>An enumeration of the chosen elements.</returns>
+    public IEnumerable<T> RandChoiceOnline<T>(IEnumerable<T> source, int count) {
+      return RandChoiceOnline<T>(Random, source, count);
+    }
+
+    /// <summary>
+    /// This method chooses <paramref name="count"/> elements from <parameref name="source"/> such that
+    /// no element is selected twice. Respectively, elements that are M times in the source may also
+    /// be selected up to M times.
+    /// </summary>
+    /// <remarks>
+    /// The method is implemented to iterate over all elements respectively until <paramref name="count"/> elements
+    /// are selected. Runtime complexity for selecting M out of a list of N elements is thus O(N).
+    /// 
+    /// Order is preserved, the items are returned in the same relative order as they appear in <paramref name="source"/>.
+    /// 
+    /// Parameter <paramref name="count"/> can be 0 in which case the enumerable will be empty.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="count"/> is negative or when there are not enough items in <paramerf name="source"/>
+    /// to choose from.
+    /// </exception>
+    /// <param name="random">The random number generator to use.</param>
+    /// <param name="source">The elements to choose from.</param>
+    /// <param name="count">The number of elements to choose.</param>
+    /// <returns>An enumeration of the elements.</returns>
+    public IEnumerable<T> RandChoiceNoRepetition<T>(IRandom random, IEnumerable<T> source, int count) {
+      if (count <= 0) {
+        if (count == 0) yield break;
+        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      }
+      var remaining = count;
+      foreach (var s in source) {
+        if (random.NextDouble() * remaining < count) {
+          count--;
+          yield return s;
+          if (count <= 0) yield break;
+        }
+        remaining--;
+      }
+      throw new ArgumentException($"there are not enough items in {nameof(source)} to choose {count} from without repetition.");
+    }
+    /// <summary>
+    /// Calls <see cref="RandChoiceNoRepetition{T}(IRandom, IEnumerable{T}, int)"/> with the default RNG instance <see cref="Random"/>.
+    /// </summary>
+    /// <remarks>
+    /// The method is implemented to iterate over all elements respectively until <paramref name="count"/> elements
+    /// are selected. Runtime complexity for selecting M out of a list of N elements is thus O(N).
+    /// 
+    /// Order is preserved, the items are returned in the same relative order as they appear in <paramref name="source"/>.
+    /// 
+    /// Parameter <paramref name="count"/> can be 0 in which case the enumerable will be empty.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="count"/> is negative or when there are not enough items in <paramerf name="source"/>
+    /// to choose from.
+    /// </exception>
+    /// <param name="source">The elements to choose from without repetition.</param>
+    /// <param name="count">The number of elements that should be chosen.</param>
+    /// <typeparam name="T">The type of elements to be chosen.</typeparam>
+    /// <returns>An enumeration of the elements.</returns>
+    public IEnumerable<T> RandChoiceNoRepetition<T>(IEnumerable<T> source, int count) {
+      return RandChoiceNoRepetition<T>(Random, source, count);
     }
 
     #endregion

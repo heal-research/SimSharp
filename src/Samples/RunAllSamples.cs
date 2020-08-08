@@ -5,6 +5,7 @@
  */
 #endregion
 
+using System;
 
 namespace SimSharp.Samples {
   class RunAllSamples {
@@ -30,6 +31,7 @@ namespace SimSharp.Samples {
       //new MM1Queueing().Simulate();
       //Console.WriteLine();
       //new PseudoRealtimeSample().Simulate();
+      Console.ReadLine();
     }
   }
 }

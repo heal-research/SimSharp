@@ -1,6 +1,6 @@
-# Sim# (SimSharp)
+![SimSharp Logo](docs/SimSharp_s.png)
 
-A .NET port and extension of SimPy, process-based discrete event simulation framework
+Sim# (SimSharp) is a .NET port and extension of SimPy, process-based discrete event simulation framework
 
 [![Build status](https://ci.appveyor.com/api/projects/status/hyn83qegeiga81o2/branch/master?svg=true)](https://ci.appveyor.com/project/abeham/simsharp/branch/master)
 

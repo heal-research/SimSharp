@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net45;netcoreapp3.1</TargetFrameworks>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>SimSharp.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign>
@@ -33,6 +33,7 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <IncludeSource>True</IncludeSource>
     <IncludeSymbols>True</IncludeSymbols>
     <NoWarn>$(NoWarn);1591;1734</NoWarn>
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

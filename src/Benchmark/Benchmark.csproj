@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <Authors>Andreas Beham</Authors>
     <Version>3.3</Version>
     <Company>HEAL, FH Upper Austria</Company>

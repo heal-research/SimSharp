@@ -257,17 +257,17 @@ namespace SimSharp.Tests {
       Assert.True(wallClock.Elapsed >= TimeSpan.FromMilliseconds(1400), $"b {wallClock.Elapsed} >= {TimeSpan.FromMilliseconds(1400)}");
       wallClock.Restart();
       yield return env.Timeout(simulatedDelay); // still runs at 0.5 scale
-      Assert.True(env.Now == env.StartDate + 2 * simulatedDelay);
+      Assert.True(env.Now.Second == env.StartDate.Second + 2 * simulatedDelay.Seconds);
       Assert.True(wallClock.Elapsed >= TimeSpan.FromMilliseconds(1900), $"c {wallClock.Elapsed} >= {TimeSpan.FromMilliseconds(1900)}");
       wh.Set(); // SYNC1
       wallClock.Restart();
       yield return env.Timeout(simulatedDelay); // after the synchronization, realtime scale is set to 2
-      Assert.True(env.Now == env.StartDate + 3 * simulatedDelay);
+      Assert.True(env.Now.Second == env.StartDate.Second + 3 * simulatedDelay.Seconds);
       Assert.True(wallClock.Elapsed >= TimeSpan.FromMilliseconds(400), $"d {wallClock.Elapsed} >= {TimeSpan.FromMilliseconds(400)}");
       wh.Set(); // SYNC2
       wallClock.Restart();
       yield return env.Timeout(simulatedDelay); // after the syncrhonization, virtual time is used
-      Assert.True(env.Now == env.StartDate + 4 * simulatedDelay);
+      Assert.True(env.Now.Second == env.StartDate.Second+ 4 * simulatedDelay.Seconds);
       Assert.True(wallClock.Elapsed <= TimeSpan.FromMilliseconds(100), $"e {wallClock.Elapsed} <= {TimeSpan.FromMilliseconds(100)}");
     }
 

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <Version>3.3</Version>
     <Authors>Andreas Beham</Authors>
     <Company>HEAL, FH Upper Austria</Company>

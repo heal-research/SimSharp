@@ -42,7 +42,7 @@ void RunSimulation() {
   var env = new Simulation(randomSeed: 42);
   var server = new Resource(env, capacity: 1) {
       QueueLength = new TimeSeriesMonitor(env, collect: true)
-  }
+  };
   env.Process(MM1Q(env, server));
   env.Run(SIMULATION_TIME);
   Console.WriteLine(server.QueueLength.Summarize());

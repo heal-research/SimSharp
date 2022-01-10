@@ -1,0 +1,636 @@
+#region License Information
+/*
+ * This file is part of SimSharp which is licensed under the MIT license.
+ * See the LICENSE file in the project root for more information.
+ */
+#endregion
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace SimSharp {
+  public abstract class Distribution<T> : IDistribution<T> {
+    public abstract T Sample(IRandom random);
+
+    public virtual IEnumerable<T> Sample(IRandom random, int n) {
+      if (n < 0) throw new ArgumentException("must be >= 0", nameof(n));
+      for (var i = 0; i < n; i++)
+        yield return Sample(random);
+    }
+  }
+
+  /// <summary>
+  /// This class wraps a constant value as a distribution
+  /// </summary>
+  public class Constant<T> : Distribution<T> {
+    private readonly T _value;
+
+    public Constant(T value) {
+      _value = value;
+    }
+
+    /// <summary>
+    /// Returns the constant value.
+    /// </summary>
+    /// <returns>The constant value</returns>
+    public override T Sample(IRandom random) {
+      return _value;
+    }
+  }
+
+  /// <summary>
+  /// This class enables uniform sampling from arbitrary types of observations
+  /// </summary>
+  /// <typeparam name="T">The type of observation</typeparam>
+  public class EmpiricalUniform<T> : Distribution<T> {
+    private readonly IReadOnlyList<T> _observations;
+
+    /// <summary>
+    /// Creates a new uniform distribution over a range of observations.
+    /// </summary>
+    /// <remarks>
+    /// This method copies the observations to an array.
+    /// </remarks>
+    /// <param name="observations">The observations that should be sampled</param>
+    public EmpiricalUniform(IEnumerable<T> observations) {
+      _observations = observations.ToArray();
+    }
+    /// <summary>
+    /// Creates a new uniform distribution over a range of observations.
+    /// </summary>
+    /// <remarks>
+    /// This method reuses the given array.
+    /// </remarks>
+    /// <param name="observations">The observations that should be sampled</param>
+    public EmpiricalUniform(IReadOnlyList<T> observations) {
+      _observations = observations;
+    }
+
+    /// <summary>
+    /// Uniformly draws one of the observations. Complexity is O(1).
+    /// </summary>
+    /// <param name="random">The pseudo random number generator to use</param>
+    /// <returns>One of the observations</returns>
+    public override T Sample(IRandom random) {
+      return _observations[random.Next(_observations.Count)];
+    }
+
+    /// <summary>
+    /// This method chooses <paramref name="count"/> elements from <parameref name="source"/> such that
+    /// no element is selected twice. Respectively, elements that are M times in the source may also
+    /// be selected up to M times.
+    /// </summary>
+    /// <remarks>
+    /// The method is implemented to iterate over all elements respectively until <paramref name="count"/> elements
+    /// are selected. Runtime complexity for selecting M out of a list of N elements is thus O(N).
+    /// 
+    /// Order is preserved, the items are returned in the same relative order as they appear in <paramref name="_observations"/>.
+    /// 
+    /// Parameter <paramref name="count"/> can be 0 in which case the enumerable will be empty.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="count"/> is negative or when there are not enough items in <paramerf name="source"/>
+    /// to choose from.
+    /// </exception>
+    /// <param name="random">The pseudo random number generator to use</param>
+    /// <param name="count">The number of elements to choose</param>
+    /// <returns>An enumeration of the elements</returns>
+    public IEnumerable<T> SampleNoRepetition(IRandom random, int count) {
+      if (count <= 0) {
+        if (count == 0) yield break;
+        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      }
+      var remaining = count;
+      foreach (var s in _observations) {
+        if (random.NextDouble() * remaining < count) {
+          count--;
+          yield return s;
+          if (count <= 0) yield break;
+        }
+        remaining--;
+      }
+      throw new ArgumentException($"there are not enough items in {nameof(_observations)} to choose {count} from without repetition.");
+    }
+
+    /// <summary>
+    /// This methods chooses a single element from <paramref name="observations"/> randomly and by only enumerating
+    /// the elements.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is to create a <see cref="EmpiricalUniform{T}"/> instance and call <see cref="EmpiricalUniform{T}.Sample"/>.
+    /// Use of this method should be limited to cases where it is undesirable to reserve a contiguous block of
+    /// memory for <paramref name="observations"/>.
+    /// 
+    /// This method iterates over all elements and calls the RNG each time, thus runtime complexity is O(N).
+    /// </remarks>
+    /// <param name="random">The random number generator to use</param>
+    /// <param name="observations">The elements to choose from</param>
+    /// <returns>The chosen element</returns>
+    public static T SampleOnline(IRandom random, IEnumerable<T> observations) {
+      var iter = observations.GetEnumerator();
+      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(observations)} is empty");
+      var chosen = iter.Current;
+      var count = 2;
+      while (iter.MoveNext()) {
+        if (count * random.NextDouble() < 1) {
+          chosen = iter.Current;
+        }
+        count++;
+      }
+      return chosen;
+    }
+
+    /// <summary>
+    /// This methods chooses <paramref name="count"/> element from <paramref name="observations"/> randomly and by only enumerating
+    /// the elements.
+    /// </summary>
+    /// <remarks>
+    /// The preferred and faster method is to create a <see cref="EmpiricalUniform{T}"/> instance and call <see cref="Distribution{T}.Sample(IRandom, int)"/>.
+    /// Use of this method should be limited to cases where it is undesirable to reserve a contiguous block of
+    /// memory for <paramref name="observations"/>.
+    /// However, the method itself reserves an array of length <paramref name="count"/> and uses a single pass of all elements
+    /// in <parmaref name="source"/>.
+    /// 
+    /// Using a count of 0 is possible and will return an array of length 0.
+    /// 
+    /// For selecting M from a source of N elements runtime complexity is O(N*M). The random number generator will also be called M*N times.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="count"/> is negative.</exception>
+    /// <param name="random">The random number generator to use</param>
+    /// <param name="observations">The elements to choose from</param>
+    /// <param name="count">The number of elements to choose</param>
+    /// <returns>An enumeration of the chosen elements</returns>
+    public static IList<T> SampleOnline(IRandom random, IEnumerable<T> observations, int count) {
+      if (count <= 0) {
+        if (count == 0) return new T[0];
+        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      }
+      var iter = observations.GetEnumerator();
+      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(observations)} is empty");
+      var chosen = new T[count];
+      for (var c = 0; c < count; c++) chosen[c] = iter.Current;
+      var element = 2;
+      while (iter.MoveNext()) {
+        for (var c = 0; c < count; c++) {
+          if (element * random.NextDouble() < 1) {
+            chosen[c] = iter.Current;
+          }
+        }
+        element++;
+      }
+      return chosen;
+    }
+
+    /// <summary>
+    /// This method chooses <paramref name="count"/> elements from <parameref name="source"/> such that
+    /// no element is selected twice. Respectively, elements that are M times in the source may also
+    /// be selected up to M times.
+    /// </summary>
+    /// <remarks>
+    /// The method is implemented to iterate over all elements respectively until <paramref name="count"/> elements
+    /// are selected. Runtime complexity for selecting M out of a list of N elements is thus O(N).
+    /// 
+    /// Order is preserved, the items are returned in the same relative order as they appear in <paramref name="observations"/>.
+    /// 
+    /// Parameter <paramref name="count"/> can be 0 in which case the enumerable will be empty.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="count"/> is negative or when there are not enough items in <paramerf name="source"/>
+    /// to choose from.
+    /// </exception>
+    /// <param name="random">The random number generator to use</param>
+    /// <param name="observations">The elements to choose from</param>
+    /// <param name="count">The number of elements to choose</param>
+    /// <returns>An enumeration of the elements</returns>
+    public static IEnumerable<T> SampleOnlineNoRepetition(IRandom random, IEnumerable<T> observations, int count) {
+      if (count <= 0) {
+        if (count == 0) yield break;
+        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
+      }
+      var remaining = count;
+      foreach (var s in observations) {
+        if (random.NextDouble() * remaining < count) {
+          count--;
+          yield return s;
+          if (count <= 0) yield break;
+        }
+        remaining--;
+      }
+      throw new ArgumentException($"there are not enough items in {nameof(observations)} to choose {count} from without repetition.");
+    }
+  }
+
+  /// <summary>
+  /// This class enables non-uniform sampling from arbitrary types of observations.
+  /// Each observation is associated with a certain weight that represents the proportionality
+  /// with which it should be sampled.
+  /// </summary>
+  /// <typeparam name="T">The type of observation</typeparam>
+  public class EmpiricalNonUniform<T> : Distribution<T> {
+    private readonly IReadOnlyList<T> _observations;
+    private readonly IReadOnlyList<double> _weights;
+    private readonly double _totalWeight;
+
+    /// <summary>
+    /// Creates a new uniform distribution over a range of observations.
+    /// </summary>
+    /// <remarks>
+    /// This method copies the observations to an array.
+    /// </remarks>
+    /// <param name="observations">The observations that should be sampled</param>
+    /// <param name="weights">The weights that are associated with the observations</param>
+    public EmpiricalNonUniform(IEnumerable<T> observations, IEnumerable<double> weights) : this(observations.ToArray(), weights.ToArray()) { }
+    /// <summary>
+    /// Creates a new uniform distribution over a range of observations.
+    /// </summary>
+    /// <remarks>
+    /// This method reuses the given arrays. Weights have to be strictly positive.
+    /// </remarks>
+    /// <exception name="System.ArgumentException">Thrown when the size of observations do not match, weights are not valid numbers or the sum of all weights is less or equal than 0</exception>
+    /// <param name="observations">The observations that should be sampled</param>
+    /// <param name="weights">The weights that are associated with the observations</param>
+    public EmpiricalNonUniform(IReadOnlyList<T> observations, IReadOnlyList<double> weights) {
+      _observations = observations;
+      _weights = weights;
+      if (_observations.Count != _weights.Count) throw new ArgumentException($"Length of observations ({_observations.Count}) and weights ({_weights.Count}) differs.");
+      _totalWeight = _weights.Sum();
+      if (double.IsNaN(_totalWeight) || double.IsInfinity(_totalWeight))
+        throw new ArgumentException("Weights are not valid", nameof(weights));
+      if (_totalWeight <= 0)
+        throw new ArgumentException("total weight must be greater than 0", nameof(weights));
+    }
+
+    /// <summary>
+    /// Sample proportionally from the observations using the given weights.
+    /// </summary>
+    /// <param name="random">The pseudo random number generator to use</param>
+    /// <returns>One of the observations</returns>
+    public override T Sample(IRandom random) {
+      var rnd = random.NextDouble();
+      double aggWeight = 0;
+      int idx = 0;
+      foreach (var w in _weights) {
+        if (w > 0) {
+          aggWeight += (w / _totalWeight);
+          if (rnd <= aggWeight) {
+            break;
+          }
+        }
+        idx++;
+      }
+      return _observations[idx];
+    }
+
+    public static T Sample(IRandom random, IList<T> source, IList<double> weights) {      
+      if (source.Count != weights.Count) {
+        throw new ArgumentException("source and weights must have same size");
+      }
+
+      double totalW = 0;
+      foreach (var w in weights) {
+        if (w < 0) {
+          throw new ArgumentException("weight values must be non-negative", nameof(weights));
+        }
+        totalW += w;
+      }
+
+      if (double.IsNaN(totalW) || double.IsInfinity(totalW))
+        throw new ArgumentException("Not a valid weight", nameof(weights));
+      if (totalW == 0)
+        throw new ArgumentException("total weight must be greater than 0", nameof(weights));
+
+      var rnd = random.NextDouble();
+      double aggWeight = 0;
+      int idx = 0;
+      foreach (var w in weights) {
+        if (w > 0) {
+          aggWeight += (w / totalW);
+          if (rnd <= aggWeight) {
+            break;
+          }
+        }
+        idx++;
+      }
+      return source[idx];
+    }
+  }
+
+  /// <summary>
+  /// The uniform distribution on a continuos interval
+  /// </summary>
+  /// <remarks>
+  /// Basically, this is an IDistribution wrapper around IRandom
+  /// </remarks>
+  public class Uniform : Distribution<double> {
+    private readonly double _lower, _upper;
+
+    public Uniform(TimeSpan lower, TimeSpan upperExclusive) : this(lower.TotalSeconds, upperExclusive.TotalSeconds) { }
+    public Uniform(double lower, double upperExclusive) {
+      _lower = lower;
+      _upper = upperExclusive;
+    }
+
+    public override double Sample(IRandom random) => Sample(random, _lower, _upper);
+    public static double Sample(IRandom random, double lower, double upper) => lower + random.NextDouble() * (upper - lower);
+  }
+
+  /// <summary>
+  /// The uniform distribution on a discrete interval.
+  /// </summary>
+  /// <remarks>
+  /// Basically, this is an IDistribution wrapper around IRandom
+  /// </remarks>
+  public class UniformDiscrete : Distribution<int> {
+    private readonly int _lower, _upper;
+
+    public UniformDiscrete(int lower, int upperExclusive) {
+      _lower = lower;
+      _upper = upperExclusive;
+    }
+
+    public override int Sample(IRandom random) => random.Next(_lower, _upper);
+    public static double Sample(IRandom random, int lower, int upper) => random.Next(lower, upper);
+  }
+
+  /// <summary>
+  /// The triangular distribution has a fixed minimum and maximum and a peak that can be anywhere in between.
+  /// </summary>
+  public class Triangular : Distribution<double> {
+    private readonly double _lower, _upper, _mode;
+
+    public Triangular(TimeSpan lower, TimeSpan upper) : this(lower.TotalSeconds, upper.TotalSeconds) { }
+    public Triangular(double lower, double upper) : this(lower, upper, (upper - lower) / 2.0) { }
+    public Triangular(TimeSpan lower, TimeSpan upper, TimeSpan mode) : this(lower.TotalSeconds, upper.TotalSeconds, mode.TotalSeconds) { }
+    public Triangular(double lower, double upper, double mode) {
+      _lower = lower;
+      _upper = upper;
+      _mode = mode;
+    }
+
+    public override double Sample(IRandom random) => Sample(random, _lower, _upper, _mode);
+    public static double Sample(IRandom random, double lower, double upper, double mode) {
+      var u = random.NextDouble();
+      var c = (mode - lower) / (upper - lower);
+      if (u > c)
+        return upper + (lower - upper) * Math.Sqrt(((1.0 - u) * (1.0 - c)));
+      return lower + (upper - lower) * Math.Sqrt(u * c);
+    }
+    public static double Sample(IRandom random, double lower, double upper) {
+      var u = random.NextDouble();
+      if (u > 0.5)
+        return upper + (lower - upper) * Math.Sqrt(((1.0 - u) / 2));
+      return lower + (upper - lower) * Math.Sqrt(u / 2);
+    }
+  }
+
+  /// <summary>
+  /// The exponential distribution is memoryless and is often used to model interarrival times.
+  /// All samples that follow an exponential distribution are positive.
+  /// </summary>
+  public class Exponential : Distribution<double> {
+    private readonly double _mean;
+
+    public Exponential(double mean) {
+      _mean = mean;
+    }
+
+    public override double Sample(IRandom random) => Sample(random, _mean);
+    public static double Sample(IRandom random, double mean) => -Math.Log(1 - random.NextDouble()) * mean;
+  }
+
+  /// <summary>
+  /// The normal or Gaussian distribution is perhaps the most famous distribution.
+  /// In this class, normal distributed variates are generated using the Marsaglia polar method.
+  /// </summary>
+  public class Normal : Distribution<double> {
+    private readonly double _mu, _sigma;
+    private bool _useSpareNormal;
+    private double _spareNormal;
+
+    public Normal(double mu, double sigma) {
+      _mu = mu;
+      _sigma = sigma;
+      _useSpareNormal = false;
+      _spareNormal = double.NaN;
+    }
+
+    public override double Sample(IRandom random) {
+      if (_sigma == 0) return _mu;
+      if (_useSpareNormal) {
+        _useSpareNormal = false;
+        return _spareNormal * _sigma + _mu;
+      } else {
+        _useSpareNormal = true;
+        return MarsagliaPolar(random, _mu, _sigma, out _spareNormal);
+      }
+    }
+
+    public static double Sample(IRandom random, double mu, double sigma) => MarsagliaPolar(random, mu, sigma, out _);
+    private static double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
+      double u, v, s;
+      do {
+        u = random.NextDouble() * 2 - 1;
+        v = random.NextDouble() * 2 - 1;
+        s = u * u + v * v;
+      } while (s > 1 || s == 0);
+      var mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
+      spare = v * mul;
+      return mu + sigma * u * mul;
+    }
+  }
+
+  /// <summary>
+  /// The log-normal distribution has only positive samples. In this class a <see cref="Normal"/> distributed random variate is transformed.
+  /// </summary>
+  public class LogNormal : Distribution<double> {
+    private readonly Normal _normal;
+
+    public LogNormal(double mean, double stdev) {
+      var sigma = Math.Sqrt(Math.Log(stdev * stdev / (mean * mean) + 1));
+      var mu = Math.Log(mean) - 0.5 * sigma * sigma;
+      _normal = new Normal(mu, sigma);
+    }
+    public LogNormal(Normal normal) {
+      if (normal == null) throw new ArgumentNullException(nameof(normal));
+      _normal = normal;
+    }
+
+    public override double Sample(IRandom random) {
+      return Math.Exp(_normal.Sample(random));
+    }
+
+    public static double Sample(IRandom random, double mean, double stdev) {      
+      var sigma = Math.Sqrt(Math.Log(stdev * stdev / (mean * mean) + 1));
+      var mu = Math.Log(mean) - 0.5 * sigma * sigma;
+      return Normal.Sample(random, mu, sigma);
+    }
+  }
+
+  /// <summary>
+  /// The Cauchy distributio is similar to the <see cref="Normal" /> distribution, but has fatter tails.
+  /// </summary>
+  public class Cauchy : Distribution<double> {
+    private readonly double _x0, _gamma;
+
+    public Cauchy(double x0, double gamma) {
+      _x0 = x0;
+      _gamma = gamma;
+    }
+
+    public override double Sample(IRandom random) {
+      return Sample(random, _x0, _gamma);
+    }
+
+    public static double Sample(IRandom random, double x0, double gamma) =>
+      x0 + gamma * Math.Tan(Math.PI * (random.NextDouble() - 0.5));
+  }
+
+  /// <summary>
+  /// The Weibull distribution generates only positive values.
+  /// </summary>
+  public class Weibull : Distribution<double> {
+    private readonly double _alpha, _beta;
+
+    public Weibull(double alpha, double beta) {
+      if (alpha <= 0) throw new ArgumentException("must be > 0", nameof(alpha));
+      if (beta <= 0) throw new ArgumentException("must be > 0", nameof(beta));
+      _alpha = alpha;
+      _beta = beta;
+    }
+
+    public override double Sample(IRandom random) {
+      return Sample(random, _alpha, _beta);
+    }
+
+    public static double Sample(IRandom random, double alpha, double beta) =>
+      alpha * Math.Pow(-Math.Log(1 - random.NextDouble()), 1 / beta);
+  }
+
+  public class Erlang : Distribution<double> {
+    private readonly int _k;
+    private readonly double _lambda;
+
+    public Erlang(int k, double lambda) {
+      if (k <= 0) throw new ArgumentException("must be > 0", nameof(k));
+      if (lambda <= 0) throw new ArgumentException("must be > 0", nameof(lambda));
+      _k = k;
+      _lambda = lambda;
+    }
+
+    public override double Sample(IRandom random) {
+      return Sample(random, _k, _lambda);
+    }
+
+    public static double Sample(IRandom random, int k, double lambda) {
+      var prod = 1.0;
+      for (var i = 0; i < k; i++)
+        prod *= (1.0 - random.NextDouble());
+      return -Math.Log(prod) / lambda;
+    }
+  }
+
+  public abstract class Bounded<T> : Distribution<T>, IRejectionSampledDistribution<T> {
+    protected readonly IDistribution<T> Distribution;
+    protected readonly T Lower, Upper;
+    protected readonly int Ntries;
+    protected readonly bool ExcludeLower, ExcludeUpper;
+
+    public Bounded(IDistribution<T> distribution, T lower, T upper,
+        int ntries = 100, bool excludeLower = false, bool excludeUpper = false) {
+      if (distribution == null) throw new ArgumentNullException(nameof(distribution));
+      Distribution = distribution;
+      Lower = lower;
+      Upper = upper;
+      Ntries = ntries;
+      ExcludeLower = excludeLower;
+      ExcludeUpper = excludeUpper;
+    }
+
+    public override T Sample(IRandom random) {
+      if (TrySample(random, out var sample))
+        return sample;
+      var strRange = (ExcludeLower ? "]" : "[") + Lower + ":" + Upper + (ExcludeUpper ? "[" : "]");
+      throw new InvalidOperationException($"Unable to sample a value in the interval {strRange} in {Ntries} tries.");
+    }
+
+    public bool TrySample(IRandom random, out T sample) {
+      for (var n = 0; n < Ntries; n++) {
+        var s = Distribution.Sample(random);
+        if (OutsideBounds(s)) continue;
+        sample = s;
+        return true;
+      }
+      sample = default(T);
+      return false;
+    }
+
+    protected abstract bool OutsideBounds(T sample);
+  }
+
+  /// <summary>
+  /// This wraps any distribution and obtains samples only within certain bounds using rejection sampling.
+  /// </summary>
+  public class BoundedContinuous : Bounded<double> {
+    /// <summary>
+    /// Creates a new bounded distribution that wraps a continuous distribution.
+    /// </summary>
+    /// <param name="distribution">The distribution to be wrapped</param>
+    /// <param name="lower">The lower bound or -∞ if omitted</param>
+    /// <param name="upper">The upper bound or ∞ if omitted</param>
+    /// <param name="ntries">The number of tries during rejection sampling</param>
+    /// <param name="excludeLower">Whether the lower bound is exclusive</param>
+    /// <param name="excludeUpper">Whether the upper bound is exclusive</param>
+    public BoundedContinuous(IDistribution<double> distribution, double lower = double.NegativeInfinity,
+        double upper = double.PositiveInfinity, int ntries = 100, bool excludeLower = false, bool excludeUpper = false)
+        : base(distribution, lower, upper, ntries, excludeLower, excludeUpper) {
+    }
+    protected override bool OutsideBounds(double s) =>
+      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
+      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+  }
+
+  /// <summary>
+  /// This wraps any distribution and obtains samples only within certain bounds using rejection sampling.
+  /// </summary>
+  public class BoundedDiscrete : Bounded<int> {
+    /// <summary>
+    /// Creates a new bounded distribution that wraps a continuous distribution.
+    /// </summary>
+    /// <param name="distribution">The distribution to be wrapped</param>
+    /// <param name="lower">The lower bound or -2147483648 if omitted</param>
+    /// <param name="upper">The upper bound or 2147483647 if omitted</param>
+    /// <param name="ntries">The number of tries during rejection sampling</param>
+    /// <param name="excludeLower">Whether the lower bound is exclusive</param>
+    /// <param name="excludeUpper">Whether the upper bound is exclusive</param>
+    public BoundedDiscrete(IDistribution<int> distribution, int lower = int.MinValue, int upper = int.MaxValue,
+        int ntries = 100, bool excludeLower = false, bool excludeUpper = false)
+        : base(distribution, lower, upper, ntries, excludeLower, excludeUpper) {
+    }
+    protected override bool OutsideBounds(int s) =>
+      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
+      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+  }
+
+  /// <summary>
+  /// This wraps any distribution and obtains samples only within certain bounds using rejection sampling.
+  /// </summary>
+  public class BoundedTime : Bounded<TimeSpan> {
+    /// <summary>
+    /// Creates a new bounded distribution that wraps a continuous distribution.
+    /// </summary>
+    /// <param name="distribution">The distribution to be wrapped</param>
+    /// <param name="lower">The lower bound or TimeSpan.MinValue if omitted</param>
+    /// <param name="upper">The upper bound or TimeSpan.MaxValue if omitted</param>
+    /// <param name="ntries">The number of tries during rejection sampling</param>
+    /// <param name="excludeLower">Whether the lower bound is exclusive</param>
+    /// <param name="excludeUpper">Whether the upper bound is exclusive</param>
+    public BoundedTime(IDistribution<TimeSpan> distribution, TimeSpan? lower = null, TimeSpan? upper = null,
+        int ntries = 100, bool excludeLower = false, bool excludeUpper = false)
+        : base(distribution, lower ?? TimeSpan.MinValue, upper ?? TimeSpan.MaxValue, ntries, excludeLower, excludeUpper) {
+    }
+    protected override bool OutsideBounds(TimeSpan s) =>
+      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
+      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+  }
+}

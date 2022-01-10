@@ -278,50 +278,65 @@ namespace SimSharp {
     }
 
     #region Random number distributions
-    public double RandUniform(IRandom random, double a, double b) {
-      return a + (b - a) * random.NextDouble();
+    public T Rand<T>(IDistribution<T> distribution) {
+      return distribution.Sample(Random);
     }
+    public bool TryRand<T>(IRejectionSampledDistribution<T> distribution, out T sample) {
+      return distribution.TrySample(Random, out sample);
+    }
+    public TimeSpan RandToTime(IDistribution<double> distribution) {
+      return ToTimeSpan(distribution.Sample(Random));
+    }
+
+    [Obsolete("Consider to use the respective distribution class")]
+    public double RandUniform(IRandom random, double a, double b) {
+      return Uniform.Sample(random, a, b);
+    }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandUniform(double a, double b) {
       return RandUniform(Random, a, b);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandUniform(IRandom random, TimeSpan a, TimeSpan b) {
       return TimeSpan.FromSeconds(RandUniform(random, a.TotalSeconds, b.TotalSeconds));
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandUniform(TimeSpan a, TimeSpan b) {
       return RandUniform(Random, a, b);
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandTriangular(IRandom random, double low, double high) {
-      var u = random.NextDouble();
-      if (u > 0.5)
-        return high + (low - high) * Math.Sqrt(((1.0 - u) / 2));
-      return low + (high - low) * Math.Sqrt(u / 2);
+      return Triangular.Sample(random, low, high);
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandTriangular(double low, double high) {
       return RandTriangular(Random, low, high);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandTriangular(IRandom random, TimeSpan low, TimeSpan high) {
       return TimeSpan.FromSeconds(RandTriangular(random, low.TotalSeconds, high.TotalSeconds));
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandTriangular(TimeSpan low, TimeSpan high) {
       return RandTriangular(Random, low, high);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandTriangular(IRandom random, double low, double high, double mode) {
-      var u = random.NextDouble();
-      var c = (mode - low) / (high - low);
-      if (u > c)
-        return high + (low - high) * Math.Sqrt(((1.0 - u) * (1.0 - c)));
-      return low + (high - low) * Math.Sqrt(u * c);
+      return Triangular.Sample(random, low, high, mode);
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandTriangular(double low, double high, double mode) {
       return RandTriangular(Random, low, high, mode);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandTriangular(IRandom random, TimeSpan low, TimeSpan high, TimeSpan mode) {
       return TimeSpan.FromSeconds(RandTriangular(random, low.TotalSeconds, high.TotalSeconds, mode.TotalSeconds));
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandTriangular(TimeSpan low, TimeSpan high, TimeSpan mode) {
       return RandTriangular(Random, low, high, mode);
     }
@@ -335,8 +350,9 @@ namespace SimSharp {
     /// <param name="random">The random number generator to use.</param>
     /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
     /// <returns>A number that is exponentially distributed</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandExponential(IRandom random, double mean) {
-      return -Math.Log(1 - random.NextDouble()) * mean;
+      return Exponential.Sample(random, mean);
     }
     /// <summary>
     /// Returns a number that is exponentially distributed given a certain mean.
@@ -346,6 +362,7 @@ namespace SimSharp {
     /// </remarks>
     /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
     /// <returns>A number that is exponentially distributed</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandExponential(double mean) {
       return RandExponential(Random, mean);
     }
@@ -359,6 +376,7 @@ namespace SimSharp {
     /// <param name="random">The random number generator to use.</param>
     /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
     /// <returns>A number that is exponentially distributed</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandExponential(IRandom random, TimeSpan mean) {
       return TimeSpan.FromSeconds(RandExponential(random, mean.TotalSeconds));
     }
@@ -370,11 +388,14 @@ namespace SimSharp {
     /// </remarks>
     /// <param name="mean">The mean(!) of the distribution is 1 / lambda.</param>
     /// <returns>A number that is exponentially distributed</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandExponential(TimeSpan mean) {
       return RandExponential(Random, mean);
     }
 
+    [Obsolete("Will be removed in a subsequent version")]
     private bool useSpareNormal = false;
+    [Obsolete("Will be removed in a subsequent version")]
     private double spareNormal = double.NaN;
 
     /// <summary>
@@ -390,8 +411,9 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public virtual double RandNormal(IRandom random, double mu, double sigma) {
-      return MarsagliaPolar(random, mu, sigma, out _); // do not reuse the spare normal in this case, because it could be from a different RNG
+      return Normal.Sample(random, mu, sigma);
     }
     /// <summary>
     /// Uses the Marsaglia polar method to generate a random variable
@@ -405,6 +427,7 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public virtual double RandNormal(double mu, double sigma) {
       if (useSpareNormal) {
         useSpareNormal = false;
@@ -414,6 +437,7 @@ namespace SimSharp {
         return MarsagliaPolar(Random, mu, sigma, out spareNormal);
       }
     }
+    [Obsolete("This will be removed in a subsequent version")]
     private double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
       double u, v, s;
       do {
@@ -439,6 +463,7 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandNormal(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandNormal(random, mu.TotalSeconds, sigma.TotalSeconds));
     }
@@ -454,10 +479,12 @@ namespace SimSharp {
     /// <param name="mu">The mean of the normal distribution.</param>
     /// <param name="sigma">The standard deviation of the normal distribution.</param>
     /// <returns>A number that is normal distributed.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandNormal(TimeSpan mu, TimeSpan sigma) {
       return RandNormal(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use the bounded distribution class")]
     public double RandNormalPositive(IRandom random, double mu, double sigma) {
       double val;
       do {
@@ -465,17 +492,21 @@ namespace SimSharp {
       } while (val <= 0);
       return val;
     }
+    [Obsolete("Consider to use the bounded distribution class")]
     public double RandNormalPositive(double mu, double sigma) {
       return RandNormalPositive(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use the bounded distribution class")]
     public TimeSpan RandNormalPositive(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandNormalPositive(random, mu.TotalSeconds, sigma.TotalSeconds));
     }
+    [Obsolete("Consider to use the bounded distribution class")]
     public TimeSpan RandNormalPositive(TimeSpan mu, TimeSpan sigma) {
       return RandNormalPositive(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use the bounded distribution class")]
     public double RandNormalNegative(IRandom random, double mu, double sigma) {
       double val;
       do {
@@ -483,13 +514,16 @@ namespace SimSharp {
       } while (val >= 0);
       return val;
     }
+    [Obsolete("Consider to use the bounded distribution class")]
     public double RandNormalNegative(double mu, double sigma) {
       return RandNormalNegative(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use the bounded distribution class")]
     public TimeSpan RandNormalNegative(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandNormalNegative(random, mu.TotalSeconds, sigma.TotalSeconds));
     }
+    [Obsolete("Consider to use the bounded distribution class")]
     public TimeSpan RandNormalNegative(TimeSpan mu, TimeSpan sigma) {
       return RandNormalNegative(Random, mu, sigma);
     }
@@ -504,6 +538,7 @@ namespace SimSharp {
     /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
     /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
     /// <returns>A log-normal distributed random value.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandLogNormal(IRandom random, double mu, double sigma) {
       return Math.Exp(RandNormal(random, mu, sigma));
     }
@@ -516,6 +551,7 @@ namespace SimSharp {
     /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
     /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
     /// <returns>A log-normal distributed random value.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandLogNormal(double mu, double sigma) {
       return RandLogNormal(Random, mu, sigma);
     }
@@ -528,6 +564,7 @@ namespace SimSharp {
     /// <param name="mean">The distribution mean.</param>
     /// <param name="stdev">The distribution standard deviation.</param>
     /// <returns>A log-normal distributed random value.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandLogNormal2(IRandom random, double mean, double stdev) {
       if (stdev == 0) return mean;
       var sigma = Math.Sqrt(Math.Log(stdev * stdev / (mean * mean) + 1));
@@ -541,6 +578,7 @@ namespace SimSharp {
     /// <param name="mean">The distribution mean.</param>
     /// <param name="stdev">The distribution standard deviation.</param>
     /// <returns>A log-normal distributed random value.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandLogNormal2(double mean, double stdev) {
       return RandLogNormal2(Random, mean, stdev);
     }
@@ -555,6 +593,7 @@ namespace SimSharp {
     /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
     /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
     /// <returns>A log-normal distributed random timespan.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandLogNormal(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return TimeSpan.FromSeconds(RandLogNormal(random, mu.TotalSeconds, sigma.TotalSeconds));
     }
@@ -567,6 +606,7 @@ namespace SimSharp {
     /// <param name="mu">The mu parameter of the log-normal distribution (not the mean).</param>
     /// <param name="sigma">The sigma parameter of the log-normal distribution (not the standard deviation).</param>
     /// <returns>A log-normal distributed random timespan.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandLogNormal(TimeSpan mu, TimeSpan sigma) {
       return RandLogNormal(Random, mu, sigma);
     }
@@ -579,6 +619,7 @@ namespace SimSharp {
     /// <param name="mean">The distribution mean.</param>
     /// <param name="stdev">The distribution standard deviation.</param>
     /// <returns>A log-normal distributed random timespan.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandLogNormal2(IRandom random, TimeSpan mean, TimeSpan stdev) {
       return TimeSpan.FromSeconds(RandLogNormal2(random, mean.TotalSeconds, stdev.TotalSeconds));
     }
@@ -589,34 +630,43 @@ namespace SimSharp {
     /// <param name="mean">The distribution mean.</param>
     /// <param name="stdev">The distribution standard deviation.</param>
     /// <returns>A log-normal distributed random timespan.</returns>
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandLogNormal2(TimeSpan mean, TimeSpan stdev) {
       return RandLogNormal2(Random, mean, stdev);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandCauchy(IRandom random, double x0, double gamma) {
-      return x0 + gamma * Math.Tan(Math.PI * (random.NextDouble() - 0.5));
+      return Cauchy.Sample(random, x0, gamma);
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandCauchy(double x0, double gamma) {
       return RandCauchy(Random, x0, gamma);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandCauchy(IRandom random, TimeSpan x0, TimeSpan gamma) {
       return TimeSpan.FromSeconds(RandCauchy(random, x0.TotalSeconds, gamma.TotalSeconds));
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandCauchy(TimeSpan x0, TimeSpan gamma) {
       return RandCauchy(Random, x0, gamma);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandWeibull(IRandom random, double alpha, double beta) {
-      return alpha * Math.Pow(-Math.Log(1 - random.NextDouble()), 1 / beta);
+      return Weibull.Sample(random, alpha, beta);
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public double RandWeibull(double alpha, double beta) {
       return RandWeibull(Random, alpha, beta);
     }
 
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandWeibull(IRandom random, TimeSpan alpha, TimeSpan beta) {
       return TimeSpan.FromSeconds(RandWeibull(random, alpha.TotalSeconds, beta.TotalSeconds));
     }
+    [Obsolete("Consider to use the respective distribution class")]
     public TimeSpan RandWeibull(TimeSpan alpha, TimeSpan beta) {
       return RandWeibull(Random, alpha, beta);
     }
@@ -628,6 +678,7 @@ namespace SimSharp {
     /// <param name="source">The elements to choose from.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>The chosen element.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution class")]
     public T RandChoice<T>(IRandom random, IList<T> source) {
       var idx = random.Next(source.Count);
       return source[idx];
@@ -638,6 +689,7 @@ namespace SimSharp {
     /// <param name="source">The elements to choose from.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>The chosen element.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution class")]
     public T RandChoice<T>(IList<T> source) {
       return RandChoice(Random, source);
     }
@@ -659,11 +711,9 @@ namespace SimSharp {
     /// <param name="count">The number of elements to choose.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>An enumeration of the elements.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution class")]
     public IEnumerable<T> RandChoice<T>(IRandom random, IList<T> source, int count) {
-      if (count < 0) throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
-      for (var i = 0; i < count; i++) {
-        yield return source[random.Next(source.Count)];
-      }
+      return new EmpiricalUniform<T>(source).Sample(random, count);
     }    
     /// <summary>
     /// Calls <see cref="RandChoice{T}(IRandom, IList{T}, int)"/> with the default RNG instance <see cref="Random"/>.
@@ -672,6 +722,7 @@ namespace SimSharp {
     /// <param name="count">The number of elements to choose.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>The chosen element.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution class")]
     public IEnumerable<T> RandChoice<T>(IList<T> source, int count) {
       return RandChoice(Random, source, count);
     }
@@ -689,37 +740,9 @@ namespace SimSharp {
     /// <param name="source">a random sample is generated from its elements.</param>
     /// <param name="weights">The weight associated with each entry in source.</param>
     /// <returns>The generated random samples</returns>
+    [Obsolete("Consider to use the EmpiricalNonUniform distribution class")]
     public T RandChoice<T>(IRandom random, IList<T> source, IList<double> weights) {
-      if (source.Count != weights.Count) {
-        throw new ArgumentException("source and weights must have same size");
-      }
-
-      double totalW = 0;
-      foreach (var w in weights) {
-        if (w < 0) {
-          throw new ArgumentException("weight values must be non-negative", nameof(weights));
-        }
-        totalW += w;
-      }
-
-      if (double.IsNaN(totalW) || double.IsInfinity(totalW))
-        throw new ArgumentException("Not a valid weight", nameof(weights));
-      if (totalW == 0)
-        throw new ArgumentException("total weight must be greater than 0", nameof(weights));
-
-      var rnd = random.NextDouble();
-      double aggWeight = 0;
-      int idx = 0;
-      foreach (var w in weights) {
-        if (w > 0) {
-          aggWeight += (w / totalW);
-          if (rnd <= aggWeight) {
-            break;
-          }
-        }
-        idx++;
-      }
-      return source[idx];
+      return EmpiricalNonUniform<T>.Sample(random, source, weights);
     }
     /// <summary>
     /// Generates a random sample from a given source
@@ -733,8 +756,9 @@ namespace SimSharp {
     /// <param name="source">a random sample is generated from its elements.</param>
     /// <param name="weights">The weight associated with each entry in source.</param>
     /// <returns>The generated random samples</returns>
+    [Obsolete("Consider to use the EmpiricalNonUniform distribution class")]
     public T RandChoice<T>(IList<T> source, IList<double> weights) {
-      return RandChoice(Random, source, weights);
+      return RandChoice<T>(Random, source, weights);
     }
 
     /// <summary>
@@ -751,18 +775,9 @@ namespace SimSharp {
     /// <param name="source">The elements to choose from.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>The chosen element.</returns>
+    [Obsolete("Consider to use EmpiricalUniform.SampleOnline")]
     public T RandChoiceOnline<T>(IRandom random, IEnumerable<T> source) {
-      var iter = source.GetEnumerator();
-      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(source)} is empty");
-      var chosen = iter.Current;
-      var count = 2;
-      while (iter.MoveNext()) {
-        if (count * Random.NextDouble() < 1) {
-          chosen = iter.Current;
-        }
-        count++;
-      }
-      return chosen;
+      return EmpiricalUniform<T>.SampleOnline(random, source);
     }
     /// <summary>
     /// Calls <see cref="RandChoiceOnline{T}(IRandom, IEnumerable{T})"/> with the default RNG instance <see cref="Random"/>.
@@ -776,6 +791,7 @@ namespace SimSharp {
     /// <param name="source">The elements to choose from.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>The chosen element.</returns>
+    [Obsolete("Consider to use the UniformAny distribution")]
     public T RandChoiceOnline<T>(IEnumerable<T> source) {
       return RandChoiceOnline<T>(Random, source);
     }
@@ -800,25 +816,9 @@ namespace SimSharp {
     /// <param name="count">The number of elements to choose.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>An enumeration of the chosen elements.</returns>
+    [Obsolete("Consider to use EmpiricalUniform.SampleOnline")]
     public IEnumerable<T> RandChoiceOnline<T>(IRandom random, IEnumerable<T> source, int count) {
-      if (count <= 0) {
-        if (count == 0) return Enumerable.Empty<T>();
-        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
-      }
-      var iter = source.GetEnumerator();
-      if (!iter.MoveNext()) throw new ArgumentException($"{nameof(source)} is empty");
-      var chosen = new T[count];
-      for (var c = 0; c < count; c++) chosen[c] = iter.Current;
-      var element = 2;
-      while (iter.MoveNext()) {
-        for (var c = 0; c < count; c++) {
-          if (element * Random.NextDouble() < 1) {
-            chosen[c] = iter.Current;
-          }
-        }
-        element++;
-      }
-      return chosen;
+      return EmpiricalUniform<T>.SampleOnline(random, source, count);
     }
     /// <summary>
     /// Calls <see cref="RandChoiceOnline{T}(IRandom, IEnumerable{T}, int)"/> with the default RNG instance <see cref="Random"/>.
@@ -837,6 +837,7 @@ namespace SimSharp {
     /// <param name="count">The number of elements to choose.</param>
     /// <typeparam name="T">The type of the elements to be chosen.</typeparam>
     /// <returns>An enumeration of the chosen elements.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution")]
     public IEnumerable<T> RandChoiceOnline<T>(IEnumerable<T> source, int count) {
       return RandChoiceOnline<T>(Random, source, count);
     }
@@ -862,21 +863,9 @@ namespace SimSharp {
     /// <param name="source">The elements to choose from.</param>
     /// <param name="count">The number of elements to choose.</param>
     /// <returns>An enumeration of the elements.</returns>
+    [Obsolete("Consider to use EmpiricalUniform.SampleNoRepetition or the online static method")]
     public IEnumerable<T> RandChoiceNoRepetition<T>(IRandom random, IEnumerable<T> source, int count) {
-      if (count <= 0) {
-        if (count == 0) yield break;
-        else throw new ArgumentException($"parameter {nameof(count)} is negative ({count})");
-      }
-      var remaining = count;
-      foreach (var s in source) {
-        if (random.NextDouble() * remaining < count) {
-          count--;
-          yield return s;
-          if (count <= 0) yield break;
-        }
-        remaining--;
-      }
-      throw new ArgumentException($"there are not enough items in {nameof(source)} to choose {count} from without repetition.");
+      return EmpiricalUniform<T>.SampleOnlineNoRepetition(random, source, count);
     }
     /// <summary>
     /// Calls <see cref="RandChoiceNoRepetition{T}(IRandom, IEnumerable{T}, int)"/> with the default RNG instance <see cref="Random"/>.
@@ -897,6 +886,7 @@ namespace SimSharp {
     /// <param name="count">The number of elements that should be chosen.</param>
     /// <typeparam name="T">The type of elements to be chosen.</typeparam>
     /// <returns>An enumeration of the elements.</returns>
+    [Obsolete("Consider to use the EmpiricalUniform distribution")]
     public IEnumerable<T> RandChoiceNoRepetition<T>(IEnumerable<T> source, int count) {
       return RandChoiceNoRepetition<T>(Random, source, count);
     }
@@ -904,100 +894,147 @@ namespace SimSharp {
     #endregion
 
     #region Random timeouts
+    public Timeout Timeout(IRandom random, IDistribution<double> duration) {
+      return new Timeout(this, ToTimeSpan(duration.Sample(random)));
+    }
+    public Timeout Timeout(IDistribution<double> duration) {
+      return new Timeout(this, ToTimeSpan(duration.Sample(Random)));
+    }
+    public Timeout Timeout(IRandom random, IDistribution<int> duration) {
+      return new Timeout(this, ToTimeSpan(duration.Sample(random)));
+    }
+    public Timeout Timeout(IDistribution<int> duration) {
+      return new Timeout(this, ToTimeSpan(duration.Sample(Random)));
+    }
+    public Timeout Timeout(IRandom random, IDistribution<TimeSpan> duration) {
+      return new Timeout(this, duration.Sample(random));
+    }
+    public Timeout Timeout(IDistribution<TimeSpan> duration) {
+      return new Timeout(this, duration.Sample(Random));
+    }
+
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutUniformD(IRandom random, double a, double b) {
       return new Timeout(this, ToTimeSpan(RandUniform(random, a, b)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutUniformD(double a, double b) {
       return TimeoutUniformD(Random, a, b);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutUniform(IRandom random, TimeSpan a, TimeSpan b) {
       return new Timeout(this, RandUniform(random, a, b));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutUniform(TimeSpan a, TimeSpan b) {
       return TimeoutUniform(Random, a, b);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangularD(IRandom random, double low, double high) {
       return new Timeout(this, ToTimeSpan(RandTriangular(random, low, high)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangularD(double low, double high) {
       return TimeoutTriangularD(Random, low, high);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangular(IRandom random, TimeSpan low, TimeSpan high) {
       return new Timeout(this, RandTriangular(random, low, high));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangular(TimeSpan low, TimeSpan high) {
       return TimeoutTriangular(Random, low, high);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangularD(IRandom random, double low, double high, double mode) {
       return new Timeout(this, ToTimeSpan(RandTriangular(random, low, high, mode)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangularD(double low, double high, double mode) {
       return TimeoutTriangularD(Random, low, high, mode);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangular(IRandom random, TimeSpan low, TimeSpan high, TimeSpan mode) {
       return new Timeout(this, RandTriangular(random, low, high, mode));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutTriangular(TimeSpan low, TimeSpan high, TimeSpan mode) {
       return TimeoutTriangular(Random, low, high, mode);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutExponentialD(IRandom random, double mean) {
       return new Timeout(this, ToTimeSpan(RandExponential(random, mean)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutExponentialD(double mean) {
       return TimeoutExponentialD(Random, mean);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutExponential(IRandom random, TimeSpan mean) {
       return new Timeout(this, RandExponential(random, mean));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutExponential(TimeSpan mean) {
       return TimeoutExponential(Random, mean);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with the bounded distribution class")]
     public Timeout TimeoutNormalPositiveD(IRandom random, double mu, double sigma) {
       return new Timeout(this, ToTimeSpan(RandNormalPositive(random, mu, sigma)));
     }
+    [Obsolete("Consider to use TimeoutRandom with the bounded distribution class")]
     public Timeout TimeoutNormalPositiveD(double mu, double sigma) {
       return TimeoutNormalPositiveD(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with the bounded distribution class")]
     public Timeout TimeoutNormalPositive(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return new Timeout(this, RandNormalPositive(random, mu, sigma));
     }
+    [Obsolete("Consider to use TimeoutRandom with the bounded distribution class")]
     public Timeout TimeoutNormalPositive(TimeSpan mu, TimeSpan sigma) {
       return TimeoutNormalPositive(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormalD(IRandom random, double mu, double sigma) {
       return new Timeout(this, ToTimeSpan(RandLogNormal(random, mu, sigma)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormalD(double mu, double sigma) {
       return TimeoutLogNormalD(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal2D(IRandom random, double mean, double stdev) {
       return new Timeout(this, ToTimeSpan(RandLogNormal2(random, mean, stdev)));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal2D(double mean, double stdev) {
       return TimeoutLogNormal2D(Random, mean, stdev);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal(IRandom random, TimeSpan mu, TimeSpan sigma) {
       return new Timeout(this, RandLogNormal(random, mu, sigma));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal(TimeSpan mu, TimeSpan sigma) {
       return TimeoutLogNormal(Random, mu, sigma);
     }
 
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal2(IRandom random, TimeSpan mean, TimeSpan stdev) {
       return new Timeout(this, RandLogNormal2(random, mean, stdev));
     }
+    [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutLogNormal2(TimeSpan mean, TimeSpan stdev) {
       return TimeoutLogNormal2(Random, mean, stdev);
     }

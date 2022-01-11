@@ -121,7 +121,7 @@ namespace SimSharp {
       Now = StartDate;
       Random = new PcgRandom(randomSeed);
       ScheduleQ = new EventQueue(InitialMaxEvents);
-      useSpareNormal = false;
+      normal.Reset();
     }
 
     public virtual void ScheduleD(double delay, Event @event) {
@@ -281,13 +281,17 @@ namespace SimSharp {
     public T Rand<T>(IDistribution<T> distribution) {
       return distribution.Sample(Random);
     }
+    public IEnumerable<T> Rand<T>(IDistribution<T> distribution, int count) {
+      return distribution.Sample(Random, count);
+    }
     public bool TryRand<T>(IRejectionSampledDistribution<T> distribution, out T sample) {
       return distribution.TrySample(Random, out sample);
     }
-    public TimeSpan RandToTime(IDistribution<double> distribution) {
+    public TimeSpan RandAsTime(IDistribution<double> distribution) {
       return ToTimeSpan(distribution.Sample(Random));
     }
 
+    #region Obsolete code
     [Obsolete("Consider to use the respective distribution class")]
     public double RandUniform(IRandom random, double a, double b) {
       return Uniform.Sample(random, a, b);
@@ -393,10 +397,7 @@ namespace SimSharp {
       return RandExponential(Random, mean);
     }
 
-    [Obsolete("Will be removed in a subsequent version")]
-    private bool useSpareNormal = false;
-    [Obsolete("Will be removed in a subsequent version")]
-    private double spareNormal = double.NaN;
+    private Normal normal = new Normal(0, 1);
 
     /// <summary>
     /// Uses the Marsaglia polar method to generate a random variable
@@ -413,7 +414,7 @@ namespace SimSharp {
     /// <returns>A number that is normal distributed.</returns>
     [Obsolete("Consider to use the respective distribution class")]
     public virtual double RandNormal(IRandom random, double mu, double sigma) {
-      return Normal.Sample(random, mu, sigma);
+      return sigma * normal.Sample(random) + mu;
     }
     /// <summary>
     /// Uses the Marsaglia polar method to generate a random variable
@@ -429,25 +430,7 @@ namespace SimSharp {
     /// <returns>A number that is normal distributed.</returns>
     [Obsolete("Consider to use the respective distribution class")]
     public virtual double RandNormal(double mu, double sigma) {
-      if (useSpareNormal) {
-        useSpareNormal = false;
-        return spareNormal * sigma + mu;
-      } else {
-        useSpareNormal = true;
-        return MarsagliaPolar(Random, mu, sigma, out spareNormal);
-      }
-    }
-    [Obsolete("This will be removed in a subsequent version")]
-    private double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
-      double u, v, s;
-      do {
-        u = random.NextDouble() * 2 - 1;
-        v = random.NextDouble() * 2 - 1;
-        s = u * u + v * v;
-      } while (s > 1 || s == 0);
-      var mul = Math.Sqrt(-2.0 * Math.Log(s) / s);
-      spare = v * mul;
-      return mu + sigma * u * mul;
+      return sigma * normal.Sample(Random) + mu;
     }
 
     /// <summary>
@@ -890,29 +873,58 @@ namespace SimSharp {
     public IEnumerable<T> RandChoiceNoRepetition<T>(IEnumerable<T> source, int count) {
       return RandChoiceNoRepetition<T>(Random, source, count);
     }
-
+    #endregion
     #endregion
 
     #region Random timeouts
+    /// <summary>
+    /// This method expects the duration in units of defaultstep. If duration are in seconds
+    /// or you used the TimeSpan constructors for the specific distribution, then use
+    /// <see cref="Timeout(IRandom, IDistribution{double})"/>.
+    /// </summary>
+    /// <param name="random">The pseudo random number generator to use</param>
+    /// <param name="duration">The duration distribution in units of defaultstep (defaults to 1 unit = 1 second)</param>
+    /// <returns>The timeout event</returns>
+    public Timeout TimeoutD(IRandom random, IDistribution<double> duration) {
+      return new Timeout(this, ToTimeSpan(duration.Sample(random)));
+    }
+    /// <summary>
+    /// This method expects the duration in units of defaultstep. If duration are in seconds
+    /// or you used the TimeSpan constructors for the specific distribution, then use
+    /// <see cref="Timeout(IDistribution{double})"/>.
+    /// 
+    /// It uses the default random number generator instance of this class.
+    /// </summary>
+    /// <param name="duration">The duration distribution in units of defaultstep (defaults to 1 unit = 1 second)</param>
+    /// <returns>The timeout event</returns>
+    public Timeout TimeoutD(IDistribution<double> duration) {
+      return TimeoutD(Random, duration);
+    }
+    /// <summary>
+    /// This method expects the duration in seconds. If durations are given in units of defaultStep,
+    /// then use <see cref="TimeoutD(IRandom, IDistribution{double})"/>. Units are in seconds if you
+    /// used the respective constructor that permitted a TimeSpan object, e.g. as mean.
+    /// </summary>
+    /// <param name="random">The pseudo random number generator to use</param>
+    /// <param name="duration">The duration distribution in units of seconds</param>
+    /// <returns>The timeout event</returns>
     public Timeout Timeout(IRandom random, IDistribution<double> duration) {
-      return new Timeout(this, ToTimeSpan(duration.Sample(random)));
+      return new Timeout(this, TimeSpan.FromSeconds(duration.Sample(random)));
     }
+    /// <summary>
+    /// This method expects the duration in seconds. If durations are given in units of defaultStep,
+    /// then use <see cref="TimeoutD(IDistribution{double})"/>. Units are in seconds if you
+    /// used the respective constructor that permitted a TimeSpan object, e.g. as mean.
+    /// 
+    /// It uses the default random number generator instance of this class.
+    /// </summary>
+    /// <param name="duration">The duration distribution in units of seconds</param>
+    /// <returns>The timeout event</returns>
     public Timeout Timeout(IDistribution<double> duration) {
-      return new Timeout(this, ToTimeSpan(duration.Sample(Random)));
-    }
-    public Timeout Timeout(IRandom random, IDistribution<int> duration) {
-      return new Timeout(this, ToTimeSpan(duration.Sample(random)));
-    }
-    public Timeout Timeout(IDistribution<int> duration) {
-      return new Timeout(this, ToTimeSpan(duration.Sample(Random)));
-    }
-    public Timeout Timeout(IRandom random, IDistribution<TimeSpan> duration) {
-      return new Timeout(this, duration.Sample(random));
-    }
-    public Timeout Timeout(IDistribution<TimeSpan> duration) {
-      return new Timeout(this, duration.Sample(Random));
+      return new Timeout(this, TimeSpan.FromSeconds(duration.Sample(Random)));
     }
 
+    #region Obsolete code
     [Obsolete("Consider to use TimeoutRandom with an appropriate distribution class")]
     public Timeout TimeoutUniformD(IRandom random, double a, double b) {
       return new Timeout(this, ToTimeSpan(RandUniform(random, a, b)));
@@ -1038,6 +1050,7 @@ namespace SimSharp {
     public Timeout TimeoutLogNormal2(TimeSpan mean, TimeSpan stdev) {
       return TimeoutLogNormal2(Random, mean, stdev);
     }
+    #endregion
     #endregion
   }
 
@@ -1377,9 +1390,11 @@ namespace SimSharp {
     }
 
     protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
+    [Obsolete("Use the new Normal distribution class")]
     public override double RandNormal(double mu, double sigma) {
       return RandNormal(Random, mu, sigma);
     }
+    [Obsolete("Use the new Normal distribution class")]
     public override double RandNormal(IRandom random, double mu, double sigma) {
       double z, zz, u1, u2;
       do {

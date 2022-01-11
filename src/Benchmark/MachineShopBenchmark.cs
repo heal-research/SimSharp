@@ -36,9 +36,8 @@ namespace SimSharp.Benchmarks {
      *  with the machine repair. The workshop works continuously.
      */
     private const int RandomSeed = 42;
-    private const double PtMean = 10.0; // Avg. processing time in minutes
-    private const double PtSigma = 2.0; // Sigma of processing time
-    private const double Mttf = 300.0; // Mean time to failure in minutes
+    private static readonly Normal ProcessingTime = new Normal(TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(2.0)); // Processing time distribution
+    private static readonly Exponential Failure = new Exponential(TimeSpan.FromMinutes(300.0)); // Failure distribution
     private const double RepairTime = 30.0; // Time it takes to repair a machine in minutes
     private const double JobDuration = 30.0; // Duration of other jobs in minutes
     private const int NumMachines = 10; // Number of machines in the machine shop
@@ -77,7 +76,7 @@ namespace SimSharp.Benchmarks {
          */
         while (true) {
           // Start making a new part
-          var doneIn = TimeSpan.FromMinutes(Environment.RandNormal(PtMean, PtSigma));
+          var doneIn = Environment.RandAsTime(ProcessingTime);
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -104,7 +103,7 @@ namespace SimSharp.Benchmarks {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.Timeout(TimeSpan.FromMinutes(Environment.RandExponential(Mttf)));
+          yield return Environment.Timeout(Failure);
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

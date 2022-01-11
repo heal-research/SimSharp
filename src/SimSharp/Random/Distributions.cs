@@ -254,7 +254,11 @@ namespace SimSharp {
       _observations = observations;
       _weights = weights;
       if (_observations.Count != _weights.Count) throw new ArgumentException($"Length of observations ({_observations.Count}) and weights ({_weights.Count}) differs.");
-      _totalWeight = _weights.Sum();
+      _totalWeight = 0;
+      foreach (var w in _weights) {
+        if (w < 0) throw new ArgumentException("weights must be greater or equal than 0", nameof(weights));
+        _totalWeight += w;
+      }
       if (double.IsNaN(_totalWeight) || double.IsInfinity(_totalWeight))
         throw new ArgumentException("Weights are not valid", nameof(weights));
       if (_totalWeight <= 0)
@@ -325,8 +329,17 @@ namespace SimSharp {
   public class Uniform : Distribution<double> {
     private readonly double _lower, _upper;
 
+    public double Lower => _lower;
+    public double Upper => _upper;
+
+    public double Mean => 0.5 * (_upper - _lower);
+    public double StdDev => Math.Sqrt((_upper - _lower) * (_upper - _lower) / 12.0);
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
+
     public Uniform(TimeSpan lower, TimeSpan upperExclusive) : this(lower.TotalSeconds, upperExclusive.TotalSeconds) { }
     public Uniform(double lower, double upperExclusive) {
+      if (lower >= upperExclusive) throw new ArgumentException("must be < upperExclusive", nameof(lower));
       _lower = lower;
       _upper = upperExclusive;
     }
@@ -344,7 +357,16 @@ namespace SimSharp {
   public class UniformDiscrete : Distribution<int> {
     private readonly int _lower, _upper;
 
+    public int Lower => _lower;
+    public int Upper => _upper;
+
+    public double Mean => 0.5 * (_upper - _lower);
+    public double StdDev => Math.Sqrt(((_upper - _lower + 1) * (_upper - _lower + 1) - 1) / 12.0);
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
+
     public UniformDiscrete(int lower, int upperExclusive) {
+      if (lower >= upperExclusive) throw new ArgumentException("must be < upperExclusive", nameof(lower));
       _lower = lower;
       _upper = upperExclusive;
     }
@@ -359,10 +381,21 @@ namespace SimSharp {
   public class Triangular : Distribution<double> {
     private readonly double _lower, _upper, _mode;
 
+    public double Lower => _lower;
+    public double Upper => _upper;
+    public double Mode => _mode;
+
+    public double Mean => (_lower + _upper + _mode) / 3.0;
+    public double StdDev => Math.Sqrt((_lower * _lower + _upper * _upper + _mode * _mode  - _lower * _upper - _lower * _mode - _upper * _mode) / 18.0);
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
+
     public Triangular(TimeSpan lower, TimeSpan upper) : this(lower.TotalSeconds, upper.TotalSeconds) { }
     public Triangular(double lower, double upper) : this(lower, upper, (upper - lower) / 2.0) { }
     public Triangular(TimeSpan lower, TimeSpan upper, TimeSpan mode) : this(lower.TotalSeconds, upper.TotalSeconds, mode.TotalSeconds) { }
     public Triangular(double lower, double upper, double mode) {
+      if (lower >= upper) throw new ArgumentException("must be smaller than upper", nameof(lower));
+      if (mode < lower || mode > upper) throw new ArgumentException($"must be in the interval [{lower};{upper}]", nameof(mode));
       _lower = lower;
       _upper = upper;
       _mode = mode;
@@ -390,8 +423,14 @@ namespace SimSharp {
   /// </summary>
   public class Exponential : Distribution<double> {
     private readonly double _mean;
+    public double Mean => _mean;
+    public double StdDev => 1.0 / _mean;
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(_mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(1.0 / _mean);
 
+    public Exponential(TimeSpan mean) : this(mean.TotalSeconds) { }
     public Exponential(double mean) {
+      if (mean <= 0) throw new ArgumentException("must be > 0", nameof(mean));
       _mean = mean;
     }
 
@@ -403,12 +442,19 @@ namespace SimSharp {
   /// The normal or Gaussian distribution is perhaps the most famous distribution.
   /// In this class, normal distributed variates are generated using the Marsaglia polar method.
   /// </summary>
-  public class Normal : Distribution<double> {
+  public class Normal : Distribution<double>, IStatefulDistribution<double> {
     private readonly double _mu, _sigma;
     private bool _useSpareNormal;
     private double _spareNormal;
 
+    public double Mean => _mu;
+    public double StdDev => _sigma;
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(_mu);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(_sigma);
+
+    public Normal(TimeSpan mu, TimeSpan sigma) : this(mu.TotalSeconds, sigma.TotalSeconds) { }
     public Normal(double mu, double sigma) {
+      if (sigma < 0) throw new ArgumentException("must be >= 0", nameof(sigma));
       _mu = mu;
       _sigma = sigma;
       _useSpareNormal = false;
@@ -438,21 +484,67 @@ namespace SimSharp {
       spare = v * mul;
       return mu + sigma * u * mul;
     }
+
+    /// <summary>
+    /// Normal has a state in that the Marsaglia polar method generates two random variates per call
+    /// and the other variate is remembered. So the method is called only every second time that
+    /// <see cref="Sample(IRandom)"/> is called.
+    /// </summary>
+    public void Reset() {
+      _useSpareNormal = false;
+    }
   }
 
   /// <summary>
   /// The log-normal distribution has only positive samples. In this class a <see cref="Normal"/> distributed random variate is transformed.
   /// </summary>
-  public class LogNormal : Distribution<double> {
+  public class LogNormal : Distribution<double>, IStatefulDistribution<double> {
     private readonly Normal _normal;
 
+    public double Mu => _normal.Mean;
+    public double Sigma => _normal.StdDev;
+
+    public double Mean { get; }
+    public double StdDev { get; }
+
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
+
+    /// <summary>
+    /// Creates a log-normal distribution with a desired mean and standard deviation. Note that is not
+    /// the same as the mu and sigma values of the log-normal distribution. If you wish to parameterize
+    /// using mu and sigma, create a <see cref="Normal"/> with these parameters and pass it to the
+    /// <see cref="LogNormal(Normal)"/> constructor.
+    /// </summary>
+    /// <param name="mean">The desired mean of the distribution</param>
+    /// <param name="stdev">The desired standard deviation of the distribution</param>
+    public LogNormal(TimeSpan mean, TimeSpan stdev) : this(mean.TotalSeconds, stdev.TotalSeconds) { }
+    /// <summary>
+    /// Creates a log-normal distribution with a desired mean and standard deviation. Note that is not
+    /// the same as the mu and sigma values of the log-normal distribution. If you wish to parameterize
+    /// using mu and sigma, create a <see cref="Normal"/> with these parameters and pass it to the
+    /// <see cref="LogNormal(Normal)"/> constructor.
+    /// </summary>
+    /// <param name="mean">The desired mean of the distribution</param>
+    /// <param name="stdev">The desired standard deviation of the distribution</param>
     public LogNormal(double mean, double stdev) {
+      if (stdev < 0) throw new ArgumentException("must be >= 0", nameof(stdev));
+      Mean = mean;
+      StdDev = stdev;
       var sigma = Math.Sqrt(Math.Log(stdev * stdev / (mean * mean) + 1));
       var mu = Math.Log(mean) - 0.5 * sigma * sigma;
       _normal = new Normal(mu, sigma);
     }
+    /// <summary>
+    /// Wraps the normal distribution into a log-normal. Note that the mean and standard deviation
+    /// will change. If you want a log-normal distribution with a certain mean, consider the
+    /// <see cref="LogNormal(double, double)"/> constructor instead.
+    /// </summary>
+    /// <param name="normal">The normal distribution to wrap.</param>
     public LogNormal(Normal normal) {
       if (normal == null) throw new ArgumentNullException(nameof(normal));
+      Mean = Math.Exp(normal.Mean + (0.5 * normal.StdDev * normal.StdDev));
+      StdDev = Math.Sqrt((Math.Exp(normal.StdDev * normal.StdDev) - 1) * Math.Exp(2 * normal.Mean + normal.StdDev * normal.StdDev));
       _normal = normal;
     }
 
@@ -465,6 +557,13 @@ namespace SimSharp {
       var mu = Math.Log(mean) - 0.5 * sigma * sigma;
       return Normal.Sample(random, mu, sigma);
     }
+
+    /// <summary>
+    /// As this method uses a normal distribution as its base, it resets the state
+    /// </summary>
+    public void Reset() {
+      _normal.Reset();
+    }
   }
 
   /// <summary>
@@ -473,7 +572,12 @@ namespace SimSharp {
   public class Cauchy : Distribution<double> {
     private readonly double _x0, _gamma;
 
+    public double X0 => _x0;
+    public double Gamma => _gamma;
+
+    public Cauchy(TimeSpan x0, double gamma) : this(x0.TotalSeconds, gamma) { }
     public Cauchy(double x0, double gamma) {
+      if (gamma <= 0) throw new ArgumentException("must be > 0", nameof(gamma));
       _x0 = x0;
       _gamma = gamma;
     }
@@ -491,6 +595,8 @@ namespace SimSharp {
   /// </summary>
   public class Weibull : Distribution<double> {
     private readonly double _alpha, _beta;
+    public double Alpha => _alpha;
+    public double Beta => _beta;
 
     public Weibull(double alpha, double beta) {
       if (alpha <= 0) throw new ArgumentException("must be > 0", nameof(alpha));
@@ -504,13 +610,22 @@ namespace SimSharp {
     }
 
     public static double Sample(IRandom random, double alpha, double beta) =>
-      alpha * Math.Pow(-Math.Log(1 - random.NextDouble()), 1 / beta);
+      beta * Math.Pow(-Math.Log(1 - random.NextDouble()), 1 / alpha);
   }
 
   public class Erlang : Distribution<double> {
     private readonly int _k;
     private readonly double _lambda;
 
+    public int K => _k;
+    public double Lambda => _lambda;
+
+    public double Mean => _k / _lambda;
+    public double StdDev => Math.Sqrt(_k) / _lambda;
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
+    
+    public Erlang(int k, TimeSpan lambda) : this(k, lambda.TotalSeconds) { }
     public Erlang(int k, double lambda) {
       if (k <= 0) throw new ArgumentException("must be > 0", nameof(k));
       if (lambda <= 0) throw new ArgumentException("must be > 0", nameof(lambda));
@@ -530,39 +645,47 @@ namespace SimSharp {
     }
   }
 
-  public abstract class Bounded<T> : Distribution<T>, IRejectionSampledDistribution<T> {
-    protected readonly IDistribution<T> Distribution;
-    protected readonly T Lower, Upper;
-    protected readonly int Ntries;
-    protected readonly bool ExcludeLower, ExcludeUpper;
+  public abstract class Bounded<T> : Distribution<T>, IRejectionSampledDistribution<T>, IStatefulDistribution<T> {
+    protected readonly IDistribution<T> distribution;
+    protected readonly T lower, upper;
+    protected readonly int ntries;
+    protected readonly bool excludeLower, excludeUpper;
+
+    public T Lower => lower;
+    public T Upper => upper;
 
     public Bounded(IDistribution<T> distribution, T lower, T upper,
         int ntries = 100, bool excludeLower = false, bool excludeUpper = false) {
       if (distribution == null) throw new ArgumentNullException(nameof(distribution));
-      Distribution = distribution;
-      Lower = lower;
-      Upper = upper;
-      Ntries = ntries;
-      ExcludeLower = excludeLower;
-      ExcludeUpper = excludeUpper;
+      this.distribution = distribution;
+      this.lower = lower;
+      this.upper = upper;
+      this.ntries = ntries;
+      this.excludeLower = excludeLower;
+      this.excludeUpper = excludeUpper;
     }
 
     public override T Sample(IRandom random) {
       if (TrySample(random, out var sample))
         return sample;
-      var strRange = (ExcludeLower ? "]" : "[") + Lower + ":" + Upper + (ExcludeUpper ? "[" : "]");
-      throw new InvalidOperationException($"Unable to sample a value in the interval {strRange} in {Ntries} tries.");
+      var strRange = (excludeLower ? "]" : "[") + lower + ":" + upper + (excludeUpper ? "[" : "]");
+      throw new InvalidOperationException($"Unable to sample a value in the interval {strRange} in {ntries} tries.");
     }
 
     public bool TrySample(IRandom random, out T sample) {
-      for (var n = 0; n < Ntries; n++) {
-        var s = Distribution.Sample(random);
+      for (var n = 0; n < ntries; n++) {
+        var s = distribution.Sample(random);
         if (OutsideBounds(s)) continue;
         sample = s;
         return true;
       }
       sample = default(T);
       return false;
+    }
+
+    public void Reset() {
+      if (distribution is IStatefulDistribution<T> d)
+        d.Reset();
     }
 
     protected abstract bool OutsideBounds(T sample);
@@ -586,8 +709,8 @@ namespace SimSharp {
         : base(distribution, lower, upper, ntries, excludeLower, excludeUpper) {
     }
     protected override bool OutsideBounds(double s) =>
-      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
-      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+      excludeLower && s <= lower || !excludeLower && s < lower
+      || excludeUpper && s >= upper || !excludeUpper && s > upper;
   }
 
   /// <summary>
@@ -608,8 +731,8 @@ namespace SimSharp {
         : base(distribution, lower, upper, ntries, excludeLower, excludeUpper) {
     }
     protected override bool OutsideBounds(int s) =>
-      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
-      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+      excludeLower && s <= lower || !excludeLower && s < lower
+      || excludeUpper && s >= upper || !excludeUpper && s > upper;
   }
 
   /// <summary>
@@ -630,7 +753,7 @@ namespace SimSharp {
         : base(distribution, lower ?? TimeSpan.MinValue, upper ?? TimeSpan.MaxValue, ntries, excludeLower, excludeUpper) {
     }
     protected override bool OutsideBounds(TimeSpan s) =>
-      ExcludeLower && s <= Lower || !ExcludeLower && s < Lower
-      || ExcludeUpper && s >= Upper || !ExcludeUpper && s > Upper;
+      excludeLower && s <= lower || !excludeLower && s < lower
+      || excludeUpper && s >= upper || !excludeUpper && s > upper;
   }
 }

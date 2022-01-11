@@ -7,7 +7,7 @@
     <DelaySign>False</DelaySign>
     <AssemblyName>SimSharp</AssemblyName>
     <RootNamespace>SimSharp</RootNamespace>
-    <Version>3.3.2</Version>
+    <Version>3.4</Version>
     <Authors>Andreas Beham</Authors>
     <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.5 / .NET Standard 2.0. Sim# uses an efficient event queue (adapted from https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp). The MachineShop benchmark comes close to 3.5 million events per second on a Core i7-7 2.7Ghz.
 
@@ -15,16 +15,41 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <Product>Sim#</Product>
     <Company>HEAL, FH Upper Austria</Company>
     <Copyright>Andreas Beham</Copyright>
-    <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
-    <PackageReleaseNotes>Sim# 3.3.2 contains one enhancement and two bug fixes.
+    <PackageProjectUrl>https://github.com/heal-research/SimSharp</PackageProjectUrl>
+    <PackageReleaseNotes>Sim# 3.4 contains two enhancements, two bug fixes, and some deprecations.
     
     Enhancement
-    1) Adds method to obtain samples to the ISampleMonitor interface.
+    1) Adds implementations of sampling from distributions in form of classes and an IDistribtion interface.
+    2) Added sampling from Erlang distributions
     
-    Bug fixes - it fixes two bugs in PseudoRealtimeEnvironment when using it in
-    Realtime mode with a scaling factor other than 1.
-    1) Getting the value of Now returned the elapsed time without scaling.
-    2) When the simulation is stopped, the already elapsed time was wrongly scaled.
+    Bug fixes - it fixes two bugs in the Simulation class
+    1) The supplied instance of the random number generator was ignored in the RandChoiceOnline&lt;T&gt; methods.
+    2) The parameters alpha and beta for the Weibull distribution have been reversed (alpha is now shape and beta is scale)
+
+    Deprecations
+    1) All of the RandXXX methods in class Simulation have been marked as obsolete.
+    2) All of the random TimeoutXXX methods in class Simulation have been marked as obsolete.
+
+    To port code you need to change e.g.
+    env.RandUniform(1, 2) to env.Rand(new Uniform(1, 2))
+    env.RandNormalPositive(3, 0.5) to env.Rand(new BoundedContinous(new Normal(3, 0.5), lower: 0, excludeLower: true))
+    env.RandLogNormal(1, 2) to env.Rand(new LogNormal(new Normal(1, 2)))
+    env.RandLogNormal2(1, 2) to env.Rand(new LogNormal(1, 2))
+    etc.
+    env.TimeoutUniform(1, 2) to env.Timeout(new Uniform(1, 2))
+    env.TimeoutLogNormal(1, 2) to env.Timeout(new LogNormal(new Normal(1, 2)))
+    env.TimeoutLogNormal2(1, 2) to env.Timeout(new LogNormal(1, 2))
+    etc.
+    The RandChoice methods have been replaced with EmpiricalUniform and EmpiricalNonUniform distributions.
+
+    All distributions also provide a static sampling method.
+
+    The big improvement is that your process may be declared without needing to determine the actual random distribution.
+    Thus Sim# 3.4 makes it simpler to parameterize processes with specific distributions.
+
+    Distributions are lightweight classes, but Normal and LogNormal do contain state information as these use a cached
+    value from the Marsaglia polar method. In case you reuse distribution instances among simulation runs you should
+    call Reset() on all distribution instances of type IStatefulDistribution.
     </PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -45,7 +70,7 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
 
   <PropertyGroup>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\SimSharp.xml</DocumentationFile>
-    <RepositoryUrl>https://github.com/abeham/SimSharp.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/heal-research/SimSharp.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>discrete-event simulation</PackageTags>
   </PropertyGroup>

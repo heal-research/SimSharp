@@ -146,11 +146,11 @@ namespace SimSharp.Tests {
     }
 
     private IEnumerable<Event> ReproducibleProcess(Simulation env) {
-      var t1 = env.RandUniform(1, 3);
+      var t1 = env.Rand(new Uniform(1, 3));
       yield return env.TimeoutD(t1);
-      var t2 = env.RandNormal(3, 0.1);
+      var t2 = env.Rand(new Normal(3, 0.1));
       yield return env.TimeoutD(t2);
-      var t3 = env.RandExponential(2);
+      var t3 = env.Rand(new Exponential(2));
       yield return env.TimeoutD(t3);
       env.ActiveProcess.Succeed(t1 + t2 + t3);
     }

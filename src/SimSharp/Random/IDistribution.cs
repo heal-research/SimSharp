@@ -38,4 +38,8 @@ namespace SimSharp {
     /// <returns>Whether or not the sampling was successful.</returns>
     bool TrySample(IRandom random, out T sample);
   }
+
+  public interface IStatefulDistribution<T> : IDistribution<T> {
+    void Reset();
+  }
 }

@@ -31,12 +31,10 @@ namespace SimSharp.Samples {
     private const int GasStationSize = 200; // liters
     private const int Threshold = 10; // Threshold for calling the tank truck (in %)
     private const int FuelTankSize = 50; // liters
-    private const int MinFuelTankLevel = 5; // Min levels of fuel tanks (in liters)
-    private const int MaxFuelTankLevel = 25; // Max levels of fuel tanks (in liters)
     private const int RefuelingSpeed = 2; // liters / second
+    private static readonly Uniform InitialFuelLevel = new Uniform(5, 26); // Level of fuel tanks (in liters)
     private static readonly TimeSpan TankTruckTime = TimeSpan.FromMinutes(10); // Minutes it takes the tank truck to arrive
-    private static readonly TimeSpan MinTInter = TimeSpan.FromMinutes(30); // Create a car every min seconds
-    private static readonly TimeSpan MaxTInter = TimeSpan.FromMinutes(300); // Create a car every max seconds
+    private static readonly Uniform CarArrival = new Uniform(TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(300)); // Arrival distribution for cars
     private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(3000); // Simulation time
 
     private IEnumerable<Event> Car(string name, Simulation env, Resource gasStation, Container fuelPump) {
@@ -47,7 +45,7 @@ namespace SimSharp.Samples {
        * desired amount of gas from it. If the stations reservoir is
        * depleted, the car has to wait for the tank truck to arrive.
        */
-      var fuelTankLevel = env.RandUniform(MinFuelTankLevel, MaxFuelTankLevel + 1);
+      var fuelTankLevel = env.Rand(InitialFuelLevel);
       env.Log("{0} arriving at gas station at {1}", name, env.Now);
       using (var req = gasStation.Request()) {
         var start = env.Now;
@@ -98,7 +96,7 @@ namespace SimSharp.Samples {
       var i = 0;
       while (true) {
         i++;
-        yield return env.Timeout(env.RandUniform(MinTInter, MaxTInter));
+        yield return env.Timeout(CarArrival);
         env.Process(Car("Car " + i, env, gasStation, fuelPump));
       }
     }

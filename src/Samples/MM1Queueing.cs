@@ -10,12 +10,12 @@ using System.Collections.Generic;
 
 namespace SimSharp.Samples {
   public class MM1Queueing {
-    private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
-    private static readonly TimeSpan ProcessingTime = TimeSpan.FromMinutes(2.5);
+    private static readonly Exponential OrderArrival = new Exponential(TimeSpan.FromMinutes(3.33));
+    private static readonly Exponential ProcessingTime = new Exponential(TimeSpan.FromMinutes(2.5));
     
     private IEnumerable<Event> Source(Simulation env, Resource server) {
       while (true) {
-        yield return env.TimeoutExponential(OrderArrivalTime);
+        yield return env.Timeout(OrderArrival);
         env.Process(Order(env, server));
       }
     }
@@ -23,7 +23,7 @@ namespace SimSharp.Samples {
     private IEnumerable<Event> Order(Simulation env, Resource server) {
       using (var req = server.Request()) {
         yield return req;
-        yield return env.TimeoutExponential(ProcessingTime);
+        yield return env.Timeout(ProcessingTime);
       }
     }
 
@@ -34,8 +34,8 @@ namespace SimSharp.Samples {
     }
 
     public void Simulate(int repetitions = 5) {
-      var lambda = 1 / OrderArrivalTime.TotalDays;
-      var mu = 1 / ProcessingTime.TotalDays;
+      var lambda = 1 / OrderArrival.MeanTime.TotalDays;
+      var mu = 1 / ProcessingTime.MeanTime.TotalDays;
       var rho = lambda / mu;
       var analyticWIP = rho / (1 - rho);
       var analyticLeadtime = 1 / (mu - lambda);

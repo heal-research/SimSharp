@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class GasStationRefueling {
@@ -32,9 +33,9 @@ namespace SimSharp.Samples {
     private const int Threshold = 10; // Threshold for calling the tank truck (in %)
     private const int FuelTankSize = 50; // liters
     private const int RefuelingSpeed = 2; // liters / second
-    private static readonly Uniform InitialFuelLevel = new Uniform(5, 26); // Level of fuel tanks (in liters)
+    private static readonly Uniform InitialFuelLevel = UNIF(5, 26); // Level of fuel tanks (in liters)
     private static readonly TimeSpan TankTruckTime = TimeSpan.FromMinutes(10); // Minutes it takes the tank truck to arrive
-    private static readonly Uniform CarArrival = new Uniform(TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(300)); // Arrival distribution for cars
+    private static readonly UniformTime CarArrival = UNIF(TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(300)); // Arrival distribution for cars
     private static readonly TimeSpan SimTime = TimeSpan.FromMinutes(3000); // Simulation time
 
     private IEnumerable<Event> Car(string name, Simulation env, Resource gasStation, Container fuelPump) {

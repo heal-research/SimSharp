@@ -7,12 +7,13 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   class SimpleShop {
     static TimeSpan delay = TimeSpan.Zero;
-    private static readonly BoundedContinuous MachineProc = new BoundedContinuous(new Normal(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(5)), lower: 0, excludeLower: true);
-    private static readonly BoundedContinuous PackerProc = new BoundedContinuous(new Normal(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(2)), lower: 0, excludeLower: true);
+    private static readonly BoundedTime MachineProc = POS(N(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(5)));
+    private static readonly BoundedTime PackerProc = POS(N(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(2)));
 
     static IEnumerable<Event> Machine(Simulation env, Resource packer) {
       while (true) {

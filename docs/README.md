@@ -8,6 +8,7 @@ The documentation covers the following aspects:
   + [Resources](#resources)
   + [Samples](#samples)
   + [Environments](#environments)
+  + [Distributions](#distributions)
 * [Monitoring](#monitoring)
   + [Reports](#reports)
 
@@ -99,6 +100,31 @@ However, this environment allows *switching between real and virtual time* and a
 These methods are thread safe and may be called from different threads.
 
 Obtaining the current simulation time using `Now` in realtime mode will account for the duration that the simulation is sleeping. Thus, calling this property from a different thread will always receive the actual simulation time, i.e., the time of the last event plus the elapsed time.
+
+### Distributions
+Starting from Sim# 3.4, distributions are included as classes. This allows parameterizing processes with the actual distributions instead of having to predetermine the distribution within the process. For instance, a process that describes a customer arrival can now be specified and instantiated with different distribution types, e.g., exponential, triangular, and others. Creating a distribution is easy and cheap. For best readability, it is advised to include `SimSharp.Distributions` in the using section as a `using static`.
+
+  ```csharp
+using SimSharp;
+using static SimSharp.Distributions;
+
+namespace MyApplication {
+  public class MyModel {
+    IEnumerable<Event> CustomerArrival(Simulation env, IDistribution<TimeSpan> arrivalDist) {
+      while (true) {
+        yield return env.Timeout(arrivalDist);
+        // Logic of creating a customer
+      }
+    }
+
+    public void Run() {
+      var env = new Simulation();
+      // Exponential distribution with a mean of 5
+      env.Process(CustomerArrival(env, EXP(TimeSpan.FromMinutes(5))));
+      env.Run(TimeSpan.FromHours(24));
+    }
+  }
+}
 
 ### Samples
 

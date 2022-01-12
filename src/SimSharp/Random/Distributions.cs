@@ -10,6 +10,40 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace SimSharp {
+  /// <summary>
+  /// This class is for convenience use. If you put in your code file
+  /// using static SimSharp.Distributions;
+  /// you can use in your class the static methods to quickly generate various distributions.
+  /// </summary>
+  public static class Distributions {
+    public static Constant<T> CONST<T>(T value) => new Constant<T>(value);
+    public static Uniform UNIF(double lower, double upper) => new Uniform(lower, upper);
+    public static UniformTime UNIF(TimeSpan lower, TimeSpan upper) => new UniformTime(lower, upper);
+    public static Triangular TRI(double lower, double upper, double mode) => new Triangular(lower, upper, mode);
+    public static Triangular TRI(double lower, double upper) => new Triangular(lower, upper);
+    public static TriangularTime TRI(TimeSpan lower, TimeSpan upper, TimeSpan mode) => new TriangularTime(lower, upper, mode);
+    public static TriangularTime TRI(TimeSpan lower, TimeSpan upper) => new TriangularTime(lower, upper);
+    public static Exponential EXP(double mean) => new Exponential(mean);
+    public static ExponentialTime EXP(TimeSpan mean) => new ExponentialTime(mean);
+    public static Normal N(double mu, double sigma) => new Normal(mu, sigma);
+    public static NormalTime N(TimeSpan mu, TimeSpan sigma) => new NormalTime(mu, sigma);
+    public static LogNormal LNORM(double mu, double sigma) => new LogNormal(N(mu, sigma));
+    public static LogNormalTime LNORM(TimeSpan mu, TimeSpan sigma) => new LogNormalTime(N(mu, sigma));
+    public static LogNormal LNORM2(double mean, double stddev) => new LogNormal(mean, stddev);
+    public static LogNormalTime LNORM2(TimeSpan mean, TimeSpan stddev) => new LogNormalTime(mean, stddev);
+    public static Cauchy CAUCHY(double x0, double gamma) => new Cauchy(x0, gamma);
+    public static CauchyTime CAUCHY(TimeSpan x0, double gamma) => new CauchyTime(x0, gamma);
+    public static Weibull WEI(double alpha, double beta) => new Weibull(alpha, beta);
+    public static Erlang ERL(int k, double lambda) => new Erlang(k, lambda);
+    public static ErlangTime ERL(int k, TimeSpan lambda) => new ErlangTime(k, lambda);
+    public static BoundedContinuous POS(IDistribution<double> dist, int ntries = 100) => new BoundedContinuous(dist, lower: 0, ntries: ntries, excludeLower: true);
+    public static BoundedContinuous NEG(IDistribution<double> dist, int ntries = 100) => new BoundedContinuous(dist, upper: 0, ntries: ntries, excludeUpper: true);
+    public static BoundedDiscrete POS(IDistribution<int> dist, int ntries = 100) => new BoundedDiscrete(dist, lower: 0, ntries: ntries, excludeLower: true);
+    public static BoundedDiscrete NEG(IDistribution<int> dist, int ntries = 100) => new BoundedDiscrete(dist, upper: 0, ntries: ntries, excludeUpper: true);
+    public static BoundedTime POS(IDistribution<TimeSpan> dist, int ntries = 100) => new BoundedTime(dist, lower: TimeSpan.Zero, ntries: ntries, excludeLower: true);
+    public static BoundedTime NEG(IDistribution<TimeSpan> dist, int ntries = 100) => new BoundedTime(dist, upper: TimeSpan.Zero, ntries: ntries, excludeUpper: true);
+  }
+
   public abstract class Distribution<T> : IDistribution<T> {
     public abstract T Sample(IRandom random);
 
@@ -334,10 +368,7 @@ namespace SimSharp {
 
     public double Mean => 0.5 * (_upper - _lower);
     public double StdDev => Math.Sqrt((_upper - _lower) * (_upper - _lower) / 12.0);
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
 
-    public Uniform(TimeSpan lower, TimeSpan upperExclusive) : this(lower.TotalSeconds, upperExclusive.TotalSeconds) { }
     public Uniform(double lower, double upperExclusive) {
       if (lower >= upperExclusive) throw new ArgumentException("must be < upperExclusive", nameof(lower));
       _lower = lower;
@@ -345,7 +376,31 @@ namespace SimSharp {
     }
 
     public override double Sample(IRandom random) => Sample(random, _lower, _upper);
-    public static double Sample(IRandom random, double lower, double upper) => lower + random.NextDouble() * (upper - lower);
+    public static double Sample(IRandom random, double lower, double upper) => lower + (upper - lower) * random.NextDouble();
+  }
+
+  /// <summary>
+  /// The uniform distribution on a continuos interval
+  /// </summary>
+  /// <remarks>
+  /// Basically, this is an IDistribution wrapper around IRandom
+  /// </remarks>
+  public class UniformTime : Distribution<TimeSpan> {
+    private readonly TimeSpan _lower, _upper;
+
+    public TimeSpan Lower => _lower;
+    public TimeSpan Upper => _upper;
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(0.5 * (_upper - _lower).TotalSeconds);
+    public TimeSpan StdDevTime => TimeSpan.FromSeconds(Math.Sqrt((_upper - _lower).TotalSeconds * (_upper - _lower).TotalSeconds / 12.0));
+
+    public UniformTime(TimeSpan lower, TimeSpan upperExclusive) {
+      if (lower >= upperExclusive) throw new ArgumentException("must be < upperExclusive", nameof(lower));
+      _lower = lower;
+      _upper = upperExclusive;
+    }
+
+    public override TimeSpan Sample(IRandom random) => Sample(random, _lower, _upper);
+    public static TimeSpan Sample(IRandom random, TimeSpan lower, TimeSpan upper) => lower + TimeSpan.FromSeconds((upper - lower).TotalSeconds * random.NextDouble());
   }
 
   /// <summary>
@@ -387,12 +442,8 @@ namespace SimSharp {
 
     public double Mean => (_lower + _upper + _mode) / 3.0;
     public double StdDev => Math.Sqrt((_lower * _lower + _upper * _upper + _mode * _mode  - _lower * _upper - _lower * _mode - _upper * _mode) / 18.0);
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
 
-    public Triangular(TimeSpan lower, TimeSpan upper) : this(lower.TotalSeconds, upper.TotalSeconds) { }
     public Triangular(double lower, double upper) : this(lower, upper, (upper - lower) / 2.0) { }
-    public Triangular(TimeSpan lower, TimeSpan upper, TimeSpan mode) : this(lower.TotalSeconds, upper.TotalSeconds, mode.TotalSeconds) { }
     public Triangular(double lower, double upper, double mode) {
       if (lower >= upper) throw new ArgumentException("must be smaller than upper", nameof(lower));
       if (mode < lower || mode > upper) throw new ArgumentException($"must be in the interval [{lower};{upper}]", nameof(mode));
@@ -416,6 +467,43 @@ namespace SimSharp {
       return lower + (upper - lower) * Math.Sqrt(u / 2);
     }
   }
+  /// <summary>
+  /// The triangular distribution has a fixed minimum and maximum and a peak that can be anywhere in between.
+  /// </summary>
+  public class TriangularTime : Distribution<TimeSpan> {
+    private readonly TimeSpan _lower, _upper, _mode;
+
+    public TimeSpan Lower => _lower;
+    public TimeSpan Upper => _upper;
+    public TimeSpan Mode => _mode;
+
+    public TimeSpan Mean => TimeSpan.FromSeconds((_lower + _upper + _mode).TotalSeconds / 3.0);
+    public TimeSpan StdDev => TimeSpan.FromSeconds(Math.Sqrt((_lower.TotalSeconds * _lower.TotalSeconds + _upper.TotalSeconds * _upper.TotalSeconds + _mode.TotalSeconds * _mode.TotalSeconds  - _lower.TotalSeconds * _upper.TotalSeconds - _lower.TotalSeconds * _mode.TotalSeconds - _upper.TotalSeconds * _mode.TotalSeconds) / 18.0));
+
+    public TriangularTime(TimeSpan lower, TimeSpan upper) : this(lower, upper, TimeSpan.FromSeconds(0.5 * (upper - lower).TotalSeconds)) { }
+    public TriangularTime(TimeSpan lower, TimeSpan upper, TimeSpan mode) {
+      if (lower >= upper) throw new ArgumentException("must be smaller than upper", nameof(lower));
+      if (mode < lower || mode > upper) throw new ArgumentException($"must be in the interval [{lower};{upper}]", nameof(mode));
+      _lower = lower;
+      _upper = upper;
+      _mode = mode;
+    }
+
+    public override TimeSpan Sample(IRandom random) => Sample(random, _lower, _upper, _mode);
+    public static TimeSpan Sample(IRandom random, TimeSpan lower, TimeSpan upper, TimeSpan mode) {
+      var u = random.NextDouble();
+      var c = (mode - lower).TotalSeconds / (upper - lower).TotalSeconds;
+      if (u > c)
+        return upper + TimeSpan.FromSeconds((lower - upper).TotalSeconds * Math.Sqrt(((1.0 - u) * (1.0 - c))));
+      return lower + TimeSpan.FromSeconds((upper - lower).TotalSeconds * Math.Sqrt(u * c));
+    }
+    public static TimeSpan Sample(IRandom random, TimeSpan lower, TimeSpan upper) {
+      var u = random.NextDouble();
+      if (u > 0.5)
+        return upper + TimeSpan.FromSeconds((lower - upper).TotalSeconds * Math.Sqrt(((1.0 - u) / 2)));
+      return lower + TimeSpan.FromSeconds((upper - lower).TotalSeconds * Math.Sqrt(u / 2));
+    }
+  }
 
   /// <summary>
   /// The exponential distribution is memoryless and is often used to model interarrival times.
@@ -425,10 +513,7 @@ namespace SimSharp {
     private readonly double _mean;
     public double Mean => _mean;
     public double StdDev => 1.0 / _mean;
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(_mean);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(1.0 / _mean);
 
-    public Exponential(TimeSpan mean) : this(mean.TotalSeconds) { }
     public Exponential(double mean) {
       if (mean <= 0) throw new ArgumentException("must be > 0", nameof(mean));
       _mean = mean;
@@ -436,6 +521,24 @@ namespace SimSharp {
 
     public override double Sample(IRandom random) => Sample(random, _mean);
     public static double Sample(IRandom random, double mean) => -Math.Log(1 - random.NextDouble()) * mean;
+  }
+
+  /// <summary>
+  /// The exponential distribution is memoryless and is often used to model interarrival times.
+  /// All samples that follow an exponential distribution are positive.
+  /// </summary>
+  public class ExponentialTime : Distribution<TimeSpan> {
+    private readonly TimeSpan _mean;
+    public TimeSpan Mean => _mean;
+    public TimeSpan StdDev => TimeSpan.FromSeconds(1.0 / _mean.TotalSeconds);
+
+    public ExponentialTime(TimeSpan mean) {
+      if (mean <= TimeSpan.Zero) throw new ArgumentException("must be > TimeSpan.Zero", nameof(mean));
+      _mean = mean;
+    }
+
+    public override TimeSpan Sample(IRandom random) => Sample(random, _mean);
+    public static TimeSpan Sample(IRandom random, TimeSpan mean) => TimeSpan.FromSeconds(-Math.Log(1 - random.NextDouble()) * mean.TotalSeconds);
   }
 
   /// <summary>
@@ -449,10 +552,7 @@ namespace SimSharp {
 
     public double Mean => _mu;
     public double StdDev => _sigma;
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(_mu);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(_sigma);
 
-    public Normal(TimeSpan mu, TimeSpan sigma) : this(mu.TotalSeconds, sigma.TotalSeconds) { }
     public Normal(double mu, double sigma) {
       if (sigma < 0) throw new ArgumentException("must be >= 0", nameof(sigma));
       _mu = mu;
@@ -473,7 +573,7 @@ namespace SimSharp {
     }
 
     public static double Sample(IRandom random, double mu, double sigma) => MarsagliaPolar(random, mu, sigma, out _);
-    private static double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
+    internal static double MarsagliaPolar(IRandom random, double mu, double sigma, out double spare) {
       double u, v, s;
       do {
         u = random.NextDouble() * 2 - 1;
@@ -484,6 +584,49 @@ namespace SimSharp {
       spare = v * mul;
       return mu + sigma * u * mul;
     }
+
+    /// <summary>
+    /// Normal has a state in that the Marsaglia polar method generates two random variates per call
+    /// and the other variate is remembered. So the method is called only every second time that
+    /// <see cref="Sample(IRandom)"/> is called.
+    /// </summary>
+    public void Reset() {
+      _useSpareNormal = false;
+    }
+  }
+  
+  /// <summary>
+  /// The normal or Gaussian distribution is perhaps the most famous distribution.
+  /// In this class, normal distributed variates are generated using the Marsaglia polar method.
+  /// </summary>
+  public class NormalTime : Distribution<TimeSpan>, IStatefulDistribution<TimeSpan> {
+    private readonly TimeSpan _mu, _sigma;
+    private bool _useSpareNormal;
+    private double _spareNormal;
+
+    public TimeSpan Mean => _mu;
+    public TimeSpan StdDev => _sigma;
+
+    public NormalTime(TimeSpan mu, TimeSpan sigma) {
+      if (sigma < TimeSpan.Zero) throw new ArgumentException("must be >= TimeSpan.Zero", nameof(sigma));
+      _mu = mu;
+      _sigma = sigma;
+      _useSpareNormal = false;
+      _spareNormal = 0;
+    }
+
+    public override TimeSpan Sample(IRandom random) {
+      if (_sigma == TimeSpan.Zero) return _mu;
+      if (_useSpareNormal) {
+        _useSpareNormal = false;
+        return TimeSpan.FromSeconds(_spareNormal * _sigma.TotalSeconds + _mu.TotalSeconds);
+      } else {
+        _useSpareNormal = true;
+        return TimeSpan.FromSeconds(Normal.MarsagliaPolar(random, _mu.TotalSeconds, _sigma.TotalSeconds, out _spareNormal));
+      }
+    }
+
+    public static TimeSpan Sample(IRandom random, TimeSpan mu, TimeSpan sigma) => TimeSpan.FromSeconds(Normal.MarsagliaPolar(random, mu.TotalSeconds, sigma.TotalSeconds, out _));
 
     /// <summary>
     /// Normal has a state in that the Marsaglia polar method generates two random variates per call
@@ -507,18 +650,6 @@ namespace SimSharp {
     public double Mean { get; }
     public double StdDev { get; }
 
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
-
-    /// <summary>
-    /// Creates a log-normal distribution with a desired mean and standard deviation. Note that is not
-    /// the same as the mu and sigma values of the log-normal distribution. If you wish to parameterize
-    /// using mu and sigma, create a <see cref="Normal"/> with these parameters and pass it to the
-    /// <see cref="LogNormal(Normal)"/> constructor.
-    /// </summary>
-    /// <param name="mean">The desired mean of the distribution</param>
-    /// <param name="stdev">The desired standard deviation of the distribution</param>
-    public LogNormal(TimeSpan mean, TimeSpan stdev) : this(mean.TotalSeconds, stdev.TotalSeconds) { }
     /// <summary>
     /// Creates a log-normal distribution with a desired mean and standard deviation. Note that is not
     /// the same as the mu and sigma values of the log-normal distribution. If you wish to parameterize
@@ -567,6 +698,65 @@ namespace SimSharp {
   }
 
   /// <summary>
+  /// The log-normal distribution has only positive samples. In this class a <see cref="Normal"/> distributed random variate is transformed.
+  /// </summary>
+  public class LogNormalTime : Distribution<TimeSpan>, IStatefulDistribution<TimeSpan> {
+    private readonly NormalTime _normal;
+
+    public TimeSpan Mu => _normal.Mean;
+    public TimeSpan Sigma => _normal.StdDev;
+
+    public TimeSpan Mean { get; }
+    public TimeSpan StdDev { get; }
+
+    /// <summary>
+    /// Creates a log-normal distribution with a desired mean and standard deviation. Note that is not
+    /// the same as the mu and sigma values of the log-normal distribution. If you wish to parameterize
+    /// using mu and sigma, create a <see cref="NormalTime"/> with these parameters and pass it to the
+    /// <see cref="LogNormalTime(NormalTime)"/> constructor.
+    /// </summary>
+    /// <param name="mean">The desired mean of the distribution</param>
+    /// <param name="stdev">The desired standard deviation of the distribution</param>
+    public LogNormalTime(TimeSpan mean, TimeSpan stdev) {
+      if (stdev < TimeSpan.Zero) throw new ArgumentException("must be >= TimeSpan.Zero", nameof(stdev));
+      Mean = mean;
+      StdDev = stdev;
+      var sigma = Math.Sqrt(Math.Log(stdev.TotalSeconds * stdev.TotalSeconds / (mean.TotalSeconds * mean.TotalSeconds) + 1));
+      var mu = Math.Log(mean.TotalSeconds) - 0.5 * sigma * sigma;
+      _normal = new NormalTime(TimeSpan.FromSeconds(mu), TimeSpan.FromSeconds(sigma));
+    }
+    /// <summary>
+    /// Wraps the normal distribution into a log-normal. Note that the mean and standard deviation
+    /// will change. If you want a log-normal distribution with a certain mean, consider the
+    /// <see cref="LogNormalTime(TimeSpan, TimeSpan)"/> constructor instead.
+    /// </summary>
+    /// <param name="normal">The normal distribution to wrap.</param>
+    public LogNormalTime(NormalTime normal) {
+      if (normal == null) throw new ArgumentNullException(nameof(normal));
+      Mean = TimeSpan.FromSeconds(Math.Exp(normal.Mean.TotalSeconds + (0.5 * normal.StdDev.TotalSeconds * normal.StdDev.TotalSeconds)));
+      StdDev = TimeSpan.FromSeconds(Math.Sqrt((Math.Exp(normal.StdDev.TotalSeconds * normal.StdDev.TotalSeconds) - 1) * Math.Exp(2 * normal.Mean.TotalSeconds + normal.StdDev.TotalSeconds * normal.StdDev.TotalSeconds)));
+      _normal = normal;
+    }
+
+    public override TimeSpan Sample(IRandom random) {
+      return TimeSpan.FromSeconds(Math.Exp(_normal.Sample(random).TotalSeconds));
+    }
+
+    public static TimeSpan Sample(IRandom random, TimeSpan mean, TimeSpan stdev) {      
+      var sigma = Math.Sqrt(Math.Log(stdev.TotalSeconds * stdev.TotalSeconds / (mean.TotalSeconds * mean.TotalSeconds) + 1));
+      var mu = Math.Log(mean.TotalSeconds) - 0.5 * sigma * sigma;
+      return TimeSpan.FromSeconds(Normal.Sample(random, mu, sigma));
+    }
+
+    /// <summary>
+    /// As this method uses a normal distribution as its base, it resets the state
+    /// </summary>
+    public void Reset() {
+      _normal.Reset();
+    }
+  }
+
+  /// <summary>
   /// The Cauchy distributio is similar to the <see cref="Normal" /> distribution, but has fatter tails.
   /// </summary>
   public class Cauchy : Distribution<double> {
@@ -575,7 +765,6 @@ namespace SimSharp {
     public double X0 => _x0;
     public double Gamma => _gamma;
 
-    public Cauchy(TimeSpan x0, double gamma) : this(x0.TotalSeconds, gamma) { }
     public Cauchy(double x0, double gamma) {
       if (gamma <= 0) throw new ArgumentException("must be > 0", nameof(gamma));
       _x0 = x0;
@@ -588,6 +777,30 @@ namespace SimSharp {
 
     public static double Sample(IRandom random, double x0, double gamma) =>
       x0 + gamma * Math.Tan(Math.PI * (random.NextDouble() - 0.5));
+  }
+
+  /// <summary>
+  /// The Cauchy distributio is similar to the <see cref="Normal" /> distribution, but has fatter tails.
+  /// </summary>
+  public class CauchyTime : Distribution<TimeSpan> {
+    private readonly TimeSpan _x0;
+    private readonly double _gamma;
+
+    public TimeSpan X0 => _x0;
+    public double Gamma => _gamma;
+
+    public CauchyTime(TimeSpan x0, double gamma) {
+      if (gamma <= 0) throw new ArgumentException("must be > 0", nameof(gamma));
+      _x0 = x0;
+      _gamma = gamma;
+    }
+
+    public override TimeSpan Sample(IRandom random) {
+      return Sample(random, _x0, _gamma);
+    }
+
+    public static TimeSpan Sample(IRandom random, TimeSpan x0, double gamma) =>
+      x0 + TimeSpan.FromSeconds(gamma * Math.Tan(Math.PI * (random.NextDouble() - 0.5)));
   }
 
   /// <summary>
@@ -613,6 +826,9 @@ namespace SimSharp {
       beta * Math.Pow(-Math.Log(1 - random.NextDouble()), 1 / alpha);
   }
 
+  /// <summary>
+  /// The Erlang distribution describes the sum of k identically distributed exponential distributions
+  /// </summary>
   public class Erlang : Distribution<double> {
     private readonly int _k;
     private readonly double _lambda;
@@ -622,10 +838,7 @@ namespace SimSharp {
 
     public double Mean => _k / _lambda;
     public double StdDev => Math.Sqrt(_k) / _lambda;
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(Mean);
-    public TimeSpan StdDevTime => TimeSpan.FromSeconds(StdDev);
     
-    public Erlang(int k, TimeSpan lambda) : this(k, lambda.TotalSeconds) { }
     public Erlang(int k, double lambda) {
       if (k <= 0) throw new ArgumentException("must be > 0", nameof(k));
       if (lambda <= 0) throw new ArgumentException("must be > 0", nameof(lambda));
@@ -642,6 +855,38 @@ namespace SimSharp {
       for (var i = 0; i < k; i++)
         prod *= (1.0 - random.NextDouble());
       return -Math.Log(prod) / lambda;
+    }
+  }
+
+  /// <summary>
+  /// The Erlang distribution describes the sum of k identically distributed exponential distributions
+  /// </summary>
+  public class ErlangTime : Distribution<TimeSpan> {
+    private readonly int _k;
+    private readonly TimeSpan _lambda;
+
+    public int K => _k;
+    public TimeSpan Lambda => _lambda;
+
+    public TimeSpan Mean => TimeSpan.FromSeconds(_k / _lambda.TotalSeconds);
+    public TimeSpan StdDev => TimeSpan.FromSeconds(Math.Sqrt(_k) / _lambda.TotalSeconds);
+    
+    public ErlangTime(int k, TimeSpan lambda) {
+      if (k <= 0) throw new ArgumentException("must be > 0", nameof(k));
+      if (lambda <= TimeSpan.Zero) throw new ArgumentException("must be > TimeSpan.Zero", nameof(lambda));
+      _k = k;
+      _lambda = lambda;
+    }
+
+    public override TimeSpan Sample(IRandom random) {
+      return Sample(random, _k, _lambda);
+    }
+
+    public static TimeSpan Sample(IRandom random, int k, TimeSpan lambda) {
+      var prod = 1.0;
+      for (var i = 0; i < k; i++)
+        prod *= (1.0 - random.NextDouble());
+      return TimeSpan.FromSeconds(-Math.Log(prod) / lambda.TotalSeconds);
     }
   }
 

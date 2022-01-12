@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class KanbanControl {
@@ -14,8 +15,8 @@ namespace SimSharp.Samples {
     private Resource kanban;
     private Resource server;
     private TimeSeriesMonitor stockStat;
-    private static readonly Exponential OrderArrival = new Exponential(TimeSpan.FromMinutes(3.33));
-    private static readonly Exponential ProcessingTime = new Exponential(TimeSpan.FromMinutes(2.5));
+    private static readonly ExponentialTime OrderArrival = EXP(TimeSpan.FromMinutes(3.33));
+    private static readonly ExponentialTime ProcessingTime = EXP(TimeSpan.FromMinutes(2.5));
     private int completedOrders;
 
     private IEnumerable<Event> Source() {

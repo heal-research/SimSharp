@@ -11,7 +11,7 @@ namespace SimSharp.Samples {
   class RunAllSamples {
     public static void Main(string[] args) {
       // Run all samples one after another
-      /*new BankRenege().Simulate();
+      new BankRenege().Simulate();
       Console.WriteLine();
       new GasStationRefueling().Simulate();
       Console.WriteLine();
@@ -26,10 +26,10 @@ namespace SimSharp.Samples {
       new SimpleShop().Simulate();
       Console.WriteLine();
       new KanbanControl().Simulate();
-      Console.WriteLine();*/
+      Console.WriteLine();
       new MM1Queueing().Simulate();
       Console.WriteLine();
-      //new PseudoRealtimeSample().Simulate();
+      new PseudoRealtimeSample().Simulate();
     }
   }
 }

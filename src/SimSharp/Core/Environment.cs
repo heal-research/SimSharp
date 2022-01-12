@@ -287,9 +287,6 @@ namespace SimSharp {
     public bool TryRand<T>(IRejectionSampledDistribution<T> distribution, out T sample) {
       return distribution.TrySample(Random, out sample);
     }
-    public TimeSpan RandAsTime(IDistribution<double> distribution) {
-      return ToTimeSpan(distribution.Sample(Random));
-    }
 
     #region Obsolete code
     [Obsolete("Consider to use the respective distribution class")]
@@ -878,9 +875,7 @@ namespace SimSharp {
 
     #region Random timeouts
     /// <summary>
-    /// This method expects the duration in units of defaultstep. If duration are in seconds
-    /// or you used the TimeSpan constructors for the specific distribution, then use
-    /// <see cref="Timeout(IRandom, IDistribution{double})"/>.
+    /// This method samples a timeout from the given distribution and expects the duration in units of defaultstep.
     /// </summary>
     /// <param name="random">The pseudo random number generator to use</param>
     /// <param name="duration">The duration distribution in units of defaultstep (defaults to 1 unit = 1 second)</param>
@@ -889,9 +884,7 @@ namespace SimSharp {
       return new Timeout(this, ToTimeSpan(duration.Sample(random)));
     }
     /// <summary>
-    /// This method expects the duration in units of defaultstep. If duration are in seconds
-    /// or you used the TimeSpan constructors for the specific distribution, then use
-    /// <see cref="Timeout(IDistribution{double})"/>.
+    /// This method samples a timeout from the given distribution and expects the duration in units of defaultstep.
     /// 
     /// It uses the default random number generator instance of this class.
     /// </summary>
@@ -901,27 +894,23 @@ namespace SimSharp {
       return TimeoutD(Random, duration);
     }
     /// <summary>
-    /// This method expects the duration in seconds. If durations are given in units of defaultStep,
-    /// then use <see cref="TimeoutD(IRandom, IDistribution{double})"/>. Units are in seconds if you
-    /// used the respective constructor that permitted a TimeSpan object, e.g. as mean.
+    /// This method creates a timeout sampled from a distribution in the TimeSpan domain.
     /// </summary>
     /// <param name="random">The pseudo random number generator to use</param>
     /// <param name="duration">The duration distribution in units of seconds</param>
     /// <returns>The timeout event</returns>
-    public Timeout Timeout(IRandom random, IDistribution<double> duration) {
-      return new Timeout(this, TimeSpan.FromSeconds(duration.Sample(random)));
+    public Timeout Timeout(IRandom random, IDistribution<TimeSpan> duration) {
+      return new Timeout(this, duration.Sample(random));
     }
     /// <summary>
-    /// This method expects the duration in seconds. If durations are given in units of defaultStep,
-    /// then use <see cref="TimeoutD(IDistribution{double})"/>. Units are in seconds if you
-    /// used the respective constructor that permitted a TimeSpan object, e.g. as mean.
+    /// This method creates a timeout sampled from a distribution in the TimeSpan domain.
     /// 
     /// It uses the default random number generator instance of this class.
     /// </summary>
     /// <param name="duration">The duration distribution in units of seconds</param>
     /// <returns>The timeout event</returns>
-    public Timeout Timeout(IDistribution<double> duration) {
-      return new Timeout(this, TimeSpan.FromSeconds(duration.Sample(Random)));
+    public Timeout Timeout(IDistribution<TimeSpan> duration) {
+      return new Timeout(this, duration.Sample(Random));
     }
 
     #region Obsolete code

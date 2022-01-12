@@ -7,11 +7,12 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class MM1Queueing {
-    private static readonly Exponential OrderArrival = new Exponential(TimeSpan.FromMinutes(3.33));
-    private static readonly Exponential ProcessingTime = new Exponential(TimeSpan.FromMinutes(2.5));
+    private static readonly ExponentialTime OrderArrival = EXP(TimeSpan.FromMinutes(3.33));
+    private static readonly ExponentialTime ProcessingTime = EXP(TimeSpan.FromMinutes(2.5));
     
     private IEnumerable<Event> Source(Simulation env, Resource server) {
       while (true) {
@@ -34,8 +35,8 @@ namespace SimSharp.Samples {
     }
 
     public void Simulate(int repetitions = 5) {
-      var lambda = 1 / OrderArrival.MeanTime.TotalDays;
-      var mu = 1 / ProcessingTime.MeanTime.TotalDays;
+      var lambda = 1 / OrderArrival.Mean.TotalDays;
+      var mu = 1 / ProcessingTime.Mean.TotalDays;
       var rho = lambda / mu;
       var analyticWIP = rho / (1 - rho);
       var analyticLeadtime = 1 / (mu - lambda);

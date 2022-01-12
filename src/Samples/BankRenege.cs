@@ -7,23 +7,24 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class BankRenege {
 
     private const int NewCustomers = 10; // Total number of customers
-    private static readonly Exponential Arrival = new Exponential(TimeSpan.FromMinutes(10.0)); // Generate new customers roughly every x minutes
-    private static readonly Uniform Patience = new Uniform(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(3)); // Customer patience
+    private static readonly IDistribution<TimeSpan> Arrival = EXP(TimeSpan.FromMinutes(10.0)); // Generate new customers roughly every x minutes
+    private static readonly IDistribution<TimeSpan> Patience = UNIF(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(3)); // Customer patience
 
     private IEnumerable<Event> Source(Simulation env, Resource counter) {
       for (int i = 0; i < NewCustomers; i++) {
-        var c = Customer(env, "Customer " + i, counter, new Exponential(TimeSpan.FromMinutes(12.0)));
+        var c = Customer(env, "Customer " + i, counter, EXP(TimeSpan.FromMinutes(12.0)));
         env.Process(c);
         yield return env.Timeout(Arrival);
       }
     }
 
-    private IEnumerable<Event> Customer(Simulation env, string name, Resource counter, IDistribution<double> meanTimeInBank) {
+    private IEnumerable<Event> Customer(Simulation env, string name, Resource counter, IDistribution<TimeSpan> meanTimeInBank) {
       var arrive = env.Now;
 
       env.Log("{0} {1}: Here I am", arrive, name);

@@ -30,15 +30,15 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     1) All of the RandXXX methods in class Simulation have been marked as obsolete.
     2) All of the random TimeoutXXX methods in class Simulation have been marked as obsolete.
 
-    To port code you need to change e.g.
-    env.RandUniform(1, 2) to env.Rand(new Uniform(1, 2))
-    env.RandNormalPositive(3, 0.5) to env.Rand(new BoundedContinous(new Normal(3, 0.5), lower: 0, excludeLower: true))
-    env.RandLogNormal(1, 2) to env.Rand(new LogNormal(new Normal(1, 2)))
-    env.RandLogNormal2(1, 2) to env.Rand(new LogNormal(1, 2))
+    To port code, it is advised to add &quot;using static SimSharp.Distributions&quot; to the using section and change e.g.
+    env.RandUniform(1, 2) to env.Rand(UNIF(1, 2))
+    env.RandNormalPositive(3, 0.5) to env.Rand(POS(N(3, 0.5)))
+    env.RandLogNormal(1, 2) to env.Rand(LNORM(1, 2))
+    env.RandLogNormal2(1, 2) to env.Rand(LNORM2(1, 2))
     etc.
-    env.TimeoutUniform(1, 2) to env.Timeout(new Uniform(1, 2))
-    env.TimeoutLogNormal(1, 2) to env.Timeout(new LogNormal(new Normal(1, 2)))
-    env.TimeoutLogNormal2(1, 2) to env.Timeout(new LogNormal(1, 2))
+    env.TimeoutUniformD(1, 2) to env.TimeoutD(UNIF(1, 2))
+    env.TimeoutLogNormalD(1, 2) to env.TimeoutD(LNORM(1, 2))
+    env.TimeoutLogNormal2D(1, 2) to env.Timeout(LNORM2(1, 2))
     etc.
     The RandChoice methods have been replaced with EmpiricalUniform and EmpiricalNonUniform distributions.
 

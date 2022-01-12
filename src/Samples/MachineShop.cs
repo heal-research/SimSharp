@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class MachineShop {
@@ -28,8 +29,8 @@ namespace SimSharp.Samples {
      */
     private const int RandomSeed = 42;
     private const int NumMachines = 10; // Number of machines in the machine shop
-    private static readonly Normal ProcessingTime = new Normal(TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(2.0)); // Processing time distribution
-    private static readonly Exponential Failure = new Exponential(TimeSpan.FromMinutes(300.0)); // Failure distribution
+    private static readonly NormalTime ProcessingTime = N(TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(2.0)); // Processing time distribution
+    private static readonly ExponentialTime Failure = EXP(TimeSpan.FromMinutes(300.0)); // Failure distribution
     private static readonly TimeSpan RepairTime = TimeSpan.FromMinutes(30.0); // Time it takes to repair a machine in minutes
     private static readonly TimeSpan JobDuration = TimeSpan.FromMinutes(30.0); // Duration of other jobs in minutes
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(28); // Simulation time in minutes
@@ -67,7 +68,7 @@ namespace SimSharp.Samples {
          */
         while (true) {
           // Start making a new part
-          var doneIn = Environment.RandAsTime(ProcessingTime);
+          var doneIn = Environment.Rand(ProcessingTime);
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;

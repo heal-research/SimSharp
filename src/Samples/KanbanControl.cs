@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class KanbanControl {
@@ -14,13 +15,13 @@ namespace SimSharp.Samples {
     private Resource kanban;
     private Resource server;
     private TimeSeriesMonitor stockStat;
-    private static readonly TimeSpan OrderArrivalTime = TimeSpan.FromMinutes(3.33);
-    private static readonly TimeSpan ProcessingTime = TimeSpan.FromMinutes(2.5);
+    private static readonly ExponentialTime OrderArrival = EXP(TimeSpan.FromMinutes(3.33));
+    private static readonly ExponentialTime ProcessingTime = EXP(TimeSpan.FromMinutes(2.5));
     private int completedOrders;
 
     private IEnumerable<Event> Source() {
       while (true) {
-        yield return env.TimeoutExponential(OrderArrivalTime);
+        yield return env.Timeout(OrderArrival);
         env.Process(Order());
       }
     }
@@ -36,7 +37,7 @@ namespace SimSharp.Samples {
     private IEnumerable<Event> Produce(Request kb) {
       using (var srv = server.Request()) {
         yield return srv;
-        yield return env.TimeoutExponential(ProcessingTime);
+        yield return env.Timeout(ProcessingTime);
         kanban.Release(kb);
         stockStat.UpdateTo(kanban.Remaining);
       }

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Timers;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Benchmarks {
   public class SyntheticBenchmark {
@@ -106,8 +107,9 @@ namespace SimSharp.Benchmarks {
     }
 
     static IEnumerable<Event> Benchmark1Proc(Simulation env, int n) {
+      var dist = UNIF(TimeSpan.Zero, TimeSpan.FromSeconds(2 * n));
       while (true) {
-        yield return env.TimeoutUniform(TimeSpan.Zero, TimeSpan.FromSeconds(2 * n));
+        yield return env.Timeout(dist);
         perf++;
       }
     }

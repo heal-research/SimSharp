@@ -7,31 +7,31 @@
 
 using System;
 using System.Collections.Generic;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class BankRenege {
 
     private const int NewCustomers = 10; // Total number of customers
-    private static readonly TimeSpan IntervalCustomers = TimeSpan.FromMinutes(10.0); // Generate new customers roughly every x minutes
-    private static readonly TimeSpan MinPatience = TimeSpan.FromMinutes(1); // Min. customer patience
-    private static readonly TimeSpan MaxPatience = TimeSpan.FromMinutes(3); // Max. customer patience
+    private static readonly IDistribution<TimeSpan> Arrival = EXP(TimeSpan.FromMinutes(10.0)); // Generate new customers roughly every x minutes
+    private static readonly IDistribution<TimeSpan> Patience = UNIF(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(3)); // Customer patience
 
     private IEnumerable<Event> Source(Simulation env, Resource counter) {
       for (int i = 0; i < NewCustomers; i++) {
-        var c = Customer(env, "Customer " + i, counter, TimeSpan.FromMinutes(12.0));
+        var c = Customer(env, "Customer " + i, counter, EXP(TimeSpan.FromMinutes(12.0)));
         env.Process(c);
-        yield return env.TimeoutExponential(IntervalCustomers);
+        yield return env.Timeout(Arrival);
       }
     }
 
-    private IEnumerable<Event> Customer(Simulation env, string name, Resource counter, TimeSpan meanTimeInBank) {
+    private IEnumerable<Event> Customer(Simulation env, string name, Resource counter, IDistribution<TimeSpan> meanTimeInBank) {
       var arrive = env.Now;
 
       env.Log("{0} {1}: Here I am", arrive, name);
 
       using (var req = counter.Request()) {
         // Wait for the counter or abort at the end of our tether
-        var timeout = env.TimeoutUniform(MinPatience, MaxPatience);
+        var timeout = env.Timeout(Patience);
         yield return req | timeout;
 
         var wait = env.Now - arrive;
@@ -40,7 +40,7 @@ namespace SimSharp.Samples {
           // We got the counter
           env.Log("{0} {1}: waited {2}", env.Now, name, wait);
 
-          yield return env.TimeoutExponential(meanTimeInBank);
+          yield return env.Timeout(meanTimeInBank);
           env.Log("{0} {1}: Finished", env.Now, name);
         } else {
           // We reneged

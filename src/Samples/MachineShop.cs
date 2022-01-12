@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static SimSharp.Distributions;
 
 namespace SimSharp.Samples {
   public class MachineShop {
@@ -28,9 +29,8 @@ namespace SimSharp.Samples {
      */
     private const int RandomSeed = 42;
     private const int NumMachines = 10; // Number of machines in the machine shop
-    private static readonly TimeSpan PtMean = TimeSpan.FromMinutes(10.0); // Avg. processing time in minutes
-    private static readonly TimeSpan PtSigma = TimeSpan.FromMinutes(2.0); // Sigma of processing time
-    private static readonly TimeSpan Mttf = TimeSpan.FromMinutes(300.0); // Mean time to failure in minutes
+    private static readonly NormalTime ProcessingTime = N(TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(2.0)); // Processing time distribution
+    private static readonly ExponentialTime Failure = EXP(TimeSpan.FromMinutes(300.0)); // Failure distribution
     private static readonly TimeSpan RepairTime = TimeSpan.FromMinutes(30.0); // Time it takes to repair a machine in minutes
     private static readonly TimeSpan JobDuration = TimeSpan.FromMinutes(30.0); // Duration of other jobs in minutes
     private static readonly TimeSpan SimTime = TimeSpan.FromDays(28); // Simulation time in minutes
@@ -68,7 +68,7 @@ namespace SimSharp.Samples {
          */
         while (true) {
           // Start making a new part
-          var doneIn = Environment.RandNormal(PtMean, PtSigma);
+          var doneIn = Environment.Rand(ProcessingTime);
           while (doneIn > TimeSpan.Zero) {
             // Working on the part
             var start = Environment.Now;
@@ -95,7 +95,7 @@ namespace SimSharp.Samples {
       private IEnumerable<Event> BreakMachine() {
         // Break the machine every now and then.
         while (true) {
-          yield return Environment.TimeoutExponential(Mttf);
+          yield return Environment.Timeout(Failure);
           if (!Broken) {
             // Only break the machine if it is currently working.
             Process.Interrupt();

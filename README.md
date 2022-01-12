@@ -16,16 +16,18 @@ Sim# aims to port the concepts used in SimPy [1] to the .NET world. Sim# is impl
 
 Sim# allows modeling processes easily and with little boiler plate code. A process is described as a method that yields events. When an event is yielded, the process waits on it. Processes are themselves events and so it is convenient to spawn sub-processes that can either be waited upon or that run next to each other. There is no need to inherit from classes or understand a complex object oriented design.
 
-To demonstrate how simple models can be expressed with little code, consider a model of an m/m/1 queuing system as expressed in Sim#:
+To demonstrate how simple models can be expressed with little code, consider a model of an m/m/1 queuing system as expressed in the current version of Sim#:
 
 ```csharp
-TimeSpan ARRIVAL_TIME = TimeSpan.FromSeconds(...);
-TimeSpan PROCESSING_TIME = TimeSpan.FromSeconds(...);
+using static SimSharp.Distributions;
+
+ExponentialTime ARRIVAL = EXP(TimeSpan.FromSeconds(...));
+ExponentialTime PROCESSING = EXP(TimeSpan.FromSeconds(...));
 TimeSpan SIMULATION_TIME = TimeSpan.FromHours(...);
 
 IEnumerable<Event> MM1Q(Simulation env, Resource server) {
   while (true) {
-    yield return env.TimeoutExponential(ARRIVAL_TIME);
+    yield return env.Timeout(ARRIVAL);
     env.Process(Item(env, server));
   }
 }
@@ -33,7 +35,7 @@ IEnumerable<Event> MM1Q(Simulation env, Resource server) {
 IEnumerable<Event> Item(Simulation env, Resource server) {
   using (var s = server.Request()) {
     yield return s;
-    yield return env.TimeoutExponential(PROCESSING_TIME);
+    yield return env.Timeout(PROCESSING);
     Console.WriteLine("Duration {0}", env.Now - s.Time);
   }
 }
@@ -41,7 +43,7 @@ IEnumerable<Event> Item(Simulation env, Resource server) {
 void RunSimulation() {
   var env = new Simulation(randomSeed: 42);
   var server = new Resource(env, capacity: 1) {
-      QueueLength = new TimeSeriesMonitor(env, collect: true)
+    QueueLength = new TimeSeriesMonitor(env, collect: true)
   };
   env.Process(MM1Q(env, server));
   env.Run(SIMULATION_TIME);
@@ -65,7 +67,15 @@ Also in Sim# it was decided to base the unit for current time and delays on `Dat
 var env = new Simulation(defaultStep: TimeSpan.FromMinutes(1));
   ```
 
-In that environment, calling `env.TimeoutD(1)` would be equal to calling the more elaborate standard API `env.Timeout(TimeSpan.FromMinutes(1))`.
+In that environment, calling `env.TimeoutD(1)` would be equal to calling the more elaborate standard API `env.Timeout(TimeSpan.FromMinutes(1))`. In case timeouts are sampled from a distribution, it is important to distinguish the `TimeoutD(IDistribution<double>)`and `Timeout(IDistribution<TimeSpan>)` methods. Again, the former assumes the unit that is given in `defaultStep`, e.g., minutes as in the case above. For instance, `env.TimeoutD(new Exponential(2))` would indicate a mean of 2 minutes in the above environment, while `env.Timeout(new Exponential(TimeSpan.FromMinutes(2))` would always mean two minutes, regardless of the `defaultStep`. In generally, the `TimeSpan` API is preferred as it already expresses time in the appropriate units.
+
+For shortcuts of the distribution classes a static class `Distributions` exists. You can put `using static SimSharp.Distributions;` in the using declarations and then use those methods without a qualifier. The following code snippet shows this feature.
+
+  ```csharp
+using static SimSharp.Distributions;
+// ... additional code excluded
+yield return env.TimeoutD(UNIF(10, 20));
+  ```
 
 ## References
 

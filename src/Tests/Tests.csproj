@@ -3,13 +3,13 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <Version>3.3</Version>
+    <Version>3.4</Version>
     <Authors>Andreas Beham</Authors>
     <Company>HEAL, FH Upper Austria</Company>
     <Product>Sim# (Tests)</Product>
     <Description />
-    <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/heal-research/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/heal-research/SimSharp</PackageProjectUrl>
     <Copyright>Andreas Beham</Copyright>
     <RootNamespace>SimSharp.Tests</RootNamespace>
   </PropertyGroup>

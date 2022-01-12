@@ -4,13 +4,13 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <Authors>Andreas Beham</Authors>
-    <Version>3.3</Version>
+    <Version>3.4</Version>
     <Company>HEAL, FH Upper Austria</Company>
     <Product>Sim# (Benchmarks)</Product>
     <Description />
     <Copyright>Andreas Beham</Copyright>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/abeham/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/abeham/SimSharp</PackageProjectUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/heal-research/SimSharp/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/heal-research/SimSharp</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

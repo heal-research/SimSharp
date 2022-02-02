@@ -125,6 +125,7 @@ namespace MyApplication {
     }
   }
 }
+```
 
 ### Samples
 

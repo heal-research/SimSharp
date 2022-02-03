@@ -73,6 +73,13 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <RepositoryUrl>https://github.com/heal-research/SimSharp.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>discrete-event simulation</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- including PDB files in NuGet for source link because symbolsource.org does not support portable PDBs -->
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+  </PropertyGroup>
+   
+  <PropertyGroup Condition="'$(APPVEYOR)' == 'True'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <Target Name="CopyDocumentationFile" AfterTargets="ComputeFilesToPublish">
@@ -87,5 +94,12 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

@@ -170,19 +170,21 @@ namespace SimSharp.Tests {
 
     [Fact]
     public void PseudoRealtimeEnvTestStopTest() {
-      var then = DateTime.UtcNow;
+      var sw = Stopwatch.StartNew();
       var env = new PseudoRealtimeSimulation();
       env.Run(TimeSpan.FromSeconds(1));
-      var now = DateTime.UtcNow;
-      Assert.True(now - then >= TimeSpan.FromSeconds(1));
+      sw.Stop();
+      Assert.True(sw.Elapsed >= TimeSpan.FromSeconds(1));
 
-      then = DateTime.UtcNow;
+      sw.Restart();
+      var simTime = env.Now;
       var t = Task.Run(() => env.Run(TimeSpan.FromMinutes(1)));
       Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
       env.StopAsync();
       t.Wait();
-      now = DateTime.UtcNow;
-      Assert.True(now - then < TimeSpan.FromMinutes(1));
+      sw.Stop();
+      // probably safe to assume this didn't take longer than 10s
+      Assert.True(env.Now - simTime < TimeSpan.FromSeconds(10));
     }
 
     [Fact]

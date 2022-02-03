@@ -89,7 +89,7 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
   </Target>
 
   <ItemGroup>
-    <None Include="$(SolutionDir)..\LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>

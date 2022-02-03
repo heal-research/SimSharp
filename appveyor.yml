@@ -7,7 +7,8 @@ build_script:
     dotnet restore
 
     dotnet build --configuration Release
-    dotnet pack --no-build --configuration Release
+
+    dotnet pack SimSharp --no-build --configuration Release
     
     popd
 

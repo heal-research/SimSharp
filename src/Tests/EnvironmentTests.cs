@@ -176,11 +176,13 @@ namespace SimSharp.Tests {
       var now = DateTime.UtcNow;
       Assert.True(now - then >= TimeSpan.FromSeconds(1));
 
+      then = DateTime.UtcNow;
       var t = Task.Run(() => env.Run(TimeSpan.FromMinutes(1)));
       Task.Delay(TimeSpan.FromMilliseconds(200)).Wait();
       env.StopAsync();
-      Task.Delay(TimeSpan.FromMilliseconds(500)).Wait();
-      Assert.True(t.IsCompleted);
+      t.Wait();
+      now = DateTime.UtcNow;
+      Assert.True(now - then < TimeSpan.FromMinutes(1));
     }
 
     [Fact]

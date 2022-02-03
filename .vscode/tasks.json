@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/SimSharp.sln"
+                "${workspaceFolder}/src/SimSharp.sln"
             ],
             "problemMatcher": "$msCompile",
             "presentation": {
@@ -25,7 +25,7 @@
                 "build",
                 "-c",
                 "Release",
-                "${workspaceFolder}/SimSharp.sln"
+                "${workspaceFolder}/src/SimSharp.sln"
             ],
             "problemMatcher": "$msCompile",
             "presentation": {
@@ -42,7 +42,7 @@
             "group": "test",
             "args": [
                 "test",
-                "${workspaceFolder}/Tests/Tests.csproj"
+                "${workspaceFolder}/src/Tests/Tests.csproj"
             ],
             "problemMatcher": "$msCompile",
             "presentation": {
@@ -58,7 +58,7 @@
             "type": "shell",
             "args": [
                 "clean",
-                "${workspaceFolder}/SimSharp.sln"
+                "${workspaceFolder}/src/SimSharp.sln"
             ],
             "problemMatcher": "$msCompile",
             "presentation": {

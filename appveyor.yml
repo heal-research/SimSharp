@@ -25,3 +25,5 @@ test_script:
 artifacts:
 - path: 'src\SimSharp\bin\Release\*.nupkg'
   name: NuGet Package
+- path: 'src\SimSharp\bin\Release\*.snupkg'
+  name: Symbols NuGet Package

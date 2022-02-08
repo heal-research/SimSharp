@@ -7,7 +7,7 @@
     <DelaySign>False</DelaySign>
     <AssemblyName>SimSharp</AssemblyName>
     <RootNamespace>SimSharp</RootNamespace>
-    <Version>3.4</Version>
+    <Version>3.4.1</Version>
     <Authors>Andreas Beham</Authors>
     <Description>Sim# aims to port the concepts used in SimPy (https://pypi.python.org/pypi/simpy) to the .NET world. It is implemented in C# and builds on the .NET Framework 4.5 / .NET Standard 2.0. Sim# uses an efficient event queue (adapted from https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp). The MachineShop benchmark comes close to 3.5 million events per second on a Core i7-7 2.7Ghz.
 
@@ -16,7 +16,10 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <Company>HEAL, FH Upper Austria</Company>
     <Copyright>Andreas Beham</Copyright>
     <PackageProjectUrl>https://github.com/heal-research/SimSharp</PackageProjectUrl>
-    <PackageReleaseNotes>Sim# 3.4 contains two enhancements, two bug fixes, and some deprecations.
+    <PackageReleaseNotes>
+    Sim# 3.4.1 adds source links to the NuGet package.
+    
+    Sim# 3.4 contains two enhancements, two bug fixes, and some deprecations.
     
     Enhancement
     1) Adds implementations of sampling from distributions in form of classes and an IDistribtion interface.
@@ -57,6 +60,8 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSource>True</IncludeSource>
     <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <NoWarn>$(NoWarn);1591;1734</NoWarn>
   </PropertyGroup>
 
@@ -74,8 +79,6 @@ Sim# allows modeling processes easily and with little boiler plate code. A proce
     <RepositoryType>git</RepositoryType>
     <PackageTags>discrete-event simulation</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <!-- including PDB files in NuGet for source link because symbolsource.org does not support portable PDBs -->
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
    
   <PropertyGroup Condition="'$(APPVEYOR)' == 'True'">

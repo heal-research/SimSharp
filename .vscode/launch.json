@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "releasebuild",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Benchmark/bin/Release/netcoreapp2.1/Benchmark.dll",
+            "program": "${workspaceFolder}/src/Benchmark/bin/Release/net5.0/Benchmark.dll",
             "args": ["machineshop"],
             "cwd": "${workspaceFolder}/src/Benchmark",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
@@ -24,7 +24,7 @@
             "request": "launch",
             "preLaunchTask": "releasebuild",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Benchmark/bin/Release/netcoreapp2.1/Benchmark.dll",
+            "program": "${workspaceFolder}/src/Benchmark/bin/Release/net5.0/Benchmark.dll",
             "args": ["synthetic", "--repetitions", "3", "--time", "60", "--cpufreq", "2.9"],
             "cwd": "${workspaceFolder}/src/Benchmark",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
@@ -38,7 +38,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Samples/bin/Debug/netcoreapp2.1/Samples.dll",
+            "program": "${workspaceFolder}/src/Samples/bin/Debug/net5.0/Samples.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Samples",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window

@@ -366,7 +366,7 @@ namespace SimSharp {
     public double Lower => _lower;
     public double Upper => _upper;
 
-    public double Mean => 0.5 * (_upper - _lower);
+    public double Mean =>  0.5 * (_lower + _upper);
     public double StdDev => Math.Sqrt((_upper - _lower) * (_upper - _lower) / 12.0);
 
     public Uniform(double lower, double upperExclusive) {
@@ -390,7 +390,7 @@ namespace SimSharp {
 
     public TimeSpan Lower => _lower;
     public TimeSpan Upper => _upper;
-    public TimeSpan MeanTime => TimeSpan.FromSeconds(0.5 * (_upper - _lower).TotalSeconds);
+    public TimeSpan MeanTime => TimeSpan.FromSeconds(0.5 * (_lower + _upper).TotalSeconds);
     public TimeSpan StdDevTime => TimeSpan.FromSeconds(Math.Sqrt((_upper - _lower).TotalSeconds * (_upper - _lower).TotalSeconds / 12.0));
 
     public UniformTime(TimeSpan lower, TimeSpan upperExclusive) {

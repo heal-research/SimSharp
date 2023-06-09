@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Authors>Andreas Beham</Authors>
     <Version>3.4</Version>
     <Company>HEAL, FH Upper Austria</Company>

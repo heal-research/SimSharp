@@ -55,7 +55,7 @@ namespace SimSharp.Samples {
 
         // Get the required amount of fuel
         var litersRequired = FuelTankSize - fuelTankLevel;
-        if (litersRequired > fuelPump.Level) {
+        if (litersRequired > fuelPump.Level && fuelPump.Level > 0) {
           var level = fuelPump.Level;
           yield return fuelPump.Get(level); // draw it empty
           yield return env.Timeout(TimeSpan.FromSeconds(level / RefuelingSpeed));
